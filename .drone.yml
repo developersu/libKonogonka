@@ -24,7 +24,10 @@ steps:
   - name: install-local-repo
     image: maven:3-jdk-11
     commands:
-      - . .deploy_locally
+      - . ./.deploy_locally
+    volumes:
+      - name: m2
+        path: /root/.m2
 
 volumes:
   - name: m2
