@@ -3,10 +3,10 @@ type: docker
 name: default
 
 steps:
-  - name: test
+  - name: build-install-locally
     image: maven:3-jdk-11
     commands:
-      - mvn -B -DskipTests clean package
+      - mvn -B -DskipTests clean install
       - mvn test -B
     volumes:
       - name: m2
@@ -20,14 +20,6 @@ steps:
     volumes:
       - name: builds
         path: /builds
-
-  - name: install-local-repo
-    image: maven:3-jdk-11
-    commands:
-      - . ./.deploy_locally
-    volumes:
-      - name: m2
-        path: /root/.m2
 
 volumes:
   - name: m2
