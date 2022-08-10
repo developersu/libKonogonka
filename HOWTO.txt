@@ -1,0 +1,9 @@
+How to add library into the local maven repository:
+
+mvn install:install-file \
+   -Dfile=./libKonogonka/target/libKonogonka-0.1-jar-with-dependencies.jar \
+   -DgroupId=ru.redrise \
+   -DartifactId=libKonogonka \
+   -Dversion=0.1 \
+   -Dpackaging=jar \
+   -DgeneratePom=true

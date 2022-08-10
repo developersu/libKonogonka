@@ -1,0 +1,36 @@
+kind: pipeline
+type: docker
+name: default
+
+steps:
+  - name: test
+    image: maven:3-jdk-11
+    commands:
+      - mvn -B -DskipTests clean package
+      - mvn test -B
+    volumes:
+      - name: m2
+        path: /root/.m2
+
+  - name: archive-artifact
+    image: alpine:latest
+    commands:
+      - mkdir -p /builds/libKonogonka
+      - cp target/libKonogonka-*-jar-with-dependencies.jar /builds/libKonogonka/
+    volumes:
+      - name: builds
+        path: /builds
+
+  - name: install-local-repo
+    image: alpine:latest
+    commands:
+      - mvn install:install-file -Dfile=./target/libKonogonka-*-jar-with-dependencies.jar -DgroupId=ru.redrise -DartifactId=libKonogonka -Dversion=`grep -m 1 '<version>' pom.xml| sed -e 's/\s*.\/\?version>//g'
+        ` -Dpackaging=jar -DgeneratePom=true;
+
+volumes:
+  - name: m2
+    host:
+      path: /home/docker/drone/files/m2
+  - name: builds
+    host:
+      path: /home/www/builds
