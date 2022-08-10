@@ -1,0 +1,1 @@
+grep -m 1 '<version>' pom.xml| sed -e 's/\s*.\/\?version>//g' | xargs -l sh -c 'mvn install:install-file -Dfile=./target/libKonogonka-$0-jar-with-dependencies.jar -DgroupId=ru.redrise -DartifactId=libKonogonka -Dversion=$0 -Dpackaging=jar -DgeneratePom=true;'

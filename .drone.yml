@@ -22,9 +22,9 @@ steps:
         path: /builds
 
   - name: install-local-repo
-    image: alpine:latest
+    image: maven:3-jdk-11
     commands:
-      - mvn install:install-file -Dfile=./target/libKonogonka-*-jar-with-dependencies.jar -DgroupId=ru.redrise -DartifactId=libKonogonka -Dversion=`grep -m 1 '<version>' pom.xml| sed -e 's/\s*.\/\?version>//g'` -Dpackaging=jar -DgeneratePom=true;
+      - . .deploy_locally
 
 volumes:
   - name: m2
