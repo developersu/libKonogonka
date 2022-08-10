@@ -24,8 +24,7 @@ steps:
   - name: install-local-repo
     image: alpine:latest
     commands:
-      - mvn install:install-file -Dfile=./target/libKonogonka-*-jar-with-dependencies.jar -DgroupId=ru.redrise -DartifactId=libKonogonka -Dversion=`grep -m 1 '<version>' pom.xml| sed -e 's/\s*.\/\?version>//g'
-        ` -Dpackaging=jar -DgeneratePom=true;
+      - mvn install:install-file -Dfile=./target/libKonogonka-*-jar-with-dependencies.jar -DgroupId=ru.redrise -DartifactId=libKonogonka -Dversion=`grep -m 1 '<version>' pom.xml| sed -e 's/\s*.\/\?version>//g'` -Dpackaging=jar -DgeneratePom=true;
 
 volumes:
   - name: m2
