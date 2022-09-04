@@ -18,7 +18,7 @@
 */
 package libKonogonka.Tools.NPDM.ACI0;
 
-import libKonogonka.LoperConverter;
+import libKonogonka.Converter;
 
 import java.util.Arrays;
 
@@ -39,11 +39,11 @@ public class FSAccessHeaderProvider {
     public FSAccessHeaderProvider(byte[] bytes) {
         version = bytes[0];
         padding = Arrays.copyOfRange(bytes, 1, 0x4);
-        permissionsBitmask = LoperConverter.getLElong(bytes, 0x4);
-        dataSize = LoperConverter.getLEint(bytes, 0xC);
-        contentOwnIdSectionSize = LoperConverter.getLEint(bytes, 0x10);
-        dataNownerSizes = LoperConverter.getLEint(bytes, 0x14);
-        saveDataOwnSectionSize = LoperConverter.getLEint(bytes, 0x18);
+        permissionsBitmask = Converter.getLElong(bytes, 0x4);
+        dataSize = Converter.getLEint(bytes, 0xC);
+        contentOwnIdSectionSize = Converter.getLEint(bytes, 0x10);
+        dataNownerSizes = Converter.getLEint(bytes, 0x14);
+        saveDataOwnSectionSize = Converter.getLEint(bytes, 0x18);
         unknownData = Arrays.copyOfRange(bytes, 0x1C, bytes.length);
     }
 

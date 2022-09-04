@@ -23,8 +23,8 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.util.Arrays;
 
-import static libKonogonka.LoperConverter.getLEint;
-import static libKonogonka.LoperConverter.getLElong;
+import static libKonogonka.Converter.getLEint;
+import static libKonogonka.Converter.getLElong;
 
 /**
  * Gamecard Info

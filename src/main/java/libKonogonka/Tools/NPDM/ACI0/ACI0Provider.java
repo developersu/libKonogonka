@@ -24,7 +24,7 @@ import libKonogonka.Tools.NPDM.ServiceAccessControlProvider;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
-import static libKonogonka.LoperConverter.getLEint;
+import static libKonogonka.Converter.getLEint;
 
 public class ACI0Provider  {
     private String magicNum;

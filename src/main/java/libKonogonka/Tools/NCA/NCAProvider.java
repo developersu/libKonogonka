@@ -18,27 +18,32 @@
 */
 package libKonogonka.Tools.NCA;
 
-import libKonogonka.Tools.NCA.NCASectionTableBlock.NCASectionBlock;
+import libKonogonka.Tools.NCA.NCASectionTableBlock.NcaFsHeader;
 import libKonogonka.exceptions.EmptySectionException;
 import libKonogonka.xtsaes.XTSAESCipher;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.bouncycastle.crypto.params.KeyParameter;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.SecretKeySpec;
-import java.io.File;
-import java.io.RandomAccessFile;
+import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.HashMap;
 
-import static libKonogonka.LoperConverter.byteArrToHexString;
-import static libKonogonka.LoperConverter.getLElong;
+import static libKonogonka.Converter.byteArrToHexString;
+import static libKonogonka.Converter.getLElong;
 
 // TODO: check file size
 public class NCAProvider {
-    private File file;                          // File that contains NCA
-    private long offset;                        // Offset where NCA actually located
-    private HashMap<String, String> keys;       // hashmap with keys using _0x naming (where x number 0-N)
+    private final static Logger log = LogManager.getLogger(NCAProvider.class);
+
+    private final File file;                          // File that contains NCA
+    private final long offset;                        // Offset where NCA actually located
+    private final HashMap<String, String> keys;       // hashmap with keys using _0x naming (where x number 0-N)
     // Header
     private byte[] rsa2048one;
     private byte[] rsa2048two;
@@ -78,10 +83,10 @@ public class NCAProvider {
     private NCAHeaderTableEntry tableEntry2;
     private NCAHeaderTableEntry tableEntry3;
 
-    private NCASectionBlock sectionBlock0;
-    private NCASectionBlock sectionBlock1;
-    private NCASectionBlock sectionBlock2;
-    private NCASectionBlock sectionBlock3;
+    private NcaFsHeader sectionBlock0;
+    private NcaFsHeader sectionBlock1;
+    private NcaFsHeader sectionBlock2;
+    private NcaFsHeader sectionBlock3;
 
     private NCAContent ncaContent0;
     private NCAContent ncaContent1;
@@ -93,6 +98,7 @@ public class NCAProvider {
     }
 
     public NCAProvider (File file, HashMap<String, String> keys, long offsetPosition) throws Exception{
+        this.file = file;
         this.keys = keys;
         String header_key = keys.get("header_key");
         if (header_key == null )
@@ -100,15 +106,10 @@ public class NCAProvider {
         if (header_key.length() != 64)
             throw new Exception("header_key is too small or too big. Must be 64 symbols.");
 
-        this.file = file;
         this.offset = offsetPosition;
 
-        KeyParameter key1 = new KeyParameter(
-                hexStrToByteArray(header_key.substring(0, 32))
-        );
-        KeyParameter key2 = new KeyParameter(
-                hexStrToByteArray(header_key.substring(32, 64))
-        );
+        KeyParameter key1 = new KeyParameter(hexStrToByteArray(header_key.substring(0, 32)));
+        KeyParameter key2 = new KeyParameter(hexStrToByteArray(header_key.substring(32, 64)));
 
         XTSAESCipher xtsaesCipher = new XTSAESCipher(false);
         xtsaesCipher.init(false, key1, key2);
@@ -134,18 +135,20 @@ public class NCAProvider {
         raf.close();
 
         getNCAContent();
-        /*
-        //---------------------------------------------------------------------
+        /*//---------------------------------------------------------------------
         FileInputStream fis = new FileInputStream(file);
-        BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream("/tmp/decrypted.nca"));
-        int i = 0;
-        byte[] block = new byte[0x200];
-        while (fis.read(block) != -1){
-            decryptedSequence = new byte[0x200];
-            xtsaesCipher.processDataUnit(block, 0, 0x200, decryptedSequence, 0, i++);
-            bos.write(decryptedSequence);
+        try (BufferedOutputStream bos = new BufferedOutputStream(Files.newOutputStream(Paths.get("/tmp/decrypted.nca")))){
+            int i = 0;
+            byte[] block = new byte[0x200];
+            while (fis.read(block) != -1){
+                decryptedSequence = new byte[0x200];
+                xtsaesCipher.processDataUnit(block, 0, 0x200, decryptedSequence, 0, i++);
+                bos.write(decryptedSequence);
+            }
         }
-        bos.close();
+        catch (Exception e){
+            throw new Exception("Failed to export decrypted AES-XTS", e);
+        }
         //---------------------------------------------------------------------*/
     }
 
@@ -193,10 +196,12 @@ public class NCAProvider {
         else
             cryptoTypeReal = cryptoType1;
 
-        if (cryptoTypeReal > 0)     // TODO: CLARIFY WHY THE FUCK IS IT FAIR????
+        if (cryptoTypeReal > 0)             // TODO: CLARIFY WHY THE FUCK IS IT FAIR????
             cryptoTypeReal -= 1;
 
-        //todo: if nca3 proceed
+        //If nca3 proceed
+        if (! magicnum.equalsIgnoreCase("NCA3"))
+            throw new Exception("Not supported data type: "+magicnum+". Only NCA3 supported");
         // Decrypt keys if encrypted
         if (Arrays.equals(rightsId, new byte[0x10])) {
             String keyAreaKey;
@@ -232,10 +237,10 @@ public class NCAProvider {
         tableEntry2 = new NCAHeaderTableEntry(Arrays.copyOfRange(tableBytes, 0x20, 0x30));
         tableEntry3 = new NCAHeaderTableEntry(Arrays.copyOfRange(tableBytes, 0x30, 0x40));
 
-        sectionBlock0 = new NCASectionBlock(Arrays.copyOfRange(decryptedData, 0x400, 0x600));
-        sectionBlock1 = new NCASectionBlock(Arrays.copyOfRange(decryptedData, 0x600, 0x800));
-        sectionBlock2 = new NCASectionBlock(Arrays.copyOfRange(decryptedData, 0x800, 0xa00));
-        sectionBlock3 = new NCASectionBlock(Arrays.copyOfRange(decryptedData, 0xa00, 0xc00));
+        sectionBlock0 = new NcaFsHeader(Arrays.copyOfRange(decryptedData, 0x400, 0x600));
+        sectionBlock1 = new NcaFsHeader(Arrays.copyOfRange(decryptedData, 0x600, 0x800));
+        sectionBlock2 = new NcaFsHeader(Arrays.copyOfRange(decryptedData, 0x800, 0xa00));
+        sectionBlock3 = new NcaFsHeader(Arrays.copyOfRange(decryptedData, 0xa00, 0xc00));
     }
 
     private void keyAreaKeyNotSupportedOrFound() throws Exception{
@@ -259,12 +264,12 @@ public class NCAProvider {
         throw new Exception(exceptionStringBuilder.toString());
     }
 
-    private void getNCAContent(){
+    private void getNCAContent() throws Exception{
         byte[] key;
 
         // If empty Rights ID
         if (Arrays.equals(rightsId, new byte[0x10])) {
-            key = decryptedKey2;                                       // TODO: Just remember this dumb hack
+            key = decryptedKey2;                                       // NOTE: Just remember this dumb hack
         }
         else {
             try {
@@ -278,42 +283,35 @@ public class NCAProvider {
                 key = cipher.doFinal(rightsIDkey);
             }
             catch (Exception e){
-                e.printStackTrace();
-                System.out.println("No title.keys loaded?");
-                return;
+                throw new Exception("No title.keys loaded?", e);
             }
         }
+        getNcaContentByNumber(0, key);
+        getNcaContentByNumber(1, key);
+        getNcaContentByNumber(2, key);
+        getNcaContentByNumber(3, key);
+    }
+    private void getNcaContentByNumber(int number, byte[] key){
         try {
-            this.ncaContent0 = new NCAContent(file, offset, sectionBlock0, tableEntry0, key);
-        }
-        catch (EmptySectionException ignored){}
-        catch (Exception e){
-            this.ncaContent0 = null;
-            e.printStackTrace();
-        }
-        try{
-            this.ncaContent1 = new NCAContent(file, offset, sectionBlock1, tableEntry1, key);
-        }
-        catch (EmptySectionException ignored){}
-        catch (Exception e){
-            this.ncaContent1 = null;
-            e.printStackTrace();
-        }
-        try{
-            this.ncaContent2 = new NCAContent(file, offset, sectionBlock2, tableEntry2, key);
-        }
-        catch (EmptySectionException ignored){}
-        catch (Exception e){
-            this.ncaContent2 = null;
-            e.printStackTrace();
-        }
-        try{
-            this.ncaContent3 = new NCAContent(file, offset, sectionBlock3, tableEntry3, key);
+            switch (number) {
+                case 0:
+                    this.ncaContent0 = new NCAContent(file, offset, sectionBlock0, tableEntry0, key);
+                    break;
+                case 1:
+                    this.ncaContent1 = new NCAContent(file, offset, sectionBlock1, tableEntry1, key);
+                    break;
+                case 2:
+                    this.ncaContent2 = new NCAContent(file, offset, sectionBlock2, tableEntry2, key);
+                    break;
+                case 3:
+                    this.ncaContent3 = new NCAContent(file, offset, sectionBlock3, tableEntry3, key);
+                    break;
+            }
         }
         catch (EmptySectionException ignored){}
         catch (Exception e){
             this.ncaContent3 = null;
-            e.printStackTrace();
+            log.debug("Unable to get NCA Content "+number, e);
         }
     }
 
@@ -347,20 +345,54 @@ public class NCAProvider {
     public byte[] getDecryptedKey1() { return decryptedKey1; }
     public byte[] getDecryptedKey2() { return decryptedKey2; }
     public byte[] getDecryptedKey3() { return decryptedKey3; }
-
+    /**
+     * Get NCA Hedaer Table Entry for selected id
+     * @param id should be 0-3
+     * */
+    public NCAHeaderTableEntry getTableEntry(int id) throws Exception{
+        switch (id) {
+            case 0:
+                return getTableEntry0();
+            case 1:
+                return getTableEntry1();
+            case 2:
+                return getTableEntry2();
+            case 3:
+                return getTableEntry3();
+            default:
+                throw new Exception("NCA Table Entry must be defined in range 0-3 while '"+id+"' requested");
+        }
+    }
     public NCAHeaderTableEntry getTableEntry0() { return tableEntry0; }
     public NCAHeaderTableEntry getTableEntry1() { return tableEntry1; }
     public NCAHeaderTableEntry getTableEntry2() { return tableEntry2; }
     public NCAHeaderTableEntry getTableEntry3() { return tableEntry3; }
+    /**
+     * Get NCA Section Block for selected section
+     * @param id should be 0-3
+     * */
+    public NcaFsHeader getSectionBlock(int id) throws Exception{
+        switch (id) {
+            case 0:
+                return getSectionBlock0();
+            case 1:
+                return getSectionBlock1();
+            case 2:
+                return getSectionBlock2();
+            case 3:
+                return getSectionBlock3();
+            default:
+                throw new Exception("NCA Section Block must be defined in range 0-3 while '"+id+"' requested");
+        }
+    }
+    public NcaFsHeader getSectionBlock0() { return sectionBlock0; }
+    public NcaFsHeader getSectionBlock1() { return sectionBlock1; }
+    public NcaFsHeader getSectionBlock2() { return sectionBlock2; }
+    public NcaFsHeader getSectionBlock3() { return sectionBlock3; }
 
-    public NCASectionBlock getSectionBlock0() { return sectionBlock0; }
-    public NCASectionBlock getSectionBlock1() { return sectionBlock1; }
-    public NCASectionBlock getSectionBlock2() { return sectionBlock2; }
-    public NCASectionBlock getSectionBlock3() { return sectionBlock3; }
-
-    public boolean isKeyAvailable(){                                            // TODO: USE
+    public boolean isKeyAvailable(){        // NOTE: never used
         if (Arrays.equals(rightsId, new byte[0x10]))
-            return true;
+            return false;
         else
             return keys.containsKey(byteArrToHexString(rightsId));
     }
@@ -368,7 +400,7 @@ public class NCAProvider {
      * Get content for the selected section
      * @param sectionNumber should be 0-3
      * */
-    public NCAContent getNCAContentProvider(int sectionNumber){
+    public NCAContent getNCAContentProvider(int sectionNumber) throws Exception{
         switch (sectionNumber) {
             case 0:
                 return ncaContent0;
@@ -379,7 +411,7 @@ public class NCAProvider {
             case 3:
                 return ncaContent3;
             default:
-                return null;
+                throw new Exception("NCA Content must be requested in range of 0-3, while 'Section Number "+sectionNumber+"' requested");
         }
     }
 }

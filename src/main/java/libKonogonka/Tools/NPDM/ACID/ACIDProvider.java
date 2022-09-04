@@ -24,7 +24,7 @@ import libKonogonka.Tools.NPDM.ServiceAccessControlProvider;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
-import static libKonogonka.LoperConverter.*;
+import static libKonogonka.Converter.*;
 
 public class ACIDProvider {
 

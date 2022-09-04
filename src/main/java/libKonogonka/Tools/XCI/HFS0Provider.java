@@ -24,7 +24,7 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
-import static libKonogonka.LoperConverter.*;
+import static libKonogonka.Converter.*;
 
 /**
  * HFS0

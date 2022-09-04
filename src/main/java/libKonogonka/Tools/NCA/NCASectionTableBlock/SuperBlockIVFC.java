@@ -21,50 +21,55 @@ package libKonogonka.Tools.NCA.NCASectionTableBlock;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
-import static libKonogonka.LoperConverter.getLEint;
-import static libKonogonka.LoperConverter.getLElong;
+import static libKonogonka.Converter.getLEint;
+import static libKonogonka.Converter.getLElong;
 
 public class SuperBlockIVFC {
-    private String magic;
-    private int magicNumber;
-    private int masterHashSize;
-    private int totalNumberOfLevels;
-    private long lvl1Offset;
-    private long lvl1Size;
-    private int lvl1SBlockSize;
-    private byte[] reserved1;
+    private final String magic;
+    private final int version;
+    private final int masterHashSize;
+    private final int totalNumberOfLevels;
+    private final long lvl1Offset;
+    private final long lvl1Size;
+    private final int lvl1SBlockSize;
+    private final byte[] reserved1;
 
-    private long lvl2Offset;
-    private long lvl2Size;
-    private int lvl2SBlockSize;
-    private byte[] reserved2;
+    private final long lvl2Offset;
+    private final long lvl2Size;
+    private final int lvl2SBlockSize;
+    private final byte[] reserved2;
 
-    private long lvl3Offset;
-    private long lvl3Size;
-    private int lvl3SBlockSize;
-    private byte[] reserved3;
+    private final long lvl3Offset;
+    private final long lvl3Size;
+    private final int lvl3SBlockSize;
+    private final byte[] reserved3;
 
-    private long lvl4Offset;
-    private long lvl4Size;
-    private int lvl4SBlockSize;
-    private byte[] reserved4;
+    private final long lvl4Offset;
+    private final long lvl4Size;
+    private final int lvl4SBlockSize;
+    private final byte[] reserved4;
 
-    private long lvl5Offset;
-    private long lvl5Size;
-    private int lvl5SBlockSize;
-    private byte[] reserved5;
+    private final long lvl5Offset;
+    private final long lvl5Size;
+    private final int lvl5SBlockSize;
+    private final byte[] reserved5;
 
-    private long lvl6Offset;
-    private long lvl6Size;
-    private int lvl6SBlockSize;
-    private byte[] reserved6;
+    private final long lvl6Offset;
+    private final long lvl6Size;
+    private final int lvl6SBlockSize;
+    private final byte[] reserved6;
 
-    private byte[] unknown;
-    private byte[] hash;
+    private final byte[] signatureSalt;
+    private final byte[] masterHash;
+    private final byte[] reservedTail;
 
+    /**
+     * Also known as IntegrityMetaInfo
+     * @param sbBytes - Chunk of data related for IVFC Hash Data table
+     */
     SuperBlockIVFC(byte[] sbBytes){
         this.magic = new String(Arrays.copyOfRange(sbBytes, 0, 4), StandardCharsets.US_ASCII);
-        this.magicNumber = getLEint(sbBytes, 0x4);
+        this.version = getLEint(sbBytes, 0x4);
         this.masterHashSize = getLEint(sbBytes, 0x8);
         this.totalNumberOfLevels = getLEint(sbBytes, 0xc);
 
@@ -98,50 +103,13 @@ public class SuperBlockIVFC {
         this.lvl6SBlockSize = getLEint(sbBytes, 0x98);
         this.reserved6 = Arrays.copyOfRange(sbBytes, 0x9c, 0xa0);
 
-        this.unknown = Arrays.copyOfRange(sbBytes, 0xa0, 0xc0);
-        this.hash = Arrays.copyOfRange(sbBytes, 0xc0, 0xe0);
-        /*
-        System.out.println(magic);
-        System.out.println(magicNumber);
-        System.out.println(masterHashSize);
-        System.out.println(totalNumberOfLevels);
-        System.out.println(lvl1Offset);
-        System.out.println(lvl1Size);
-        System.out.println(lvl1SBlockSize);
-        RainbowHexDump.hexDumpUTF8(reserved1);
-
-        System.out.println(lvl2Offset);
-        System.out.println(lvl2Size);
-        System.out.println(lvl2SBlockSize);
-        RainbowHexDump.hexDumpUTF8(reserved2);
-
-        System.out.println(lvl3Offset);
-        System.out.println(lvl3Size);
-        System.out.println(lvl3SBlockSize);
-        RainbowHexDump.hexDumpUTF8(reserved3);
-
-        System.out.println(lvl4Offset);
-        System.out.println(lvl4Size);
-        System.out.println(lvl4SBlockSize);
-        RainbowHexDump.hexDumpUTF8(reserved4);
-
-        System.out.println(lvl5Offset);
-        System.out.println(lvl5Size);
-        System.out.println(lvl5SBlockSize);
-        RainbowHexDump.hexDumpUTF8(reserved5);
-
-        System.out.println(lvl6Offset);
-        System.out.println(lvl6Size);
-        System.out.println(lvl6SBlockSize);
-        RainbowHexDump.hexDumpUTF8(reserved6);
-
-        RainbowHexDump.hexDumpUTF8(unknown);
-        RainbowHexDump.hexDumpUTF8(hash);
-        // */
+        this.signatureSalt = Arrays.copyOfRange(sbBytes, 0xa0, 0xc0);
+        this.masterHash = Arrays.copyOfRange(sbBytes, 0xc0, 0xe0);
+        this.reservedTail = Arrays.copyOfRange(sbBytes, 0xe0, 0xf8);
     }
 
     public String getMagic() { return magic; }
-    public int getMagicNumber() { return magicNumber; }
+    public int getVersion() { return version; }
     public int getMasterHashSize() { return masterHashSize; }
     public int getTotalNumberOfLevels() { return totalNumberOfLevels; }
     public long getLvl1Offset() { return lvl1Offset; }
@@ -168,6 +136,7 @@ public class SuperBlockIVFC {
     public long getLvl6Size() { return lvl6Size; }
     public int getLvl6SBlockSize() { return lvl6SBlockSize; }
     public byte[] getReserved6() { return reserved6; }
-    public byte[] getUnknown() { return unknown; }
-    public byte[] getHash() { return hash; }
+    public byte[] getSignatureSalt() { return signatureSalt; }
+    public byte[] getMasterHash() { return masterHash; }
+    public byte[] getReservedTail() { return reservedTail; }
 }

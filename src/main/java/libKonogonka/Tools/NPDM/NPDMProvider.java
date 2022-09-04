@@ -28,7 +28,7 @@ import java.io.RandomAccessFile;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
-import static libKonogonka.LoperConverter.*;
+import static libKonogonka.Converter.*;
 
 public class NPDMProvider extends ASuperInFileProvider {
 

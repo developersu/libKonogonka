@@ -20,33 +20,37 @@ package libKonogonka.Tools.NCA.NCASectionTableBlock;
 
 import java.util.Arrays;
 
-import static libKonogonka.LoperConverter.getLEint;
-import static libKonogonka.LoperConverter.getLElong;
+import static libKonogonka.Converter.getLEint;
+import static libKonogonka.Converter.getLElong;
 
 public class SuperBlockPFS0 {
-    private byte[] SHA256hash;
-    private int blockSize;
-    private int unknownNumberTwo;
-    private long hashTableOffset;
-    private long hashTableSize;
-    private long pfs0offset;
-    private long pfs0size;
-    private byte[] zeroes;
+    private final byte[] SHA256hash;
+    private final int blockSize;
+    private final int layerCount;
+    private final long hashTableOffset;
+    private final long hashTableSize;
+    private final long pfs0offset;
+    private final long pfs0size;
+    private final byte[] zeroes;
 
+    /**
+     * Also known as HierarchicalSha256Data
+     * @param sbBytes - Chunk of data related for PFS0 Hash Data table
+     */
     SuperBlockPFS0(byte[] sbBytes){
         SHA256hash = Arrays.copyOfRange(sbBytes, 0, 0x20);
         blockSize = getLEint(sbBytes, 0x20);
-        unknownNumberTwo = getLEint(sbBytes, 0x24);
+        layerCount = getLEint(sbBytes, 0x24);
         hashTableOffset = getLElong(sbBytes, 0x28);
         hashTableSize = getLElong(sbBytes, 0x30);
         pfs0offset = getLElong(sbBytes, 0x38);
         pfs0size = getLElong(sbBytes, 0x40);
-        zeroes = Arrays.copyOfRange(sbBytes, 0x48, 0xf8);
+        zeroes = Arrays.copyOfRange(sbBytes, 0x48, 0xf0);
     }
 
     public byte[] getSHA256hash() { return SHA256hash; }
     public int getBlockSize() { return blockSize; }
-    public int getUnknownNumberTwo() { return unknownNumberTwo; }
+    public int getLayerCount() { return layerCount; }
     public long getHashTableOffset() { return hashTableOffset; }
     public long getHashTableSize() { return hashTableSize; }
     public long getPfs0offset() { return pfs0offset; }

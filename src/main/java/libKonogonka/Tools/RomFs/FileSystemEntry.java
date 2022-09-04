@@ -19,7 +19,11 @@
 
 package libKonogonka.Tools.RomFs;
 
-import libKonogonka.LoperConverter;
+import libKonogonka.Converter;
+import libKonogonka.Tools.NCA.NCAContent;
+import libKonogonka.Tools.RomFs.view.FileSystemTreeViewMaker;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
@@ -28,9 +32,11 @@ import java.util.Comparator;
 import java.util.List;
 
 public class FileSystemEntry {
+    private final static Logger log = LogManager.getLogger(NCAContent.class);
+
     private boolean directoryFlag;
     private String name;
-    private List<FileSystemEntry> content;
+    private final List<FileSystemEntry> content;
 
     private static byte[] dirsMetadataTable;
     private static byte[] filesMetadataTable;
@@ -93,7 +99,7 @@ public class FileSystemEntry {
         fileSystemEntry.fileOffset = fileMetaData.fileDataRealOffset;
         fileSystemEntry.fileSize = fileMetaData.fileDataRealLength;
         if (fileMetaData.nextSiblingFileOffset != -1)
-            directoryContainer.content.add( getFile(directoryContainer, fileMetaData.nextSiblingFileOffset) );
+            directoryContainer.content.add(getFile(directoryContainer, fileMetaData.nextSiblingFileOffset) );
 
         return fileSystemEntry;
     }
@@ -107,31 +113,44 @@ public class FileSystemEntry {
 
 
     private static class DirectoryMetaData {
-        private int parentDirectoryOffset;
-        private int nextSiblingDirectoryOffset;
-        private int firstSubdirectoryOffset;
-        private int firstFileOffset;
+        private final int parentDirectoryOffset;
+        private final int nextSiblingDirectoryOffset;
+        private final int firstSubdirectoryOffset;
+        private final int firstFileOffset;
+        private final int nextHashTableBucketDirectoryOffset;
 
-        private String dirName;
+        private final String dirName;
 
         private DirectoryMetaData(){
             this(0);
         }
         private DirectoryMetaData(int childDirMetaPosition){
             int i = childDirMetaPosition;
-            parentDirectoryOffset = LoperConverter.getLEint(dirsMetadataTable, i);
+            parentDirectoryOffset = Converter.getLEint(dirsMetadataTable, i);
             i += 4;
-            nextSiblingDirectoryOffset = LoperConverter.getLEint(dirsMetadataTable, i);
+            nextSiblingDirectoryOffset = Converter.getLEint(dirsMetadataTable, i);
             i += 4;
-            firstSubdirectoryOffset = LoperConverter.getLEint(dirsMetadataTable, i);
+            firstSubdirectoryOffset = Converter.getLEint(dirsMetadataTable, i);
             i += 4;
-            firstFileOffset = LoperConverter.getLEint(dirsMetadataTable, i);
+            firstFileOffset = Converter.getLEint(dirsMetadataTable, i);
             i += 4;
-            // int nextHashTableBucketDirectoryOffset = LoperConverter.getLEint(dirsMetadataTable, i);
+            nextHashTableBucketDirectoryOffset = Converter.getLEint(dirsMetadataTable, i);
+            //*
+            if (nextHashTableBucketDirectoryOffset < 0) {
+                System.out.println("nextHashTableBucketDirectoryOffset: "+ nextHashTableBucketDirectoryOffset);
+            }
+            //*/
             i += 4;
-            int dirNameLength = LoperConverter.getLEint(dirsMetadataTable, i);
-            i += 4;
-            dirName = new String(Arrays.copyOfRange(dirsMetadataTable, i, i + dirNameLength), StandardCharsets.UTF_8);
+            int dirNameLength = Converter.getLEint(dirsMetadataTable, i);
+
+            if (dirNameLength > 0) {
+                i += 4;
+                dirName = new String(Arrays.copyOfRange(dirsMetadataTable, i, i + dirNameLength), StandardCharsets.UTF_8);
+            }
+            else {
+                dirName = "";
+                System.out.println("dirName: "+dirNameLength);
+            }
             //i += getRealNameSize(dirNameLength);
         }
 
@@ -142,10 +161,10 @@ public class FileSystemEntry {
         }
     }
     private static class FileMetaData {
-
-        private int nextSiblingFileOffset;
-        private long fileDataRealOffset;
-        private long fileDataRealLength;
+        private final int nextSiblingFileOffset;
+        private final long fileDataRealOffset;
+        private final long fileDataRealLength;
+        private final int nextHashTableBucketFileOffset;
 
         private String fileName;
 
@@ -157,36 +176,43 @@ public class FileSystemEntry {
             int i = childFileMetaPosition;
             // int containingDirectoryOffset = LoperConverter.getLEint(filesMetadataTable, i); // never used
             i += 4;
-            nextSiblingFileOffset = LoperConverter.getLEint(filesMetadataTable, i);
+            nextSiblingFileOffset = Converter.getLEint(filesMetadataTable, i);
             i += 4;
-            fileDataRealOffset = LoperConverter.getLElong(filesMetadataTable, i);
+            fileDataRealOffset = Converter.getLElong(filesMetadataTable, i);
             i += 8;
-            fileDataRealLength = LoperConverter.getLElong(filesMetadataTable, i);
+            fileDataRealLength = Converter.getLElong(filesMetadataTable, i);
             i += 8;
-            //int nextHashTableBucketFileOffset = LoperConverter.getLEint(filesMetadataTable, i);
+            nextHashTableBucketFileOffset = Converter.getLEint(filesMetadataTable, i);
+            //*
+            if (nextHashTableBucketFileOffset < 0) {
+                System.out.println("nextHashTableBucketFileOffset: "+ nextHashTableBucketFileOffset);
+            }
+            //*/
             i += 4;
-            int fileNameLength = LoperConverter.getLEint(filesMetadataTable, i);
-            i += 4;
-            fileName = new String(Arrays.copyOfRange(filesMetadataTable, i, i + fileNameLength), StandardCharsets.UTF_8);;
+            int fileNameLength = Converter.getLEint(filesMetadataTable, i);
+            if (fileNameLength > 0) {
+                i += 4;
+                fileName = "";
+                try {
+                    fileName = new String(Arrays.copyOfRange(filesMetadataTable, i, i + fileNameLength), StandardCharsets.UTF_8);
+                }
+                catch (Exception e){
+                    System.out.println("fileName sizes are: "+filesMetadataTable.length+"\t"+i+"\t"+i + fileNameLength+"\t\t"+nextHashTableBucketFileOffset);
+                }
+            }
+            else {
+                fileName = "";
+                System.out.println("fileName: "+fileNameLength);
+            }
             //i += getRealNameSize(fileNameLength);
         }
     }
 
+    public void printTreeForDebug(int spacerForSizes){
+        log.debug(FileSystemTreeViewMaker.make(content, spacerForSizes));
+    }
     public void printTreeForDebug(){
-        System.out.println("/");
-        for (FileSystemEntry entry: content)
-            printEntry(2, entry);
+        log.debug(FileSystemTreeViewMaker.make(content, 100));
     }
-    private void printEntry(int cnt, FileSystemEntry entry) {
-        for (int i = 0; i < cnt; i++)
-            System.out.print(" ");
 
-        if (entry.isDirectory()){
-            System.out.println("|-" + entry.getName());
-            for (FileSystemEntry e : entry.content)
-                printEntry(cnt+2, e);
-        }
-        else
-            System.out.println("|-" + entry.getName() + String.format("    0x%-10x 0x%-10x", entry.fileOffset, entry.fileSize));
-    }
 }

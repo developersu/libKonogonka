@@ -6,7 +6,7 @@
 
     <groupId>ru.redrise</groupId>
     <artifactId>libKonogonka</artifactId>
-    <version>0.1</version>
+    <version>0.1-SNAPSHOT</version>
 
         <url>https://git.redrise.ru/desu/${project.name}}/</url>
         <description>
@@ -62,8 +62,34 @@
                 <version>1.0</version>
                 <scope>compile</scope>
             </dependency>
-        </dependencies>
 
+            <!-- https://mvnrepository.com/artifact/org.apache.logging.log4j/log4j-core -->
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-core</artifactId>
+                <version>2.18.0</version>
+                <scope>compile</scope>
+            </dependency>
+            <!-- testing -->
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-engine</artifactId>
+                <version>5.5.2</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-api</artifactId>
+                <version>5.5.2</version>
+                <scope>test</scope>
+            </dependency>
+            <dependency>
+                <groupId>org.junit.jupiter</groupId>
+                <artifactId>junit-jupiter-params</artifactId>
+                <version>5.5.2</version>
+                <scope>test</scope>
+            </dependency>
+        </dependencies>
         <build>
             <finalName>${project.artifactId}-${project.version}-${maven.build.timestamp}</finalName>
             <plugins>
@@ -100,6 +126,7 @@
                     </executions>
                 </plugin>
 -->
+
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-compiler-plugin</artifactId>
@@ -109,7 +136,7 @@
                         <target>8</target>
                     </configuration>
                 </plugin>
-                <!-- Generate JAR with dependencies -->
+                <!-- Generate JAR with dependencies
                 <plugin>
                     <groupId>org.apache.maven.plugins</groupId>
                     <artifactId>maven-assembly-plugin</artifactId>
@@ -123,18 +150,19 @@
                         <descriptorRefs>
                             <descriptorRef>jar-with-dependencies</descriptorRef>
                         </descriptorRefs>
-                        <!-- <appendAssemblyId>false</appendAssemblyId> -->
+                        <!- <appendAssemblyId>false</appendAssemblyId> -
                     </configuration>
                     <executions>
                         <execution>
-                            <id>make-assembly</id> <!-- this is used for inheritance merges -->
-                            <phase>package</phase> <!-- bind to the packaging phase -->
+                            <id>make-assembly</id>
+                            <phase>package</phase>
                             <goals>
                                 <goal>single</goal>
                             </goals>
                         </execution>
                     </executions>
                 </plugin>
+                -->
             </plugins>
         </build>
     </project>

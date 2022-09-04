@@ -23,9 +23,10 @@ import java.io.File;
 import java.io.PipedInputStream;
 
 public interface IRomFsProvider {
+    File getFile();
     long getLevel6Offset();
     Level6Header getHeader();
     FileSystemEntry getRootEntry();
     PipedInputStream getContent(FileSystemEntry entry) throws Exception;
-    File getFile();
+    void printDebug();
 }

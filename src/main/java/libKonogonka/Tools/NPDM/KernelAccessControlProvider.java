@@ -18,7 +18,7 @@
 */
 package libKonogonka.Tools.NPDM;
 
-import libKonogonka.LoperConverter;
+import libKonogonka.Converter;
 
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -126,7 +126,7 @@ public class KernelAccessControlProvider {
         int position = 0;
         // Collect all blocks
         for (int i = 0; i < bytes.length / 4; i++) {
-            int block = LoperConverter.getLEint(bytes, position);
+            int block = Converter.getLEint(bytes, position);
             position += 4;
 
             rawData.add(block);

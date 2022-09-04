@@ -22,8 +22,8 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
-import static libKonogonka.LoperConverter.getLEint;
-import static libKonogonka.LoperConverter.getLElong;
+import static libKonogonka.Converter.getLEint;
+import static libKonogonka.Converter.getLElong;
 /**
  * Header information
  * */

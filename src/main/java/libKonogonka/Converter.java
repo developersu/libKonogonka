@@ -21,7 +21,7 @@ package libKonogonka;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
-public class LoperConverter {
+public class Converter {
     public static int getLEint(byte[] bytes, int fromOffset){
         return ByteBuffer.wrap(bytes, fromOffset, 0x4).order(ByteOrder.LITTLE_ENDIAN).getInt();
     }
@@ -30,7 +30,7 @@ public class LoperConverter {
         return ByteBuffer.wrap(bytes, fromOffset, 0x8).order(ByteOrder.LITTLE_ENDIAN).getLong();
     }
     /**
-     * Convert int to long. Workaround to store unsigned int
+     * Convert (usually unsigned) int to long. Workaround to store unsigned int
      * @param bytes original array
      * @param fromOffset start position of the 4-bytes value
      * */

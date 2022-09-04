@@ -22,18 +22,18 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
-import static libKonogonka.LoperConverter.*;
+import static libKonogonka.Converter.*;
 
 public class PFS0Provider implements IPFS0Provider{
-    private long rawFileDataStart;          // Where data starts, excluding header, string table etc.
+    private final long rawFileDataStart;          // Where data starts, excluding header, string table etc.
 
-    private String magic;
-    private int filesCount;
-    private int stringTableSize;
-    private byte[] padding;
-    private PFS0subFile[] pfs0subFiles;
+    private final String magic;
+    private final int filesCount;
+    private final int stringTableSize;
+    private final byte[] padding;
+    private final PFS0subFile[] pfs0subFiles;
 
-    private File file;
+    private final File file;
 
     public PFS0Provider(File fileWithPfs0) throws Exception{ this(fileWithPfs0, 0); }
 

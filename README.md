@@ -1,4 +1,4 @@
-# konogonka
+# libKonogonka
 
 [![Build Status](https://ci.redrise.ru/api/badges/desu/libKonogonka/status.svg)](https://ci.redrise.ru/desu/libKonogonka)
 

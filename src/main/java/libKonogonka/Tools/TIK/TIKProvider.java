@@ -20,11 +20,11 @@ package libKonogonka.Tools.TIK;
 
 import java.io.BufferedInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.Arrays;
 
-import static libKonogonka.LoperConverter.*;
+import static libKonogonka.Converter.*;
 /*
 
 DON'T TRUST WIKI. Ticket size always (?) equal 0x02c0 (704 bytes)
@@ -67,41 +67,41 @@ Next:
  * */
 public class TIKProvider  {
     // Signature-related
-    private byte[] sigType;
-    private byte[] signature;
+    private final byte[] sigType;
+    private final byte[] signature;
     // Ticket
-    private String Issuer;
-    private byte[] TitleKeyBlockStartingBytes;   // Actually 32 bytes.
-    private byte[] TitleKeyBlockEndingBytes;   // Anything else
-    private byte   Unknown1;
-    private byte   TitleKeyType;
-    private byte[] Unknown2;
-    private byte   MasterKeyRevision;
-    private byte[] Unknown3;
-    private byte[] TicketId;
-    private byte[] DeviceId;
-    private byte[] RightsId;
-    private byte[] RightsIdEndingBytes;
-    private byte[] AccountId;
-    private byte[] Unknown4;
+    private final String Issuer;
+    private final byte[] TitleKeyBlockStartingBytes;   // Actually 32 bytes.
+    private final byte[] TitleKeyBlockEndingBytes;     // Everything left
+    private final byte   Unknown1;
+    private final byte   TitleKeyType;
+    private final byte[] Unknown2;
+    private final byte   MasterKeyRevision;
+    private final byte[] Unknown3;
+    private final byte[] TicketId;
+    private final byte[] DeviceId;
+    private final byte[] RightsId;
+    //private byte[] RightsIdEndingBytes;
+    private final byte[] AccountId;
+    private final byte[] Unknown4;
 
     public TIKProvider(File file) throws Exception{ this(file, 0); }
 
     public TIKProvider(File file, long offset) throws Exception {
 
         if (file.length() - offset < 0x02c0)
-            throw new Exception("TIKProvider: File is too small.");
+            throw new Exception("File is too small.");
 
-        BufferedInputStream bis = new BufferedInputStream(new FileInputStream(file));
+        BufferedInputStream bis = new BufferedInputStream(Files.newInputStream(file.toPath()));
         if (bis.skip(offset) != offset) {
             bis.close();
-            throw new Exception("TIKProvider: Unable to skip requested range - " + offset);
+            throw new Exception("Unable to skip requested range - " + offset);
         }
 
         sigType = new byte[0x4];
         if (bis.read(sigType) != 4) {
             bis.close();
-            throw new Exception("TIKProvider: Unable to read requested range - " + offset);
+            throw new Exception("Unable to read requested range - " + offset);
         }
 
         byte[] readChunk;
@@ -112,7 +112,7 @@ public class TIKProvider  {
                 readChunk = new byte[0x23c];
                 if (bis.read(readChunk) != 0x23c) {
                     bis.close();
-                    throw new Exception("TIKProvider: Unable to read requested range - 0x23c");
+                    throw new Exception("Unable to read requested range - 0x23c");
                 }
                 signature = Arrays.copyOfRange(readChunk, 0, 0x200);
                 break;
@@ -121,7 +121,7 @@ public class TIKProvider  {
                 readChunk = new byte[0x13c];
                 if (bis.read(readChunk) != 0x13c) {
                     bis.close();
-                    throw new Exception("TIKProvider: Unable to read requested range - 0x13c");
+                    throw new Exception("Unable to read requested range - 0x13c");
                 }
                 signature = Arrays.copyOfRange(readChunk, 0, 0x100);
                 break;
@@ -130,20 +130,20 @@ public class TIKProvider  {
                 readChunk = new byte[0x7c];
                 if (bis.read(readChunk) != 0x7c) {
                     bis.close();
-                    throw new Exception("TIKProvider: Unable to read requested range - 0x7c");
+                    throw new Exception("Unable to read requested range - 0x7c");
                 }
                 signature = Arrays.copyOfRange(readChunk, 0, 0x3c);
                 break;
             default:
                 bis.close();
-                throw new Exception("TIKProvider: Unknown ticket (Signature) type. Aborting.");
+                throw new Exception("Unknown ticket (Signature) type. Aborting.");
         }
         // Let's read ticket body itself
         readChunk = new byte[0x180];
 
         if (bis.read(readChunk) != 0x180) {
             bis.close();
-            throw new Exception("TIKProvider: Unable to read requested range - Ticket data");
+            throw new Exception("Unable to read requested range - Ticket data");
         }
         bis.close();
 

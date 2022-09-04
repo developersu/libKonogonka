@@ -18,7 +18,7 @@
 */
 package libKonogonka.Tools.NPDM.ACID;
 
-import libKonogonka.LoperConverter;
+import libKonogonka.Converter;
 
 import java.util.Arrays;
 
@@ -35,7 +35,7 @@ public class FSAccessControlProvider {
     public FSAccessControlProvider(byte[] bytes) {
         version = bytes[0];
         padding = Arrays.copyOfRange(bytes, 1, 0x4);
-        permissionsBitmask =  LoperConverter.getLElong(bytes, 0x4);
+        permissionsBitmask =  Converter.getLElong(bytes, 0x4);
         reserved = Arrays.copyOfRange(bytes, 0xC, 0x2C);
     }
 

@@ -24,27 +24,27 @@ import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
-import static libKonogonka.LoperConverter.*;
+import static libKonogonka.Converter.*;
 
 public class PFS0EncryptedProvider implements IPFS0Provider{
     private long rawFileDataStart;      // Always -1 @ PFS0EncryptedProvider
 
-    private String magic;
-    private int filesCount;
-    private int stringTableSize;
-    private byte[] padding;
-    private PFS0subFile[] pfs0subFiles;
+    private final String magic;
+    private final int filesCount;
+    private final int stringTableSize;
+    private final byte[] padding;
+    private final PFS0subFile[] pfs0subFiles;
 
     //---------------------------------------
 
     private long rawBlockDataStart;
 
-    private long offsetPositionInFile;
-    private File file;
-    private byte[] key;
-    private byte[] sectionCTR;
-    private long mediaStartOffset;  // In 512-blocks
-    private long mediaEndOffset;    // In 512-blocks
+    private final long offsetPositionInFile;
+    private final File file;
+    private final byte[] key;
+    private final byte[] sectionCTR;
+    private final long mediaStartOffset;  // In 512-blocks
+    private final long mediaEndOffset;    // In 512-blocks
 
     public PFS0EncryptedProvider(PipedInputStream pipedInputStream,
                                  long pfs0offsetPosition,
@@ -62,7 +62,7 @@ public class PFS0EncryptedProvider implements IPFS0Provider{
         this.sectionCTR = sectionCTR;
         this.mediaStartOffset = mediaStartOffset;
         this.mediaEndOffset = mediaEndOffset;
-        // pfs0offsetPosition is a position relative to Media block. Lets add pfs0 'header's' bytes count and get raw data start position in media block
+        // pfs0offsetPosition is a position relative to Media block. Let's add pfs0 'header's' bytes count and get raw data start position in media block
         rawFileDataStart = -1;                  // Set -1 for PFS0EncryptedProvider
         // Detect raw data start position using next var
         rawBlockDataStart = pfs0offsetPosition;
@@ -214,7 +214,7 @@ public class PFS0EncryptedProvider implements IPFS0Provider{
                 if (skipBytes > 0) {
                     encryptedBlock = new byte[0x200];
                     if (bis.read(encryptedBlock) == 0x200) {
-                        dectyptedBlock = aesCtrDecryptSimple.dectyptNext(encryptedBlock);
+                        dectyptedBlock = aesCtrDecryptSimple.decryptNext(encryptedBlock);
                         // If we have extra-small file that is less then a block and even more
                         if ((0x200 - skipBytes) > pfs0subFiles[subFileNumber].getSize()){
                             streamOut.write(dectyptedBlock, skipBytes, (int) pfs0subFiles[subFileNumber].getSize());    // safe cast
@@ -244,7 +244,7 @@ public class PFS0EncryptedProvider implements IPFS0Provider{
                     encryptedBlock = new byte[0x200];
                     if (bis.read(encryptedBlock) == 0x200) {
                         //dectyptedBlock = aesCtr.decrypt(encryptedBlock);
-                        dectyptedBlock = aesCtrDecryptSimple.dectyptNext(encryptedBlock);
+                        dectyptedBlock = aesCtrDecryptSimple.decryptNext(encryptedBlock);
                         // Writing decrypted data to pipe
                         streamOut.write(dectyptedBlock);
                     }
@@ -259,7 +259,7 @@ public class PFS0EncryptedProvider implements IPFS0Provider{
                 if (extraData > 0){                 // In case we didn't get what we want
                     encryptedBlock = new byte[0x200];
                     if (bis.read(encryptedBlock) == 0x200) {
-                        dectyptedBlock = aesCtrDecryptSimple.dectyptNext(encryptedBlock);
+                        dectyptedBlock = aesCtrDecryptSimple.decryptNext(encryptedBlock);
                         streamOut.write(dectyptedBlock, 0, extraData);
                     }
                     else {
@@ -270,7 +270,7 @@ public class PFS0EncryptedProvider implements IPFS0Provider{
                 else if (extraData < 0){                // In case we can get more than we need
                     encryptedBlock = new byte[0x200];
                     if (bis.read(encryptedBlock) == 0x200) {
-                        dectyptedBlock = aesCtrDecryptSimple.dectyptNext(encryptedBlock);
+                        dectyptedBlock = aesCtrDecryptSimple.decryptNext(encryptedBlock);
                         streamOut.write(dectyptedBlock, 0, 0x200 + extraData);       // WTF ??? THIS LOOKS INCORRECT
                     }
                     else {
