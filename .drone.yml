@@ -16,7 +16,7 @@ steps:
     image: alpine:latest
     commands:
       - mkdir -p /builds/libKonogonka
-      - cp target/libKonogonka-*-jar-with-dependencies.jar /builds/libKonogonka/
+      - cp target/libKonogonka-*[0-9].jar /builds/libKonogonka/
     volumes:
       - name: builds
         path: /builds
