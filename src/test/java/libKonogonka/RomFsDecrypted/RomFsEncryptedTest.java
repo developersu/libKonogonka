@@ -18,15 +18,17 @@
  */
 package libKonogonka.RomFsDecrypted;
 
+import libKonogonka.ctraes.AesCtrBufferedInputStream;
 import libKonogonka.KeyChainHolder;
-import libKonogonka.Tools.NCA.NCAHeaderTableEntry;
+import libKonogonka.RainbowDump;
 import libKonogonka.Tools.NCA.NCAProvider;
 import libKonogonka.Tools.NCA.NCASectionTableBlock.NcaFsHeader;
+import libKonogonka.Tools.RomFs.FileSystemEntry;
+import libKonogonka.ctraes.AesCtrDecryptSimple;
 import org.junit.jupiter.api.*;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
+import java.io.*;
+import java.nio.file.Files;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class RomFsEncryptedTest {
@@ -66,6 +68,7 @@ public class RomFsEncryptedTest {
     @Test
     void romFsValidation() throws Exception{
         for (byte i = 0; i < 4; i++){
+            System.out.println("..:: TEST SECTION #"+i+" ::..");
             if (ncaProvider.getSectionBlock(i).getFsType() == 0 && ncaProvider.getSectionBlock(i).getCryptoType() != 0){
                 ncaProvider.getNCAContentProvider(i).getRomfs().printDebug();
                 ncaProvider.getSectionBlock(i).printDebug();
@@ -86,8 +89,128 @@ public class RomFsEncryptedTest {
         }
     }
 
+    private AesCtrDecryptSimple decryptSimple;
+    long ACBISoffsetPosition;
+    long ACBISmediaStartOffset;
+    long ACBISmediaEndOffset;
     @Disabled
     @Order(5)
+    @DisplayName("AesCtrBufferedInputStream: RomFs AES-CTR dump validation")
+    @Test
+    void AesCtrBufferedInputStreamTest() throws Exception {
+        File nca = new File(ncaFileLocation);
+        System.out.println("NCA SIZE: "+RainbowDump.formatDecHexString(nca.length()));
+        System.out.println(ncaProvider.getSectionBlock1().getSuperBlockIVFC().getLvl6Offset());
+
+        FileSystemEntry entry = ncaProvider.getNCAContentProvider(1).getRomfs().getRootEntry();
+        System.out.println(" entry.getFileOffset(): " + entry.getOffset());
+        System.out.println(" entry.getFileSize():    " + entry.getSize());
+
+        ACBISoffsetPosition = 0;
+        ACBISmediaStartOffset = ncaProvider.getTableEntry1().getMediaStartOffset();
+        ACBISmediaEndOffset = ncaProvider.getTableEntry1().getMediaEndOffset();
+
+        decryptSimple = new AesCtrDecryptSimple(
+                ncaProvider.getDecryptedKey2(),
+                ncaProvider.getSectionBlock1().getSectionCTR(),
+                ncaProvider.getTableEntry1().getMediaStartOffset()*0x200);
+
+        exportFolderContent(entry, "/tmp/brandnew");
+        //----------------------------------------------------------------------
+        exportFolderContentLegacy(entry, "/tmp/legacy");
+    }
+
+    private void exportFolderContent(FileSystemEntry entry, String saveToLocation) throws Exception{
+        File contentFile = new File(saveToLocation + entry.getName());
+        contentFile.mkdirs();
+        String currentDirPath = saveToLocation + entry.getName() + File.separator;
+        for (FileSystemEntry fse : entry.getContent()){
+            if (fse.isDirectory())
+                exportFolderContent(fse, currentDirPath);
+            else
+                exportSingleFile(fse, currentDirPath);
+        }
+    }
+    private void exportSingleFile(FileSystemEntry entry, String saveToLocation) throws Exception {
+        File contentFile = new File(saveToLocation + entry.getName());
+
+        BufferedOutputStream extractedFileBOS = new BufferedOutputStream(Files.newOutputStream(contentFile.toPath()));
+        //---
+        InputStream is = Files.newInputStream(new File(ncaFileLocation).toPath());
+
+        AesCtrBufferedInputStream aesCtrBufferedInputStream = new AesCtrBufferedInputStream(
+                decryptSimple,
+                ACBISoffsetPosition,
+                ACBISmediaStartOffset,
+                ACBISmediaEndOffset,
+                is);
+
+        long skipBytes = entry.getOffset()
+                +ncaProvider.getTableEntry1().getMediaStartOffset()*0x200
+                +ncaProvider.getNCAContentProvider(1).getRomfs().getHeader().getFileDataOffset()
+                +ncaProvider.getSectionBlock1().getSuperBlockIVFC().getLvl6Offset();
+        System.out.println("SUM: "+(entry.getOffset()
+                + ncaProvider.getTableEntry1().getMediaStartOffset()*0x200
+                +ncaProvider.getNCAContentProvider(1).getRomfs().getHeader().getFileDataOffset()
+                +ncaProvider.getSectionBlock1().getSuperBlockIVFC().getLvl6Offset()));
+        if (skipBytes != aesCtrBufferedInputStream.skip(skipBytes))
+            throw new Exception("Can't skip");
+
+        int blockSize = 0x200;
+        if (entry.getSize() < 0x200)
+            blockSize = (int) entry.getSize();
+
+        long i = 0;
+        byte[] block = new byte[blockSize];
+
+        int actuallyRead;
+
+        while (true) {
+            if ((actuallyRead = aesCtrBufferedInputStream.read(block)) != blockSize)
+                throw new Exception("Read failure. Block Size: "+blockSize+", actuallyRead: "+actuallyRead);
+            extractedFileBOS.write(block);
+            i += blockSize;
+            if ((i + blockSize) > entry.getSize()) {
+                blockSize = (int) (entry.getSize() - i);
+                if (blockSize == 0)
+                    break;
+                block = new byte[blockSize];
+            }
+        }
+        //---
+        extractedFileBOS.close();
+    }
+
+    private void exportFolderContentLegacy(FileSystemEntry entry, String saveToLocation) throws Exception{
+        File contentFile = new File(saveToLocation + entry.getName());
+        contentFile.mkdirs();
+        String currentDirPath = saveToLocation + entry.getName() + File.separator;
+        for (FileSystemEntry fse : entry.getContent()){
+            if (fse.isDirectory())
+                exportFolderContentLegacy(fse, currentDirPath);
+            else
+                exportSingleFileLegacy(fse, currentDirPath);
+        }
+    }
+    private void exportSingleFileLegacy(FileSystemEntry entry, String saveToLocation) throws Exception {
+        File contentFile = new File(saveToLocation + entry.getName());
+
+        BufferedOutputStream extractedFileBOS = new BufferedOutputStream(new FileOutputStream(contentFile));
+        PipedInputStream pis = ncaProvider.getNCAContentProvider(1).getRomfs().getContent(entry);
+
+        byte[] readBuf = new byte[0x200]; // 8mb NOTE: consider switching to 1mb 1048576
+        int readSize;
+
+        while ((readSize = pis.read(readBuf)) > -1) {
+            extractedFileBOS.write(readBuf, 0, readSize);
+            readBuf = new byte[0x200];
+        }
+
+        extractedFileBOS.close();
+    }
+
+    @Disabled
+    @Order(6)
     @DisplayName("RomFsEncryptedProvider: PFS test")
     @Test
     void pfsValidation(){

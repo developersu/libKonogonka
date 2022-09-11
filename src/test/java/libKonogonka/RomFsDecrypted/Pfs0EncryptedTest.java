@@ -37,7 +37,7 @@ public class Pfs0EncryptedTest {
     private static KeyChainHolder keyChainHolder;
     private static NCAProvider ncaProvider;
 
-
+    @Disabled
     @DisplayName("PFS0 Encrypted test")
     @Test
     void pfs0test() throws Exception{
