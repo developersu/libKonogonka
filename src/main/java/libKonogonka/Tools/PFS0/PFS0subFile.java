@@ -19,10 +19,10 @@
 package libKonogonka.Tools.PFS0;
 
 public class PFS0subFile {
-    private String name;
-    private long offset;     // REAL in file (including offset in NCA/NSP file)
-    private long size;
-    private byte[] zeroes;
+    private final String name;
+    private final long offset;     // REAL in file (including offset in NCA/NSP file)
+    private final long size;
+    private final byte[] zeroes;
 
     public PFS0subFile(String name, long offset, long size, byte[] zeroesInTable){
         this.name = name;

@@ -18,52 +18,99 @@
 */
 package libKonogonka.Tools.PFS0;
 
+import libKonogonka.Converter;
+import libKonogonka.RainbowDump;
+import libKonogonka.ctraes.AesCtrBufferedInputStream;
+import libKonogonka.ctraes.AesCtrDecryptSimple;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.Arrays;
 
 import static libKonogonka.Converter.*;
 
 public class PFS0Provider implements IPFS0Provider{
-    private final long rawFileDataStart;          // Where data starts, excluding header, string table etc.
+    private final static Logger log = LogManager.getLogger(PFS0Provider.class);
 
-    private final String magic;
-    private final int filesCount;
-    private final int stringTableSize;
-    private final byte[] padding;
-    private final PFS0subFile[] pfs0subFiles;
+    private long rawFileDataStartOffset;
+
+    private String magic;
+    private int filesCount;
+    private int stringTableSize;
+    private byte[] padding;
+    private PFS0subFile[] pfs0subFiles;
 
     private final File file;
+    private final long offsetPosition;          // Where data starts, excluding header, string table etc.
+    private long mediaStartOffset;
+    private long mediaEndOffset;
+    private AesCtrDecryptSimple decryptor;
+
+    private final boolean encrypted;
+
+    public PFS0Provider(File fileWithPfs0,
+                        long offsetPosition,
+                        long mediaStartOffset,
+                        long mediaEndOffset,
+                        AesCtrDecryptSimple decryptor) throws Exception{
+        this.file = fileWithPfs0;
+        this.offsetPosition = offsetPosition + mediaStartOffset*0x200;
+        this.encrypted = true;
+
+        this.mediaStartOffset = mediaStartOffset;
+        this.mediaEndOffset = mediaEndOffset;
+        this.decryptor = decryptor;
+        proceedPfs0();
+    }
 
     public PFS0Provider(File fileWithPfs0) throws Exception{ this(fileWithPfs0, 0); }
 
-    public PFS0Provider(File fileWithPfs0, long pfs0offsetPosition) throws Exception{
-        file = fileWithPfs0;
-        RandomAccessFile raf = new RandomAccessFile(fileWithPfs0, "r");         // TODO: replace to bufferedInputStream
+    public PFS0Provider(File fileWithPfs0, long offsetPosition) throws Exception{
+        this.file = fileWithPfs0;
+        this.offsetPosition = offsetPosition;
+        this.encrypted = false;
+        //bufferedInputStream = new BufferedInputStream(Files.newInputStream(fileWithPfs0.toPath()));
+        proceedPfs0();
+    }
+    private void proceedPfs0() throws Exception{
+        BufferedInputStream bufferedInputStream;
 
-        raf.seek(pfs0offsetPosition);
+        if (encrypted) {
+            bufferedInputStream = new AesCtrBufferedInputStream(decryptor,
+                    offsetPosition,
+                    mediaStartOffset,
+                    mediaEndOffset,
+                    Files.newInputStream(file.toPath()));
+        }
+        else{
+            bufferedInputStream = new BufferedInputStream(Files.newInputStream(file.toPath()));
+        }
+
+        if (offsetPosition != bufferedInputStream.skip(offsetPosition))
+            throw new Exception("PFS0Provider: Unable to skip initial offset: "+offsetPosition);
+
         byte[] fileStartingBytes = new byte[0x10];
         // Read PFS0Provider, files count, header, padding (4 zero bytes)
-        if (raf.read(fileStartingBytes) != 0x10){
-            raf.close();
+        if (bufferedInputStream.read(fileStartingBytes) != 0x10){
             throw new Exception("PFS0Provider: Unable to read starting bytes");
         }
+        rawFileDataStartOffset += 0x10;
         // Check PFS0Provider
         magic = new String(fileStartingBytes, 0x0, 0x4, StandardCharsets.US_ASCII);
         if (! magic.equals("PFS0")){
-            raf.close();
             throw new Exception("PFS0Provider: Bad magic");
         }
         // Get files count
         filesCount = getLEint(fileStartingBytes, 0x4);
         if (filesCount <= 0 ) {
-            raf.close();
             throw new Exception("PFS0Provider: Files count is too small");
         }
         // Get string table
         stringTableSize = getLEint(fileStartingBytes, 0x8);
         if (stringTableSize <= 0 ){
-            raf.close();
             throw new Exception("PFS0Provider: String table is too small");
         }
         padding = Arrays.copyOfRange(fileStartingBytes, 0xc, 0x10);
@@ -77,21 +124,22 @@ public class PFS0Provider implements IPFS0Provider{
 
         byte[] fileEntryTable = new byte[0x18];
         for (int i=0; i<filesCount; i++){
-            if (raf.read(fileEntryTable) != 0x18)
+            if (bufferedInputStream.read(fileEntryTable) != 0x18)
                 throw new Exception("PFS0Provider: String table is too small");
             offsetsSubFiles[i] = getLElong(fileEntryTable, 0);
             sizesSubFiles[i] = getLElong(fileEntryTable, 0x8);
             strTableOffsets[i] = getLEint(fileEntryTable, 0x10);
             zeroBytes[i] = Arrays.copyOfRange(fileEntryTable, 0x14, 0x18);
+            rawFileDataStartOffset += 0x18;
         }
         //**********************************************************************************************************
         // In here pointer in front of String table
         String[] subFileNames = new String[filesCount];
         byte[] stringTbl = new byte[stringTableSize];
-        if (raf.read(stringTbl) != stringTableSize){
+        if (bufferedInputStream.read(stringTbl) != stringTableSize){
             throw new Exception("Read PFS0Provider String table failure. Can't read requested string table size ("+stringTableSize+")");
         }
-
+        rawFileDataStartOffset += stringTableSize;
         for (int i=0; i < filesCount; i++){
             int j = 0;
             while (stringTbl[strTableOffsets[i]+j] != (byte)0x00)
@@ -106,12 +154,11 @@ public class PFS0Provider implements IPFS0Provider{
                     zeroBytes[i]
             );
         }
-        rawFileDataStart = raf.getFilePointer();
-        raf.close();
+        bufferedInputStream.close();
     }
 
     @Override
-    public boolean isEncrypted() { return false; }
+    public boolean isEncrypted() { return encrypted; }
     @Override
     public String getMagic() { return magic; }
     @Override
@@ -121,7 +168,7 @@ public class PFS0Provider implements IPFS0Provider{
     @Override
     public byte[] getPadding() { return padding; }
     @Override
-    public long getRawFileDataStart() { return rawFileDataStart; }
+    public long getRawFileDataStart() { return rawFileDataStartOffset; }
     @Override
     public PFS0subFile[] getPfs0subFiles() { return pfs0subFiles; }
     @Override
@@ -139,7 +186,7 @@ public class PFS0Provider implements IPFS0Provider{
         workerThread = new Thread(() -> {
             System.out.println("PFS0Provider -> getPfs0subFilePipedInpStream(): Executing thread");
             try {
-                long subFileRealPosition = rawFileDataStart + pfs0subFiles[subFileNumber].getOffset();
+                long subFileRealPosition = rawFileDataStartOffset + pfs0subFiles[subFileNumber].getOffset();
                 BufferedInputStream bis = new BufferedInputStream(new FileInputStream(file));
                 if (bis.skip(subFileRealPosition) != subFileRealPosition) {
                     System.out.println("PFS0Provider -> getPfs0subFilePipedInpStream(): Unable to skip requested offset");
@@ -185,5 +232,25 @@ public class PFS0Provider implements IPFS0Provider{
                 return getProviderSubFilePipedInpStream(i);
         }
         return null;
+    }
+
+    public void printDebug(){
+        log.debug(".:: PFS0Provider ::.\n" +
+                "File name:                " + file.getName() + "\n\n" +
+                "Raw file data start:      " + RainbowDump.formatDecHexString(rawFileDataStartOffset) + "\n" +
+                "Magic                     " + magic + "\n" +
+                "Files count               " + RainbowDump.formatDecHexString(filesCount) + "\n" +
+                "String Table Size         " + RainbowDump.formatDecHexString(stringTableSize) + "\n" +
+                "Padding                   " + Converter.byteArrToHexString(padding) + "\n"
+        );
+        for (PFS0subFile subFile : pfs0subFiles){
+            log.debug(
+                    "\nName:                     " + subFile.getName() + "\n" +
+                    "Offset                    " + RainbowDump.formatDecHexString(subFile.getOffset()) + "\n" +
+                    "Size                      " + RainbowDump.formatDecHexString(subFile.getSize()) + "\n" +
+                    "Zeroes                    " + Converter.byteArrToHexString(subFile.getZeroes()) + "\n" +
+                    "----------------------------------------------------------------"
+            );
+        }
     }
 }

@@ -310,7 +310,6 @@ public class NCAProvider {
         }
         catch (EmptySectionException ignored){}
         catch (Exception e){
-            this.ncaContent3 = null;
             log.debug("Unable to get NCA Content "+number, e);
         }
     }

@@ -18,16 +18,24 @@
 */
 package libKonogonka.Tools.PFS0;
 
+import libKonogonka.Converter;
+import libKonogonka.RainbowDump;
+import libKonogonka.Tools.RomFs.Level6Header;
 import libKonogonka.ctraes.AesCtrDecryptSimple;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.Arrays;
 
 import static libKonogonka.Converter.*;
 
 public class PFS0EncryptedProvider implements IPFS0Provider{
-    private long rawFileDataStart;      // Always -1 @ PFS0EncryptedProvider
+    private final static Logger log = LogManager.getLogger(PFS0EncryptedProvider.class);
+
+    //private long rawFileDataStart;      // Always -1 @ PFS0EncryptedProvider
 
     private final String magic;
     private final int filesCount;
@@ -56,14 +64,14 @@ public class PFS0EncryptedProvider implements IPFS0Provider{
                                  long mediaEndOffset
     ) throws Exception{
         // Populate 'meta' data that is needed for getProviderSubFilePipedInpStream()
-        this.offsetPositionInFile = offsetPositionInFile;
+        this.offsetPositionInFile = offsetPositionInFile + mediaStartOffset*0x200;
         this.file = fileWithEncPFS0;
         this.key = key;
         this.sectionCTR = sectionCTR;
         this.mediaStartOffset = mediaStartOffset;
         this.mediaEndOffset = mediaEndOffset;
         // pfs0offsetPosition is a position relative to Media block. Let's add pfs0 'header's' bytes count and get raw data start position in media block
-        rawFileDataStart = -1;                  // Set -1 for PFS0EncryptedProvider
+        //rawFileDataStart = -1;                  // Set -1 for PFS0EncryptedProvider
         // Detect raw data start position using next var
         rawBlockDataStart = pfs0offsetPosition;
 
@@ -161,7 +169,7 @@ public class PFS0EncryptedProvider implements IPFS0Provider{
     @Override
     public byte[] getPadding() { return padding; }
     @Override
-    public long getRawFileDataStart() { return rawFileDataStart; }
+    public long getRawFileDataStart() { return rawBlockDataStart; }
     @Override
     public PFS0subFile[] getPfs0subFiles() { return pfs0subFiles; }
     @Override
@@ -176,14 +184,21 @@ public class PFS0EncryptedProvider implements IPFS0Provider{
 
         PipedInputStream streamIn = new PipedInputStream(streamOut);
         workerThread = new Thread(() -> {
-            System.out.println("PFS0EncryptedProvider -> getPfs0subFilePipedInpStream(): Executing thread");
+            log.debug("PFS0EncryptedProvider -> getPfs0subFilePipedInpStream(): Executing thread:\nSub file: " +
+                    pfs0subFiles[subFileNumber].getName() +
+                    "\nFor block #                         "+((rawBlockDataStart + pfs0subFiles[subFileNumber].getOffset()) / 0x200) +
+                    "\nAnd initial skipped bytes are:      "+offsetPositionInFile +
+                    "\nWhere Raw Block Data Start:         "+rawBlockDataStart +
+                    "\nAnd sub file offset:                "+pfs0subFiles[subFileNumber].getOffset()+
+                    "\nSkip bytes                          "+((rawBlockDataStart + pfs0subFiles[subFileNumber].getOffset()) - ((rawBlockDataStart + pfs0subFiles[subFileNumber].getOffset()) / 0x200) * 0x200)+
+                    "\nKEY                                 "+Converter.byteArrToHexString(key)+
+                    "\nSection CTR                         "+Converter.byteArrToHexString(sectionCTR)+
+                    "\n______________________________________________________________");
             try {
-                BufferedInputStream bis = new BufferedInputStream(new FileInputStream(file));
-                // Let's store what we're about to skip
-                long skipInitL = offsetPositionInFile + (mediaStartOffset * 0x200); // NOTE: NEVER cast to int.
+                BufferedInputStream bis = new BufferedInputStream(Files.newInputStream(file.toPath()));
                 // Check if skip was successful
-                if (bis.skip(skipInitL) != skipInitL) {
-                    System.out.println("PFS0EncryptedProvider -> getPfs0subFilePipedInpStream(): Failed to skip range "+skipInitL);
+                if (bis.skip(offsetPositionInFile) != offsetPositionInFile) {
+                    System.out.println("PFS0EncryptedProvider -> getPfs0subFilePipedInpStream(): Failed to skip range "+offsetPositionInFile);
                     return;
                 }
 
@@ -209,7 +224,7 @@ public class PFS0EncryptedProvider implements IPFS0Provider{
                 //----------------------------- Step 1: get starting bytes from the end of the junk block --------------------------------
 
                 // Since our data could be located in position with some offset from the decrypted block, let's skip bytes left. Considering the case when data is not aligned to block
-                skipBytes = (int) ( (rawBlockDataStart + pfs0subFiles[subFileNumber].getOffset()) - startBlock * 0x200); // <- How much bytes shall we skip to reach requested data start of sub-file
+                skipBytes = (int) ((rawBlockDataStart + pfs0subFiles[subFileNumber].getOffset()) - startBlock * 0x200); // <- How much bytes shall we skip to reach requested data start of sub-file
 
                 if (skipBytes > 0) {
                     encryptedBlock = new byte[0x200];
@@ -300,5 +315,29 @@ public class PFS0EncryptedProvider implements IPFS0Provider{
                 return getProviderSubFilePipedInpStream(i);
         }
         return null;
+    }
+
+    public void printDebug(){
+        log.debug(".:: PFS0EncryptedProvider ::.\n" +
+                "File name:                " + file.getName() + "\n" +
+                "Raw block data start      " + RainbowDump.formatDecHexString(rawBlockDataStart) + "\n" +
+                "Magic                     " + magic + "\n" +
+                "Files count               " + RainbowDump.formatDecHexString(filesCount) + "\n" +
+                "String Table Size         " + RainbowDump.formatDecHexString(stringTableSize) + "\n" +
+                "Padding                   " + Converter.byteArrToHexString(padding) + "\n\n" +
+
+                "Offset position in file   " + RainbowDump.formatDecHexString(offsetPositionInFile) + "\n" +
+                "Media Start Offset        " + RainbowDump.formatDecHexString(mediaStartOffset) + "\n" +
+                "Media End Offset          " + RainbowDump.formatDecHexString(mediaEndOffset) + "\n"
+        );
+        for (PFS0subFile subFile : pfs0subFiles){
+            log.debug(
+                "\nName:                     " + subFile.getName() + "\n" +
+                "Offset                    " + RainbowDump.formatDecHexString(subFile.getOffset()) + "\n" +
+                "Size                      " + RainbowDump.formatDecHexString(subFile.getSize()) + "\n" +
+                "Zeroes                    " + Converter.byteArrToHexString(subFile.getZeroes()) + "\n" +
+                "----------------------------------------------------------------"
+            );
+        }
     }
 }

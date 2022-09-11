@@ -58,8 +58,8 @@ public class RomFsDecryptedProvider implements IRomFsProvider{
 
         PipedOutputStream streamOut = new PipedOutputStream();
         PipedInputStream streamIn = new PipedInputStream(streamOut);
-        long internalFileRealPosition = level6Offset + level6Header.getFileDataOffset() + entry.getFileOffset();
-        long internalFileSize = entry.getFileSize();
+        long internalFileRealPosition = level6Offset + level6Header.getFileDataOffset() + entry.getOffset();
+        long internalFileSize = entry.getSize();
 
         Thread contentRetrievingThread = new Thread(
                 new RomFsDecryptedContentRetrieve(file, streamOut, internalFileRealPosition, internalFileSize));

@@ -52,7 +52,7 @@ public class FileSystemTreeViewMaker {
 
         tree.append("|-");
         tree.append(entry.getName());
-        tree.append(String.format("%"+(spacerForSizes-entry.getName().length()-i)+"s0x%-10x 0x%-10x", "", entry.getFileOffset(), entry.getFileSize()));
+        tree.append(String.format("%"+(spacerForSizes-entry.getName().length()-i)+"s0x%-10x 0x%-10x", "", entry.getOffset(), entry.getSize()));
         tree.append("\n");
     }
 

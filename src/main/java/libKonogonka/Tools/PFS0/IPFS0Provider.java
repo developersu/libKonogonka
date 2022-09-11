@@ -28,4 +28,6 @@ public interface IPFS0Provider extends ISuperProvider {
     byte[] getPadding();
 
     PFS0subFile[] getPfs0subFiles();
+
+    void printDebug();
 }

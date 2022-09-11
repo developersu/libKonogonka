@@ -91,16 +91,16 @@ public class Level6Header {
     
     public void printDebugInfo(){
         log.debug("== Level 6 Header ==\n" +
-                "Header Length (usually 0x50)    "+ RainbowDump.formatDecHexString(headerLength)+"   (size of this structure within first 0x200 block of LEVEL 6 part)\n" +
-                "Directory Hash Table Offset     "+ RainbowDump.formatDecHexString(directoryHashTableOffset)+"   (against THIS block where HEADER contains)\n" +
-                "Directory Hash Table Length     "+ RainbowDump.formatDecHexString(directoryHashTableLength) + "\n" +
-                "Directory Metadata Table Offset "+ RainbowDump.formatDecHexString(directoryMetadataTableOffset) + "\n" +
-                "Directory Metadata Table Length "+ RainbowDump.formatDecHexString(directoryMetadataTableLength) + "\n" +
-                "File Hash Table Offset          "+ RainbowDump.formatDecHexString(fileHashTableOffset) + "\n" +
-                "File Hash Table Length          "+ RainbowDump.formatDecHexString(fileHashTableLength) + "\n" +
-                "File Metadata Table Offset      "+ RainbowDump.formatDecHexString(fileMetadataTableOffset) + "\n" +
-                "File Metadata Table Length      "+ RainbowDump.formatDecHexString(fileMetadataTableLength) + "\n" +
-                "File Data Offset                "+ RainbowDump.formatDecHexString(fileDataOffset) + "\n" +
+                "Header Length (usually 0x50)          "+ RainbowDump.formatDecHexString(headerLength)+"   (size of this structure within first 0x200 block of LEVEL 6 part)\n" +
+                "Directory Hash Table Offset           "+ RainbowDump.formatDecHexString(directoryHashTableOffset)+"   (against THIS block where HEADER contains)\n" +
+                "Directory Hash Table Length           "+ RainbowDump.formatDecHexString(directoryHashTableLength) + "\n" +
+                "Directory Metadata Table Offset       "+ RainbowDump.formatDecHexString(directoryMetadataTableOffset) + "\n" +
+                "Directory Metadata Table Length       "+ RainbowDump.formatDecHexString(directoryMetadataTableLength) + "\n" +
+                "File Hash Table Offset                "+ RainbowDump.formatDecHexString(fileHashTableOffset) + "\n" +
+                "File Hash Table Length                "+ RainbowDump.formatDecHexString(fileHashTableLength) + "\n" +
+                "File Metadata Table Offset            "+ RainbowDump.formatDecHexString(fileMetadataTableOffset) + "\n" +
+                "File Metadata Table Length            "+ RainbowDump.formatDecHexString(fileMetadataTableLength) + "\n" +
+                "File Data Offset                      "+ RainbowDump.formatDecHexString(fileDataOffset) + "\n" +
                 "-------------------------------------------------------------"
         );
     }

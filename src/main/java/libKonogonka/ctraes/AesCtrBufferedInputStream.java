@@ -59,7 +59,6 @@ public class AesCtrBufferedInputStream extends BufferedInputStream {
                 log.trace("1.2. Pointer Inside + End Position Inside (Decrypted) Encrypted Section ("+pseudoPos+"-"+(pseudoPos+b.length)+")");
                 System.arraycopy(decryptedBytes, pointerInsideDecryptedSection, b, 0, bytesToRead);
 
-                log.error("!Pointer Inside Decrypted Section "+pointerInsideDecryptedSection+" "+(pointerInsideDecryptedSection+bytesToRead));
                 pseudoPos += bytesToRead;
                 pointerInsideDecryptedSection += bytesToRead;
                 return b.length;
@@ -84,12 +83,12 @@ public class AesCtrBufferedInputStream extends BufferedInputStream {
                 return b.length;
             }
             log.trace("1. Pointer Inside + End Position Outside Encrypted Section ("+pseudoPos+"-"+(pseudoPos+b.length)+")");
-            int middleBlocksCount = (int) ((mediaOffsetPositionEnd - pseudoPos) / 0x200);
-            int bytesFromEnd = b.length - bytesFromFirstBlock - middleBlocksCount * 0x200;
+            int middleBlocksCount = (int) ((mediaOffsetPositionEnd - (pseudoPos+bytesFromFirstBlock)) / 0x200);
+            int bytesFromEnd = bytesToRead - bytesFromFirstBlock - middleBlocksCount * 0x200;
             //1
             System.arraycopy(decryptedBytes, pointerInsideDecryptedSection, b, 0, bytesFromFirstBlock);
             //2
-            //System.out.println("\n"+bytesFromFirstBlock+"\n"+ middleBlocksCount+" - "+(middleBlocksCount*0x200)+"\n"+ bytesFromEnd+"\n");
+            System.out.println("\n"+bytesFromFirstBlock+"\n"+ middleBlocksCount+" = "+(middleBlocksCount*0x200)+" bytes\n"+ bytesFromEnd+"\n");
             for (int i = 0; i < middleBlocksCount; i++) {
                 fillDecryptedCache();
                 System.arraycopy(decryptedBytes, 0, b, bytesFromFirstBlock+i*0x200, 0x200);
@@ -102,7 +101,7 @@ public class AesCtrBufferedInputStream extends BufferedInputStream {
         }  
         if (isEndPositionInsideEncryptedSection(bytesToRead)) {
             log.trace("2. End Position Inside Encrypted Section ("+pseudoPos+"-"+(pseudoPos+b.length)+")");
-            int bytesTillEncrypted = (int) (mediaOffsetPositionStart - pos);
+            int bytesTillEncrypted = (int) (mediaOffsetPositionStart - pseudoPos);
             int fullEncryptedBlocks = (bytesToRead - bytesTillEncrypted) / 0x200;
             int incompleteEncryptedBytes = (bytesToRead - bytesTillEncrypted) % 0x200;
             System.arraycopy(readChunk(bytesTillEncrypted), 0, b, 0, bytesTillEncrypted);
@@ -150,10 +149,10 @@ public class AesCtrBufferedInputStream extends BufferedInputStream {
     }
 
     private boolean isPointerInsideEncryptedSection(){
-        return (pseudoPos >= mediaOffsetPositionStart) && (pseudoPos < mediaOffsetPositionEnd);
+        return (pseudoPos-pointerInsideDecryptedSection >= mediaOffsetPositionStart) && (pseudoPos-pointerInsideDecryptedSection < mediaOffsetPositionEnd);
     }
     private boolean isEndPositionInsideEncryptedSection(long requestedBytesCount){
-        return ((pseudoPos + requestedBytesCount) >= mediaOffsetPositionStart) && ((pseudoPos + requestedBytesCount) < mediaOffsetPositionEnd);
+        return ((pseudoPos-pointerInsideDecryptedSection + requestedBytesCount) >= mediaOffsetPositionStart) && ((pseudoPos-pointerInsideDecryptedSection + requestedBytesCount) < mediaOffsetPositionEnd);
     }
 
     @Override
@@ -199,7 +198,7 @@ public class AesCtrBufferedInputStream extends BufferedInputStream {
         if (isEndPositionInsideEncryptedSection(n)) {  //pointer will be inside Encrypted Section, but now outside
             log.trace("5. End Position Inside Encrypted Section ("+pseudoPos+"-"+(pseudoPos+n)+")");
             //skip to start if the block we need
-            long bytesToSkipTillEncryptedBlock = mediaOffsetPositionStart - pseudoPos; //TODO:FIX
+            long bytesToSkipTillEncryptedBlock = mediaOffsetPositionStart - pseudoPos;
             long blocksToSkipCountingFromStart = (n - bytesToSkipTillEncryptedBlock) / 0x200;        // always positive
             long bytesToSkipTillRequiredBlock = bytesToSkipTillEncryptedBlock + blocksToSkipCountingFromStart * 0x200;
             long leftovers = n - bytesToSkipTillRequiredBlock;           // most likely will be 0;
@@ -210,10 +209,12 @@ public class AesCtrBufferedInputStream extends BufferedInputStream {
                         bytesToSkipTillEncryptedBlock +
                         ".\nActually skipped: " + skipped +
                         ".\nLeftovers inside encrypted section: " + leftovers);
+            log.trace("\tBlocks skipped "+blocksToSkipCountingFromStart);
             resetAndSkip(blocksToSkipCountingFromStart);
             fillDecryptedCache();
             pseudoPos += n;
             pointerInsideDecryptedSection = (int) leftovers;
+            log.debug("    "+pseudoPos+" "+pointerInsideDecryptedSection);
             return n;
         }
         log.trace("6. Not encrypted ("+pseudoPos+"-"+(pseudoPos+n)+")");

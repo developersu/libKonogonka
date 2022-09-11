@@ -19,7 +19,6 @@
 package libKonogonka.RomFsDecrypted;
 
 import libKonogonka.KeyChainHolder;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -32,7 +31,7 @@ public class KeyChainHolderTest {
     private static final String xci_header_keyFileLocation = "./FilesForTests/xci_header_key.txt";
     private KeyChainHolder keyChainHolder;
 
-    @Disabled
+    //@Disabled
     @DisplayName("Key Chain Holder Test")
     @Test
     void keysChain() throws Exception{

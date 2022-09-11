@@ -75,7 +75,6 @@ public class RomFsEncryptedProvider implements IRomFsProvider{
         this.level6Offset = level6Offset;
         this.level6Header = construct.getHeader();
         this.rootEntry = construct.getRootEntry();
-
         this.absoluteOffsetPosition = romFsOffsetPosition + (mediaStartOffset * 0x200);
 
         this.directoryMetadataTable = construct.getDirectoryMetadataTable();
@@ -99,8 +98,8 @@ public class RomFsEncryptedProvider implements IRomFsProvider{
 
         PipedOutputStream streamOut = new PipedOutputStream();
         PipedInputStream streamIn = new PipedInputStream(streamOut);
-        long internalFileOffset = entry.getFileOffset();
-        long internalFileSize = entry.getFileSize();
+        long internalFileOffset = entry.getOffset();
+        long internalFileSize = entry.getSize();
 
         Thread contentRetrievingThread = new Thread(new RomFsEncryptedContentRetrieve(
                 file,

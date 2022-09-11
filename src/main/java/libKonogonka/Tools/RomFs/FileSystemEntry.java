@@ -41,8 +41,8 @@ public class FileSystemEntry {
     private static byte[] dirsMetadataTable;
     private static byte[] filesMetadataTable;
 
-    private long fileOffset;
-    private long fileSize;
+    private long offset;
+    private long size;
 
     public FileSystemEntry(byte[] dirsMetadataTable, byte[] filesMetadataTable) throws Exception{
         FileSystemEntry.dirsMetadataTable = dirsMetadataTable;
@@ -62,7 +62,7 @@ public class FileSystemEntry {
             content.add(getDirectory(rootDirectoryMetaData.firstSubdirectoryOffset));
         if (rootDirectoryMetaData.firstFileOffset != -1)
             content.add(getFile(this, rootDirectoryMetaData.firstFileOffset));
-        content.sort(Comparator.comparingLong(FileSystemEntry::getFileOffset));
+        content.sort(Comparator.comparingLong(FileSystemEntry::getOffset));
     }
 
     private FileSystemEntry(){
@@ -85,7 +85,7 @@ public class FileSystemEntry {
         if (directoryMetaData.firstFileOffset != -1)
             fileSystemEntry.content.add(getFile(fileSystemEntry, directoryMetaData.firstFileOffset));
 
-        fileSystemEntry.content.sort(Comparator.comparingLong(FileSystemEntry::getFileOffset));
+        fileSystemEntry.content.sort(Comparator.comparingLong(FileSystemEntry::getOffset));
 
         return fileSystemEntry;
     }
@@ -96,8 +96,8 @@ public class FileSystemEntry {
 
         FileMetaData fileMetaData = new FileMetaData(childFileMetaPosition);
         fileSystemEntry.name = fileMetaData.fileName;
-        fileSystemEntry.fileOffset = fileMetaData.fileDataRealOffset;
-        fileSystemEntry.fileSize = fileMetaData.fileDataRealLength;
+        fileSystemEntry.offset = fileMetaData.fileDataRealOffset;
+        fileSystemEntry.size = fileMetaData.fileDataRealLength;
         if (fileMetaData.nextSiblingFileOffset != -1)
             directoryContainer.content.add(getFile(directoryContainer, fileMetaData.nextSiblingFileOffset) );
 
@@ -106,8 +106,8 @@ public class FileSystemEntry {
 
     public boolean isDirectory() { return directoryFlag; }
     public boolean isFile() { return ! directoryFlag; }
-    public long getFileOffset() { return fileOffset; }
-    public long getFileSize() { return fileSize; }
+    public long getOffset() { return offset; }
+    public long getSize() { return size; }
     public List<FileSystemEntry> getContent() { return content; }
     public String getName(){ return name; }
 
@@ -135,7 +135,7 @@ public class FileSystemEntry {
             firstFileOffset = Converter.getLEint(dirsMetadataTable, i);
             i += 4;
             nextHashTableBucketDirectoryOffset = Converter.getLEint(dirsMetadataTable, i);
-            //*
+            /*
             if (nextHashTableBucketDirectoryOffset < 0) {
                 System.out.println("nextHashTableBucketDirectoryOffset: "+ nextHashTableBucketDirectoryOffset);
             }
@@ -183,7 +183,7 @@ public class FileSystemEntry {
             fileDataRealLength = Converter.getLElong(filesMetadataTable, i);
             i += 8;
             nextHashTableBucketFileOffset = Converter.getLEint(filesMetadataTable, i);
-            //*
+            /*
             if (nextHashTableBucketFileOffset < 0) {
                 System.out.println("nextHashTableBucketFileOffset: "+ nextHashTableBucketFileOffset);
             }

@@ -47,6 +47,7 @@ public class RomFsEncryptedContentRetrieve implements Runnable{
                                   long level6Offset,
                                   long headersFileDataOffset
                                   ){
+        log.fatal("Current implementation works incorrectly");
         this.parentFile = parentFile;
         this.absoluteOffsetPosition = absoluteOffsetPosition;
         this.streamOut = streamOut;
