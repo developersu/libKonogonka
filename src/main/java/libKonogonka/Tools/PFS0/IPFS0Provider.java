@@ -20,6 +20,8 @@ package libKonogonka.Tools.PFS0;
 
 import libKonogonka.Tools.ISuperProvider;
 
+import java.util.LinkedList;
+
 public interface IPFS0Provider extends ISuperProvider {
     boolean isEncrypted();
     String getMagic();
@@ -30,4 +32,5 @@ public interface IPFS0Provider extends ISuperProvider {
     PFS0subFile[] getPfs0subFiles();
 
     void printDebug();
+    LinkedList<byte[]> getPfs0SHA256hashes();
 }

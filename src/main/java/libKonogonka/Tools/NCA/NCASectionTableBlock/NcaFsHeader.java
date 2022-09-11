@@ -48,6 +48,7 @@ public class NcaFsHeader {
     private final BucketTreeHeader BktrSection2;
 
     private final byte[] generation;
+    private final byte[] secureValue;
     private final byte[] sectionCTR;
     private final SparseInfo sparseInfo;
     private final CompressionInfo compressionInfo;
@@ -79,7 +80,10 @@ public class NcaFsHeader {
         BktrSection2 = new BucketTreeHeader(Arrays.copyOfRange(tableBlockBytes, 0x130, 0x140));
 
         generation = Arrays.copyOfRange(tableBlockBytes, 0x140, 0x144);
-        sectionCTR = Arrays.copyOfRange(tableBlockBytes, 0x144, 0x148);
+        secureValue = Arrays.copyOfRange(tableBlockBytes, 0x144, 0x148);
+
+        sectionCTR = Arrays.copyOfRange(tableBlockBytes, 0x140, 0x148);
+
         sparseInfo = new SparseInfo(Arrays.copyOfRange(tableBlockBytes, 0x148, 0x178));
         compressionInfo = new CompressionInfo(Arrays.copyOfRange(tableBlockBytes,  0x178, 0x1a0));
         metaDataHashDataInfo = new MetaDataHashDataInfo(Arrays.copyOfRange(tableBlockBytes,   0x1a0, 0x1d0));
@@ -109,6 +113,10 @@ public class NcaFsHeader {
     public int getEntryCountSection2() { return BktrSection2.getEntryCount(); }
     public byte[] getPatchInfoUnknownSection2() { return BktrSection2.getUnknown(); }
     public byte[] getGeneration() {return generation;}
+    public byte[] getSecureValue() {return secureValue;}
+    /**
+     * Used for Aes Ctr decryption in IV context.
+     * */
     public byte[] getSectionCTR() { return sectionCTR; }
     public SparseInfo getSparseInfo() {return sparseInfo;}
     public CompressionInfo getCompressionInfo() {return compressionInfo;}

@@ -283,7 +283,8 @@ public class NCAProvider {
                 key = cipher.doFinal(rightsIDkey);
             }
             catch (Exception e){
-                throw new Exception("No title.keys loaded?", e);
+                throw new Exception("No title.keys loaded for '"+
+                        String.format("titlekek_%02x", cryptoTypeReal)+"' or '"+byteArrToHexString(rightsId)+"'? ("+e+")", e);
             }
         }
         getNcaContentByNumber(0, key);

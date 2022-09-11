@@ -32,18 +32,18 @@ public class AesCtrBufferedInputStream extends BufferedInputStream {
     private final long mediaOffsetPositionEnd;
 
     public AesCtrBufferedInputStream(AesCtrDecryptSimple decryptor,
-                                     long offsetPosition,
+                                     long ncaOffsetPosition,
                                      long mediaStartOffset,
                                      long mediaEndOffset,
                                      InputStream inputStream){
         super(inputStream);
         this.decryptor = decryptor;
-        this.mediaOffsetPositionStart = offsetPosition + (mediaStartOffset * 0x200);
-        this.mediaOffsetPositionEnd = offsetPosition + (mediaEndOffset * 0x200);
+        this.mediaOffsetPositionStart = ncaOffsetPosition + (mediaStartOffset * 0x200);
+        this.mediaOffsetPositionEnd = ncaOffsetPosition + (mediaEndOffset * 0x200);
 
-        log.debug("\nOffset Position             "+offsetPosition+
-                  "\nMediaOffsetPositionStart    "+RainbowDump.formatDecHexString(mediaOffsetPositionStart)+
-                  "\nMediaOffsetPositionEnd      "+RainbowDump.formatDecHexString(mediaOffsetPositionEnd));
+        log.trace("\n  Offset Position             "+ncaOffsetPosition+
+                  "\n  MediaOffsetPositionStart    "+RainbowDump.formatDecHexString(mediaOffsetPositionStart)+
+                  "\n  MediaOffsetPositionEnd      "+RainbowDump.formatDecHexString(mediaOffsetPositionEnd));
     }
 
     private byte[] decryptedBytes;
@@ -214,7 +214,6 @@ public class AesCtrBufferedInputStream extends BufferedInputStream {
             fillDecryptedCache();
             pseudoPos += n;
             pointerInsideDecryptedSection = (int) leftovers;
-            log.debug("    "+pseudoPos+" "+pointerInsideDecryptedSection);
             return n;
         }
         log.trace("6. Not encrypted ("+pseudoPos+"-"+(pseudoPos+n)+")");

@@ -176,6 +176,17 @@ public class HFS0Provider implements ISuperProvider {
         workerThread.start();
         return streamIn;
     }
+
+    @Override
+    public boolean exportContent(String saveToLocation, String subFileName) throws Exception {
+        return false;
+    }
+
+    @Override
+    public boolean exportContent(String saveToLocation, int subFileNumber) throws Exception {
+        return false;
+    }
+
     /**
      * Sugar
      * */

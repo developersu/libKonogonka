@@ -70,6 +70,6 @@ public class AesCtrDecryptSimple {
         // IV for CTR == 16 bytes
         IVarray = new byte[0x10];
         // Populate first 4 bytes taken from Header's section Block CTR (aka SecureValue)
-        System.arraycopy(Converter.flip(initialSectionCTR), 0x0, IVarray, 0x0, 0x4);
+        System.arraycopy(Converter.flip(initialSectionCTR), 0x0, IVarray, 0x0, 0x8);
     }
 }

@@ -26,7 +26,8 @@ import java.io.PipedInputStream;
 public interface ISuperProvider {
     PipedInputStream getProviderSubFilePipedInpStream(String subFileName) throws Exception;
     PipedInputStream getProviderSubFilePipedInpStream(int subFileNumber) throws Exception;
-
+    boolean exportContent(String saveToLocation, String subFileName) throws Exception;
+    boolean exportContent(String saveToLocation, int subFileNumber) throws Exception;
     File getFile();
     long getRawFileDataStart();
 }

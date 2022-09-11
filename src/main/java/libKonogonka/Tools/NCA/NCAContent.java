@@ -19,10 +19,8 @@
 package libKonogonka.Tools.NCA;
 
 import libKonogonka.Converter;
-import libKonogonka.RainbowDump;
 import libKonogonka.Tools.NCA.NCASectionTableBlock.NcaFsHeader;
 import libKonogonka.Tools.PFS0.IPFS0Provider;
-import libKonogonka.Tools.PFS0.PFS0EncryptedProvider;
 import libKonogonka.Tools.PFS0.PFS0Provider;
 import libKonogonka.Tools.RomFs.IRomFsProvider;
 import libKonogonka.Tools.RomFs.RomFsEncryptedProvider;
@@ -41,28 +39,28 @@ public class NCAContent {
     private final static Logger log = LogManager.getLogger(NCAContent.class);
     
     private final File file;
-    private final long offsetPosition;
+    private final long ncaOffsetPosition;
     private final NcaFsHeader ncaFsHeader;
     private final NCAHeaderTableEntry ncaHeaderTableEntry;
     private final byte[] decryptedKey;
 
-    private final LinkedList<byte[]> Pfs0SHA256hashes;
+    private LinkedList<byte[]> Pfs0SHA256hashes;
     private IPFS0Provider pfs0;
     private IRomFsProvider romfs;
 
     // TODO: if decryptedKey is empty, throw exception ??
     public NCAContent(File file,
-                      long offsetPosition,
+                      long ncaOffsetPosition,
                       NcaFsHeader ncaFsHeader,
                       NCAHeaderTableEntry ncaHeaderTableEntry,
                       byte[] decryptedKey) throws Exception
     {
         this.file = file;
-        this.offsetPosition = offsetPosition;
+        this.ncaOffsetPosition = ncaOffsetPosition;
         this.ncaFsHeader = ncaFsHeader;
         this.ncaHeaderTableEntry = ncaHeaderTableEntry;
         this.decryptedKey = decryptedKey;
-
+        System.out.println("NCAContent pfs0offsetPosition: "+ncaOffsetPosition);
         Pfs0SHA256hashes = new LinkedList<>();
         // If nothing to do
         if (ncaHeaderTableEntry.getMediaEndOffset() == 0)
@@ -89,60 +87,24 @@ public class NCAContent {
         }
     }
     private void proceedPFS0NotEncrypted() throws Exception{
-        RandomAccessFile raf = new RandomAccessFile(file, "r");
-        long thisMediaLocation = offsetPosition + (ncaHeaderTableEntry.getMediaStartOffset() * 0x200);// TODO: NOTE already defined inside PFS0
-        long hashTableLocation = thisMediaLocation + ncaFsHeader.getSuperBlockPFS0().getHashTableOffset();
-        long pfs0Location = thisMediaLocation + ncaFsHeader.getSuperBlockPFS0().getPfs0offset();
-
-        raf.seek(hashTableLocation);
-
-        byte[] rawData;
-        long sha256recordsNumber = ncaFsHeader.getSuperBlockPFS0().getHashTableSize() / 0x20;
-        // Collect hashes
-        for (int i = 0; i < sha256recordsNumber; i++){
-            rawData = new byte[0x20];       // 32 bytes - size of SHA256 hash
-            if (raf.read(rawData) != -1)
-                Pfs0SHA256hashes.add(rawData);
-            else {
-                raf.close();
-                return;                      // TODO: fix
-            }
-        }
-        raf.close();
-        // Get pfs0
-        pfs0 = new PFS0Provider(file, pfs0Location);
-    }
-    private void proceedPFS0Encrypted() throws Exception{/*
-        RandomAccessFile raf = new RandomAccessFile(file, "r");
-        long thisMediaLocation = offsetPosition + (ncaHeaderTableEntry.getMediaStartOffset() * 0x200);
-        long hashTableLocation = thisMediaLocation + ncaFsHeader.getSuperBlockPFS0().getHashTableOffset();
-        long pfs0Location = thisMediaLocation + ncaFsHeader.getSuperBlockPFS0().getPfs0offset();
-
-        raf.seek(hashTableLocation);
-
-        byte[] rawData;
-        long sha256recordsNumber = ncaFsHeader.getSuperBlockPFS0().getHashTableSize() / 0x20;
-        // Collect hashes
-        for (int i = 0; i < sha256recordsNumber; i++){
-            rawData = new byte[0x20];       // 32 bytes - size of SHA256 hash
-            if (raf.read(rawData) != -1)
-                Pfs0SHA256hashes.add(rawData);
-            else {
-                raf.close();
-                return;                      // TODO: fix
-            }
-        }
-        raf.close();
-        // Get pfs0
-        pfs0 = new PFS0Provider(file, pfs0Location);
-        /*/
-        new CryptoSection03Pfs0(file,
-                offsetPosition,
-                decryptedKey,
-                ncaFsHeader,
+        pfs0 = new PFS0Provider(file,
+                ncaOffsetPosition,
+                ncaFsHeader.getSuperBlockPFS0(),
                 ncaHeaderTableEntry.getMediaStartOffset(),
                 ncaHeaderTableEntry.getMediaEndOffset());
-         //*/
+        Pfs0SHA256hashes = pfs0.getPfs0SHA256hashes();
+    }
+
+    private void proceedPFS0Encrypted() throws Exception{
+        AesCtrDecryptSimple decryptor = new AesCtrDecryptSimple(decryptedKey, ncaFsHeader.getSectionCTR(),
+                ncaHeaderTableEntry.getMediaStartOffset() * 0x200);
+        pfs0 = new PFS0Provider(file,
+                ncaOffsetPosition,
+                ncaFsHeader.getSuperBlockPFS0(),
+                decryptor,
+                ncaHeaderTableEntry.getMediaStartOffset(),
+                ncaHeaderTableEntry.getMediaEndOffset());
+        Pfs0SHA256hashes = pfs0.getPfs0SHA256hashes();
     }
 
     private void proceedRomFs() throws Exception{
@@ -167,7 +129,7 @@ public class NCAContent {
         this.romfs = new RomFsEncryptedProvider(
                 ncaFsHeader.getSuperBlockIVFC().getLvl6Offset(),
                 file,
-                offsetPosition,
+                ncaOffsetPosition,
                 decryptedKey,
                 ncaFsHeader.getSectionCTR(),
                 ncaHeaderTableEntry.getMediaStartOffset(),
@@ -178,174 +140,6 @@ public class NCAContent {
     public IPFS0Provider getPfs0() { return pfs0; }
     public IRomFsProvider getRomfs() { return romfs; }
 
-    private class CryptoSection03Pfs0 {
-        CryptoSection03Pfs0(File file,
-                            long offsetPosition,
-                            byte[] decryptedKey,
-                            NcaFsHeader ncaFsHeader,
-                            long mediaStartBlocksOffset,
-                            long mediaEndBlocksOffset) throws Exception
-        {
-            log.debug( "-== Crypto Section 03 PFS0 ==-\n" +
-                "Media start location:      " + RainbowDump.formatDecHexString(mediaStartBlocksOffset) + "\n" +
-                "Media end location:        " + RainbowDump.formatDecHexString(mediaEndBlocksOffset) + "\n" +
-                "Media size:                " + RainbowDump.formatDecHexString((mediaEndBlocksOffset-mediaStartBlocksOffset)) + "\n" +
-                "Media actual location:     " + RainbowDump.formatDecHexString((offsetPosition + (mediaStartBlocksOffset * 0x200))) + "\n" +
-                "SHA256 hash table size:    " + RainbowDump.formatDecHexString(ncaFsHeader.getSuperBlockPFS0().getHashTableSize()) + "\n" +
-                "SHA256 hash table offs:    " + RainbowDump.formatDecHexString(ncaFsHeader.getSuperBlockPFS0().getHashTableOffset()) + "\n" +
-                "PFS0 Offset:               " + RainbowDump.formatDecHexString(ncaFsHeader.getSuperBlockPFS0().getPfs0offset()) + "\n" +
-                "SHA256 records:            " + RainbowDump.formatDecHexString(ncaFsHeader.getSuperBlockPFS0().getHashTableSize() / 0x20) + "\n" +
-                "KEY (decrypted):           " + Converter.byteArrToHexString(decryptedKey) + "\n" +
-                "CTR:                       " + Converter.byteArrToHexString(ncaFsHeader.getSectionCTR()) + "\n" +
-                "-----------------------------------------------------------\n");
-            if (decryptedKey == null)
-                throw new Exception("CryptoSection03: unable to proceed. No decrypted key provided.");
-
-            RandomAccessFile raf = new RandomAccessFile(file, "r");
-            long absoluteOffsetPosition = offsetPosition + (mediaStartBlocksOffset * 0x200);
-            raf.seek(absoluteOffsetPosition);
-
-            AesCtrDecryptSimple decryptor = new AesCtrDecryptSimple(decryptedKey, ncaFsHeader.getSectionCTR(),
-                    mediaStartBlocksOffset * 0x200);
-
-            byte[] encryptedBlock;
-            byte[] decryptedBlock;
-            long mediaBlocksSize = mediaEndBlocksOffset - mediaStartBlocksOffset;
-            // Prepare thread to parse encrypted data
-            PipedOutputStream streamOut = new PipedOutputStream();
-            PipedInputStream streamInp = new PipedInputStream(streamOut);
-
-            Thread pThread = new Thread(new ParseThread(
-                    streamInp,
-                    ncaFsHeader.getSuperBlockPFS0().getPfs0offset(),
-                    ncaFsHeader.getSuperBlockPFS0().getHashTableOffset(),
-                    ncaFsHeader.getSuperBlockPFS0().getHashTableSize(),
-                    offsetPosition,
-                    file,
-                    decryptedKey,
-                    ncaFsHeader.getSectionCTR(),
-                    mediaStartBlocksOffset,
-                    mediaEndBlocksOffset
-            ));
-            pThread.start();
-            // Decrypt data
-            for (int i = 0; i < mediaBlocksSize; i++){
-                encryptedBlock = new byte[0x200];
-                if (raf.read(encryptedBlock) != -1){
-                    //decryptedBlock = aesCtr.decrypt(encryptedBlock);
-                    decryptedBlock = decryptor.decryptNext(encryptedBlock);
-                    // Writing decrypted data to pipe
-                    try {
-                        streamOut.write(decryptedBlock);
-                    }
-                    catch (IOException e){
-                        break;
-                    }
-                }
-            }
-            pThread.join();
-            streamOut.close();
-            raf.close();
-        }
-        /**
-        * Since we're representing decrypted data as stream (it's easier to look on it this way),
-        * this thread will be parsing it.
-        * */
-        private class ParseThread implements Runnable{
-
-            PipedInputStream pipedInputStream;
-
-            long hashTableOffset;
-            long hashTableSize;
-            long hashTableRecordsCount;
-            long pfs0offset;
-
-            private final long MetaOffsetPositionInFile;
-            private final File MetaFileWithEncPFS0;
-            private final byte[] MetaKey;
-            private final byte[] MetaSectionCTR;
-            private final long MetaMediaStartOffset;
-            private final long MetaMediaEndOffset;
-
-
-            ParseThread(PipedInputStream pipedInputStream,
-                        long pfs0offset,
-                        long hashTableOffset,
-                        long hashTableSize,
-
-                        long MetaOffsetPositionInFile,
-                        File MetaFileWithEncPFS0,
-                        byte[] MetaKey,
-                        byte[] MetaSectionCTR,
-                        long MetaMediaStartOffset,
-                        long MetaMediaEndOffset
-            ){
-                this.pipedInputStream = pipedInputStream;
-                this.hashTableOffset = hashTableOffset;
-                this.hashTableSize = hashTableSize;
-                this.hashTableRecordsCount = hashTableSize / 0x20;
-                this.pfs0offset = pfs0offset;
-
-                this.MetaOffsetPositionInFile = MetaOffsetPositionInFile;
-                this.MetaFileWithEncPFS0 = MetaFileWithEncPFS0;
-                this.MetaKey = MetaKey;
-                this.MetaSectionCTR = MetaSectionCTR;
-                this.MetaMediaStartOffset = MetaMediaStartOffset;
-                this.MetaMediaEndOffset = MetaMediaEndOffset;
-
-            }
-
-            @Override
-            public void run() {
-                long counter = 0;       // How many bytes already read
-
-                try{
-                    if (hashTableOffset > 0){
-                        if (hashTableOffset != pipedInputStream.skip(hashTableOffset))
-                            return;                                                     // TODO: fix?
-                        counter = hashTableOffset;
-                    }
-                    // Loop for collecting all recrods from sha256 hash table
-                    while ((counter - hashTableOffset) < hashTableSize){
-                        int hashCounter = 0;
-                        byte[] sectionHash = new byte[0x20];
-                        // Loop for collecting bytes for every SINGLE records, where record size == 0x20
-                        while (hashCounter < 0x20){
-                            int currentByte = pipedInputStream.read();
-                            if (currentByte == -1)
-                                break;
-                            sectionHash[hashCounter] = (byte)currentByte;
-                            hashCounter++;
-                            counter++;
-                        }
-                        // Write after collecting
-                        Pfs0SHA256hashes.add(sectionHash);  // From the NCAContentProvider obviously
-                    }
-                    // Skip padding and go to PFS0 location
-                    if (counter < pfs0offset){
-                        long toSkip = pfs0offset-counter;
-                        if (toSkip != pipedInputStream.skip(toSkip))
-                            return;                                                     // TODO: fix?
-                        counter += toSkip;
-                    }
-                    //---------------------------------------------------------
-                    pfs0 = new PFS0EncryptedProvider(pipedInputStream,
-                            counter,
-                            MetaOffsetPositionInFile,
-                            MetaFileWithEncPFS0,
-                            MetaKey,
-                            MetaSectionCTR,
-                            MetaMediaStartOffset,
-                            MetaMediaEndOffset);
-                    pipedInputStream.close();
-                }
-                catch (Exception e){
-                    log.debug("NCA Content parsing thread exception: ", e);
-                }
-                //finally { System.out.println("NCA Content thread dies");}
-            }
-        }
-    }
 
     /**
      * Export NCA content AS IS.
@@ -362,7 +156,7 @@ public class NCAContent {
         "Media start location: " + mediaStartBlocksOffset + "\n" +
         "Media end location:   " + mediaEndBlocksOffset + "\n" +
         "Media size          : " + (mediaEndBlocksOffset-mediaStartBlocksOffset) + "\n" +
-        "Media act. location:  " + (offsetPosition + (mediaStartBlocksOffset * 0x200)) + "\n" +
+        "Media act. location:  " + (ncaOffsetPosition + (mediaStartBlocksOffset * 0x200)) + "\n" +
         "KEY:                  " + Converter.byteArrToHexString(decryptedKey) + "\n" +
         "CTR:                  " + Converter.byteArrToHexString(ncaFsHeader.getSectionCTR()) + "\n");
         //---------------------------------------------------------------------------------------------------/
@@ -414,7 +208,7 @@ public class NCAContent {
             workerThread = new Thread(() -> {
                 try {
                     //RandomAccessFile raf = new RandomAccessFile(file, "r");
-                    long abosluteOffsetPosition = offsetPosition + (mediaStartBlocksOffset * 0x200);
+                    long abosluteOffsetPosition = ncaOffsetPosition + (mediaStartBlocksOffset * 0x200);
                     raf.seek(abosluteOffsetPosition);
 
                     AesCtrDecryptSimple decryptor = new AesCtrDecryptSimple(decryptedKey,
