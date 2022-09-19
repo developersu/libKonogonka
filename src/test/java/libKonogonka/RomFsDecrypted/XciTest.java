@@ -18,52 +18,49 @@
  */
 package libKonogonka.RomFsDecrypted;
 
-import java.io.File;
-import java.nio.file.Path;
-
-import libKonogonka.Tools.RomFs.RomFsProvider;
+import libKonogonka.Tools.XCI.XCIProvider;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.io.TempDir;
+
+import java.io.BufferedReader;
+import java.io.File;
+import java.io.FileReader;
 
 // log.fatal("Configuration File Defined To Be :: "+System.getProperty("log4j.configurationFile"));
 
-public class RomFsDecryptedTest {
-    @TempDir
-    Path mainLogsDir;
-
-    private static final String decryptedFileAbsolutePath = "./FilesForTests/NCAContent_0 [lv6 147456].bin";
-    private File decryptedFile;
-    long lv6offset;
-    RomFsProvider provider;
+public class XciTest {
+    private static final String xci_header_keyFileLocation = "./FilesForTests/xci_header_key.txt";
+    private static final String decryptedFileAbsolutePath = "./FilesForTests/sample.xci";
+    private File xciFile;
+    XCIProvider provider;
+    String xci_header_key;
 
     @Disabled
     @DisplayName("RomFsDecryptedProvider: tests")
     @Test
     void romFsValidation() throws Exception{
         makeFile();
-        parseLv6offsetFromFileName();
+        getXciHeaderKey();
         makeProvider();
-        provider.printDebug();
+    }
+
+    void getXciHeaderKey() throws Exception{
+        BufferedReader br = new BufferedReader(new FileReader(xci_header_keyFileLocation));
+        xci_header_key = br.readLine();
+        br.close();
+
+        if (xci_header_key == null)
+            throw new Exception("Unable to retrieve xci_header_key");
+
+        xci_header_key = xci_header_key.trim();
     }
 
     void makeFile(){
-        decryptedFile = new File(decryptedFileAbsolutePath);
+        xciFile = new File(decryptedFileAbsolutePath);
     }
-    void parseLv6offsetFromFileName(){
-        lv6offset = Long.parseLong(decryptedFile.getName().replaceAll("(^.*lv6\\s)|(]\\.bin)", ""));
-    }
+
     void makeProvider() throws Exception{
-        provider = new RomFsProvider(decryptedFile, lv6offset);
+        provider = new XCIProvider(xciFile, xci_header_key);
     }
-
-/*
-    void checkFilesWorkers(){
-        assertTrue(fw1 instanceof WorkerFiles);
-        assertTrue(fw2 instanceof WorkerFiles);
-        assertTrue(fw3 instanceof WorkerFiles);
-    }
-
- */
 }

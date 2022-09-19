@@ -33,8 +33,7 @@ import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.LinkedList;
 
-import static libKonogonka.Converter.getLEint;
-import static libKonogonka.Converter.getLElong;
+import static libKonogonka.Converter.*;
 
 public class PFS0Provider implements IPFS0Provider{
     private final static Logger log = LogManager.getLogger(PFS0Provider.class);
@@ -295,11 +294,68 @@ public class PFS0Provider implements IPFS0Provider{
         return true;
     }
 
-    //TODO: REMOVE
+    /**
+     * @deprecated
+     * */
     @Override
-    public PipedInputStream getProviderSubFilePipedInpStream(String subFileName) throws Exception {return null;}
+    public PipedInputStream getProviderSubFilePipedInpStream(String subFileName) throws Exception {
+        for (int i = 0; i < pfs0subFiles.length; i++) {
+            if (pfs0subFiles[i].getName().equals(subFileName))
+                return getProviderSubFilePipedInpStream(i);
+        }
+        throw new Exception("No file with such name exists: "+subFileName);
+    }
+    /**
+     * @deprecated
+     * */
     @Override
-    public PipedInputStream getProviderSubFilePipedInpStream(int subFileNumber) throws Exception {return null;}
+    public PipedInputStream getProviderSubFilePipedInpStream(int subFileNumber) throws Exception {
+        PipedOutputStream streamOut = new PipedOutputStream();
+        PipedInputStream streamInp = new PipedInputStream(streamOut);
+
+        Thread workerThread = new Thread(() -> {
+            try {
+                PFS0subFile subFile = pfs0subFiles[subFileNumber];
+
+                if (encrypted)
+                    createAesCtrEncryptedBufferedInputStream();
+                else
+                    createBufferedInputStream();
+
+                long subFileSize = subFile.getSize();
+
+                long toSkip = subFile.getOffset() + mediaStartOffset * 0x200 + rawBlockDataStart;
+                if (toSkip != stream.skip(toSkip))
+                    throw new Exception("Unable to skip offset: " + toSkip);
+
+                int blockSize = 0x200;
+                if (subFileSize < 0x200)
+                    blockSize = (int) subFileSize;
+
+                long i = 0;
+                byte[] block = new byte[blockSize];
+
+                int actuallyRead;
+                while (true) {
+                    if ((actuallyRead = stream.read(block)) != blockSize)
+                        throw new Exception("Read failure. Block Size: " + blockSize + ", actuallyRead: " + actuallyRead);
+                    streamOut.write(block);
+                    i += blockSize;
+                    if ((i + blockSize) > subFileSize) {
+                        blockSize = (int) (subFileSize - i);
+                        if (blockSize == 0)
+                            break;
+                        block = new byte[blockSize];
+                    }
+                }
+            }
+            catch (Exception e){
+                log.error(e);
+            }
+        });
+        workerThread.start();
+        return streamInp;
+    }
 
 
     public LinkedList<byte[]> getPfs0SHA256hashes() {

@@ -117,7 +117,7 @@ public class RomFsEncryptedTest {
 
         exportFolderContent(entry, "/tmp/brandnew");
         //----------------------------------------------------------------------
-        exportFolderContentLegacy(entry, "/tmp/legacy");
+        // exportFolderContentLegacy(entry, "/tmp/legacy");
     }
 
     private void exportFolderContent(FileSystemEntry entry, String saveToLocation) throws Exception{
@@ -195,7 +195,7 @@ public class RomFsEncryptedTest {
     private void exportSingleFileLegacy(FileSystemEntry entry, String saveToLocation) throws Exception {
         File contentFile = new File(saveToLocation + entry.getName());
 
-        BufferedOutputStream extractedFileBOS = new BufferedOutputStream(new FileOutputStream(contentFile));
+        BufferedOutputStream extractedFileBOS = new BufferedOutputStream(Files.newOutputStream(contentFile.toPath()));
         PipedInputStream pis = ncaProvider.getNCAContentProvider(1).getRomfs().getContent(entry);
 
         byte[] readBuf = new byte[0x200]; // 8mb NOTE: consider switching to 1mb 1048576

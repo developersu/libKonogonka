@@ -172,23 +172,14 @@ public class AesCtrBufferedInputStream extends BufferedInputStream {
 
                 long leftovers = realCountOfBytesToSkip % 0x200;           // most likely will be 0;  TODO: a lot of tests
                 long bytesToSkipTillRequiredBlock = realCountOfBytesToSkip - leftovers;
-                long skipped = super.skip(bytesToSkipTillRequiredBlock);
-                if (bytesToSkipTillRequiredBlock != skipped)
-                    throw new IOException("Can't skip bytes. To skip: " +
-                            bytesToSkipTillRequiredBlock +
-                            ".\nActually skipped: " + skipped +
-                            ".\nLeftovers inside encrypted section: " + leftovers);
+                skipLoop(bytesToSkipTillRequiredBlock);
                 fillDecryptedCache();
                 pseudoPos += n;
                 pointerInsideDecryptedSection = (int) leftovers;
                 return n;
             }
             log.trace("4. Pointer Inside + End Position Outside Encrypted Section ("+pseudoPos+"-"+(pseudoPos+n)+")");
-            long skipped = super.skip(realCountOfBytesToSkip);
-            if (realCountOfBytesToSkip != skipped)
-                throw new IOException("Can't skip bytes. To skip: " +
-                        realCountOfBytesToSkip +
-                        ".\nActually skipped: " + skipped);
+            skipLoop(realCountOfBytesToSkip);
             pseudoPos += n;
             pointerInsideDecryptedSection = 0;
             return n;
@@ -217,12 +208,20 @@ public class AesCtrBufferedInputStream extends BufferedInputStream {
             return n;
         }
         log.trace("6. Not encrypted ("+pseudoPos+"-"+(pseudoPos+n)+")");
-        long skipped = super.skip(n);
+        skipLoop(n);
         pseudoPos += n;
         pointerInsideDecryptedSection = 0;
-        return skipped;
+        return n;
     }
-
+    private void skipLoop(long size) throws IOException{
+        long mustSkip = size;
+        long skipped = 0;
+        while (mustSkip > 0){
+            skipped += super.skip(mustSkip);
+            mustSkip = size - skipped;
+            log.trace("Skip loop: skipped: "+skipped+"\tmustSkip "+mustSkip);
+        }
+    }
     @Override
     public synchronized int read() throws IOException {
         byte[] b = new byte[1];

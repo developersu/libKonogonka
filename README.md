@@ -1,12 +1,12 @@
 # libKonogonka
 
-[![Build Status](https://ci.redrise.ru/api/badges/desu/libKonogonka/status.svg)](https://ci.redrise.ru/desu/libKonogonka)
+![License](https://img.shields.io/badge/License-GPLv3-blue.svg) [![Build Status](https://ci.redrise.ru/api/badges/desu/libKonogonka/status.svg)](https://ci.redrise.ru/desu/libKonogonka)
 
-Library to work with NS-specific files / filesystem images. Dedicated back end part of [konogonka](https://github.com/developersu/konogonka) ([independent src location](https://git.redrise.ru/desu/konogonka))
+Library to work with NS-specific files / filesystem images. Ex-backend of [konogonka](https://github.com/developersu/konogonka) ([independent src location](https://git.redrise.ru/desu/konogonka))
 
 ### License
 
-[GNU General Public License v3+](https://git.redrise.ru/desu/libKonogonka/LICENSE)
+[GNU General Public License v3 or higher](https://git.redrise.ru/desu/libKonogonka/LICENSE)
 
 ### Used libraries & resources
 * [Bouncy Castle](https://www.bouncycastle.org/) for Java.

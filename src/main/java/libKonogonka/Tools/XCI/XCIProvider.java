@@ -76,7 +76,7 @@ public class XCIProvider{
             xciGamecardCert = new XCIGamecardCert(gamecardCertBytes);
 
             hfs0ProviderMain = new HFS0Provider(0xf000, raf, file);
-            if (hfs0ProviderMain.getFilesCnt() < 3){
+            if (hfs0ProviderMain.getFilesCount() < 3){
                 raf.close();
                 throw new Exception("XCI Can't read Gamecard certificate bytes.");
             }
@@ -106,7 +106,7 @@ public class XCIProvider{
             throw new Exception("XCI Failed file analyze for ["+file.getName()+"]\n  "+ioe.getMessage());
         }
     }
-    /* Getters */
+    /* API */
     public XCIGamecardHeader getGCHeader(){ return this.xciGamecardHeader; }
     public XCIGamecardInfo getGCInfo(){ return this.xciGamecardInfo; }
     public XCIGamecardCert getGCCert(){ return this.xciGamecardCert; }

@@ -27,7 +27,7 @@ import org.apache.logging.log4j.Logger;
  * This class stores information contained in Level 6 Header of the RomFS image
  * ------------------------------------
  * | Header Length (usually 0x50)     |
- * | Directory Hash Table Offset      | Not used by this library | '<< 32' to get real offset: see implementation
+ * | Directory Hash Table Offset      | Not used by this library
  * | Directory Hash Table Length      | Not used by this library
  * | Directory Metadata Table Offset  |
  * | Directory Metadata Table Length  |
@@ -42,7 +42,7 @@ public class Level6Header {
     private final static Logger log = LogManager.getLogger(Level6Header.class);
 
     private final long headerLength;
-    private long directoryHashTableOffset;
+    private final long directoryHashTableOffset;
     private final long directoryHashTableLength;
     private final long directoryMetadataTableOffset;
     private final long directoryMetadataTableLength;
@@ -61,7 +61,7 @@ public class Level6Header {
             throw new Exception("Level 6 Header section is too small");
         headerLength = getNext();
         directoryHashTableOffset = getNext();
-        directoryHashTableOffset <<= 32;
+        //directoryHashTableOffset <<= 32;
         directoryHashTableLength = getNext();
         directoryMetadataTableOffset = getNext();
         directoryMetadataTableLength = getNext();
@@ -73,7 +73,7 @@ public class Level6Header {
     }
     
     private long getNext(){
-        final long result = Converter.getLEint(headerBytes, _cursor);
+        final long result = Converter.getLElongOfInt(headerBytes, _cursor);
         _cursor += 0x8;
         return result;
     }

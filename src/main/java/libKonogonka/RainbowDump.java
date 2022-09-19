@@ -38,12 +38,60 @@ public class RainbowDump {
     public static void hexDumpUTF8(byte[] byteArray){
         if (byteArray == null || byteArray.length == 0)
             return;
+
+        int k = 0;
+        System.out.printf("%s%08x  %s", ANSI_BLUE, 0, ANSI_RESET);
+        for (int i = 0; i < byteArray.length; i++) {
+            if (k == 8)
+                System.out.print("  ");
+            if (k == 16){
+                System.out.print(ANSI_GREEN+"| "+ANSI_RESET);
+                printChars(byteArray, i);
+                System.out.println();
+                System.out.printf("%s%08x  %s", ANSI_BLUE, i, ANSI_RESET);
+                k = 0;
+            }
+            System.out.printf("%02x ", byteArray[i]);
+            k++;
+        }
+        int paddingSize = 16 - (byteArray.length % 16);
+        if (paddingSize != 16) {
+            for (int i = 0; i < paddingSize; i++) {
+                System.out.print("   ");
+            }
+            if (paddingSize > 7) {
+                System.out.print("  ");
+            }
+        }
+        System.out.print(ANSI_GREEN+"| "+ANSI_RESET);
+        printChars(byteArray, byteArray.length);
+        System.out.println();
+        System.out.print(ANSI_RESET+new String(byteArray, StandardCharsets.UTF_8)+"\n");
+    }
+
+    private static void printChars(byte[] byteArray, int pointer){
+        for (int j = pointer-16; j < pointer; j++){
+            if ((byteArray[j] > 21) && (byteArray[j] < 126)) // man ascii
+                System.out.print((char) byteArray[j]);
+            else if (byteArray[j] == 0x0a)
+                System.out.print("↲"); //"␤"
+            else if (byteArray[j] == 0x0d)
+                System.out.print("←"); // "␍"
+            else
+                System.out.print(".");
+        }
+    }
+
+
+    public static void hexDumpUTF8Legacy(byte[] byteArray){
+        if (byteArray == null || byteArray.length == 0)
+            return;
         System.out.print(ANSI_BLUE);
         for (int i=0; i < byteArray.length; i++)
-            System.out.print(String.format("%02d-", i%100));
+            System.out.printf("%02d-", i%100);
         System.out.println(">"+ANSI_RED+byteArray.length+ANSI_RESET);
         for (byte b: byteArray)
-            System.out.print(String.format("%02x ", b));
+            System.out.printf("%02x ", b);
         System.out.println();
         System.out.print(new String(byteArray, StandardCharsets.UTF_8)+"\n");
     }

@@ -22,7 +22,7 @@ import libKonogonka.Tools.NCA.NCASectionTableBlock.NcaFsHeader;
 import libKonogonka.Tools.PFS0.IPFS0Provider;
 import libKonogonka.Tools.PFS0.PFS0Provider;
 import libKonogonka.Tools.RomFs.IRomFsProvider;
-import libKonogonka.Tools.RomFs.RomFsEncryptedProvider;
+import libKonogonka.Tools.RomFs.RomFsProvider;
 import libKonogonka.ctraes.AesCtrBufferedInputStream;
 import libKonogonka.ctraes.AesCtrDecryptSimple;
 import libKonogonka.exceptions.EmptySectionException;
@@ -32,7 +32,6 @@ import org.apache.logging.log4j.Logger;
 import java.io.*;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.LinkedList;
 
 public class NCAContent {
     private final static Logger log = LogManager.getLogger(NCAContent.class);
@@ -43,7 +42,6 @@ public class NCAContent {
     private final NCAHeaderTableEntry ncaHeaderTableEntry;
     private final byte[] decryptedKey;
 
-    private LinkedList<byte[]> Pfs0SHA256hashes;
     private IPFS0Provider pfs0;
     private IRomFsProvider romfs;
 
@@ -59,8 +57,6 @@ public class NCAContent {
         this.ncaFsHeader = ncaFsHeader;
         this.ncaHeaderTableEntry = ncaHeaderTableEntry;
         this.decryptedKey = decryptedKey;
-        System.out.println("NCAContent pfs0offsetPosition: "+ncaOffsetPosition);
-        Pfs0SHA256hashes = new LinkedList<>();
         // If nothing to do
         if (ncaHeaderTableEntry.getMediaEndOffset() == 0)
             throw new EmptySectionException("Empty section");
@@ -91,7 +87,6 @@ public class NCAContent {
                 ncaFsHeader.getSuperBlockPFS0(),
                 ncaHeaderTableEntry.getMediaStartOffset(),
                 ncaHeaderTableEntry.getMediaEndOffset());
-        Pfs0SHA256hashes = pfs0.getPfs0SHA256hashes();
     }
 
     private void proceedPFS0Encrypted() throws Exception{
@@ -103,16 +98,15 @@ public class NCAContent {
                 decryptor,
                 ncaHeaderTableEntry.getMediaStartOffset(),
                 ncaHeaderTableEntry.getMediaEndOffset());
-        Pfs0SHA256hashes = pfs0.getPfs0SHA256hashes();
     }
 
     private void proceedRomFs() throws Exception{
         switch (ncaFsHeader.getCryptoType()){
             case 0x01:
-                proceedRomFsNotEncrypted(); // IF NO ENCRYPTION
+                proceedRomFsNotEncrypted();
                 break;
             case 0x03:
-                proceedRomFsEncrypted(); // If encrypted regular [ 0x03 ]
+                proceedRomFsEncrypted();
                 break;
             default:
                 throw new Exception("Non-supported 'Crypto type'");
@@ -125,7 +119,7 @@ public class NCAContent {
         if (decryptedKey == null)
             throw new Exception("CryptoSection03: unable to proceed. No decrypted key provided.");
 
-        this.romfs = new RomFsEncryptedProvider(
+        this.romfs = new RomFsProvider(
                 ncaFsHeader.getSuperBlockIVFC().getLvl6Offset(),
                 file,
                 ncaOffsetPosition,

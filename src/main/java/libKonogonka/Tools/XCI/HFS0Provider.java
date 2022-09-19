@@ -22,6 +22,7 @@ import libKonogonka.Tools.ISuperProvider;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.util.Arrays;
 
 import static libKonogonka.Converter.*;
@@ -30,59 +31,54 @@ import static libKonogonka.Converter.*;
  * HFS0
  * */
 public class HFS0Provider implements ISuperProvider {
+    private final String magic;
+    private final int filesCount;
+    private final byte[] padding;
+    private final int stringTableSize;
+    private final long rawFileDataStart;
 
-    private boolean magicHFS0;
-    private int filesCnt;
-    private boolean paddingHfs0;
-    private int stringTableSize;
-    private long rawFileDataStart;
+    private final HFS0File[] hfs0Files;
 
-    private HFS0File[] hfs0Files;
-
-    private File file;
+    private final File file;
 
     HFS0Provider(long hfsOffsetPosition, RandomAccessFile raf, File file) throws Exception{
         this.file = file;    // Will be used @ getHfs0FilePipedInpStream. It's a bad implementation.
         byte[] hfs0bytes = new byte[16];
-        try{
-            raf.seek(hfsOffsetPosition);
-            if (raf.read(hfs0bytes) != 16){
-                throw new Exception("Read HFS0 structure failure. Can't read first 16 bytes on requested offset.");
-            }
+
+        raf.seek(hfsOffsetPosition);
+        if (raf.read(hfs0bytes) != 16){
+            throw new Exception("Read HFS0 structure failure. Can't read first 16 bytes on requested offset.");
         }
-        catch (IOException ioe){
-            throw new Exception("Read HFS0 structure failure. Can't read first 16 bytes on requested offset: "+ioe.getMessage());
-        }
-        magicHFS0 = Arrays.equals(Arrays.copyOfRange(hfs0bytes, 0, 4),new byte[]{0x48, 0x46, 0x53, 0x30});
-        filesCnt = getLEint(hfs0bytes, 0x4);
-        stringTableSize = getLEint(hfs0bytes, 8);
-        paddingHfs0 = Arrays.equals(Arrays.copyOfRange(hfs0bytes, 12, 16),new byte[4]);
 
-        hfs0Files = new HFS0File[filesCnt];
+        this.magic = new String(hfs0bytes, 0x0, 0x4, StandardCharsets.US_ASCII);
+        this.filesCount = getLEint(hfs0bytes, 0x4);
+        this.stringTableSize = getLEint(hfs0bytes, 8);
+        this.padding = Arrays.copyOfRange(hfs0bytes, 12, 16);
 
-        // TODO: IF NOT EMPTY TABLE:
+        hfs0Files = new HFS0File[filesCount];
 
-        long[] offsetHfs0files = new long[filesCnt];
-        long[] sizeHfs0files = new long[filesCnt];
-        int[] hashedRegionSizeHfs0Files = new int[filesCnt];
-        boolean[] paddingHfs0Files = new boolean[filesCnt];
-        byte[][] SHA256HashHfs0Files = new byte[filesCnt][];
-        int[] strTableOffsets = new int[filesCnt];
+        // TODO: IF NOT EMPTY TABLE: add validation
+
+        long[] offsetSubFile = new long[filesCount];
+        long[] sizeSubFile = new long[filesCount];
+        int[] hashedRegionSubFile = new int[filesCount];
+        boolean[] paddingSubFile = new boolean[filesCount];
+        byte[][] SHA256HashSubFile = new byte[filesCount][];
+        int[] stringTableOffsetSubFile = new int[filesCount];
 
         try {
             // Populate meta information regarding each file inside (?) HFS0
             byte[] metaInfoBytes = new byte[64];
-            for (int i=0; i < filesCnt; i++){
-                if (raf.read(metaInfoBytes) != 64) {
+            for (int i = 0; i < filesCount; i++){
+                if (raf.read(metaInfoBytes) != 64)
                     throw new Exception("Read HFS0 File Entry Table failure for file # "+i);
-                }
-                offsetHfs0files[i] = getLElong(metaInfoBytes, 0);
-                sizeHfs0files[i] = getLElong(metaInfoBytes, 8);
-                hashedRegionSizeHfs0Files[i] = getLEint(metaInfoBytes, 20);
-                paddingHfs0Files[i] = Arrays.equals(Arrays.copyOfRange(metaInfoBytes, 24, 32), new byte[8]);
-                SHA256HashHfs0Files[i] = Arrays.copyOfRange(metaInfoBytes, 32, 64);
+                offsetSubFile[i] = getLElong(metaInfoBytes, 0);
+                sizeSubFile[i] = getLElong(metaInfoBytes, 8);
+                hashedRegionSubFile[i] = getLEint(metaInfoBytes, 20);
+                paddingSubFile[i] = Arrays.equals(Arrays.copyOfRange(metaInfoBytes, 24, 32), new byte[8]);
+                SHA256HashSubFile[i] = Arrays.copyOfRange(metaInfoBytes, 32, 64);
 
-                strTableOffsets[i] = getLEint(metaInfoBytes, 16);
+                stringTableOffsetSubFile[i] = getLEint(metaInfoBytes, 16);
             }
             // Define location of actual data for this HFS0
             rawFileDataStart = raf.getFilePointer()+stringTableSize;
@@ -92,24 +88,24 @@ public class HFS0Provider implements ISuperProvider {
             if (raf.read(stringTbl) != stringTableSize){
                 throw new Exception("Read HFS0 String table failure. Can't read requested string table size ("+stringTableSize+")");
             }
-            String[] namesHfs0files = new String[filesCnt];
+            String[] namesSubFile = new String[filesCount];
             // Parse string table
-            for (int i=0; i < filesCnt; i++){
+            for (int i = 0; i < filesCount; i++){
                 int j = 0;
-                while (stringTbl[strTableOffsets[i]+j] != (byte)0x00)
+                while (stringTbl[stringTableOffsetSubFile[i]+j] != (byte)0x00)
                     j++;
-                namesHfs0files[i] = new String(stringTbl, strTableOffsets[i], j, StandardCharsets.UTF_8);
+                namesSubFile[i] = new String(stringTbl, stringTableOffsetSubFile[i], j, StandardCharsets.UTF_8);
             }
             //----------------------------------------------------------------------------------------------------------
             // Set files
-            for (int i=0; i < filesCnt; i++){
+            for (int i = 0; i < filesCount; i++){
                 hfs0Files[i] = new HFS0File(
-                        namesHfs0files[i],
-                        offsetHfs0files[i],
-                        sizeHfs0files[i],
-                        hashedRegionSizeHfs0Files[i],
-                        paddingHfs0Files[i],
-                        SHA256HashHfs0Files[i]
+                        namesSubFile[i],
+                        offsetSubFile[i],
+                        sizeSubFile[i],
+                        hashedRegionSubFile[i],
+                        paddingSubFile[i],
+                        SHA256HashSubFile[i]
                 );
             }
         }
@@ -118,15 +114,18 @@ public class HFS0Provider implements ISuperProvider {
         }
     }
 
-    public boolean isMagicHFS0() { return magicHFS0; }
-    public int getFilesCnt() { return filesCnt; }
-    public boolean isPaddingHfs0() { return paddingHfs0; }
+    public String getMagic() { return magic; }
+    public int getFilesCount() { return filesCount; }
+    public byte[] getPadding() { return padding; }
     public int getStringTableSize() { return stringTableSize; }
     @Override
     public long getRawFileDataStart() { return rawFileDataStart; }
     public HFS0File[] getHfs0Files() { return hfs0Files; }
     @Override
     public File getFile(){ return file; }
+    /**
+     * @deprecated
+     * */
     @Override
     public PipedInputStream getProviderSubFilePipedInpStream(int subFileNumber) throws Exception{
         PipedOutputStream streamOut = new PipedOutputStream();
@@ -140,13 +139,11 @@ public class HFS0Provider implements ISuperProvider {
             System.out.println("HFS0Provider -> getHfs0FilePipedInpStream(): Executing thread");
             try{
                 long subFileRealPosition = rawFileDataStart + hfs0Files[subFileNumber].getOffset();
-                BufferedInputStream bis = new BufferedInputStream(new FileInputStream(file));
-                if (bis.skip(subFileRealPosition) != subFileRealPosition) {
-                    System.out.println("HFS0Provider -> getHfs0FilePipedInpStream(): Unable to skip requested offset");
-                    return;
-                }
+                BufferedInputStream bis = new BufferedInputStream(Files.newInputStream(file.toPath()));
+                if (bis.skip(subFileRealPosition) != subFileRealPosition)
+                    throw new Exception("HFS0Provider -> getHfs0FilePipedInpStream(): Unable to skip requested offset");
 
-                int readPice = 8388608; // 8mb NOTE: consider switching to 1mb 1048576
+                int readPice = 0x800000; // 8mb NOTE: consider switching to 1mb 1048576
 
                 long readFrom = 0;
                 long realFileSize = hfs0Files[subFileNumber].getSize();
@@ -157,17 +154,16 @@ public class HFS0Provider implements ISuperProvider {
                     if (realFileSize - readFrom < readPice)
                         readPice = Math.toIntExact(realFileSize - readFrom);    // it's safe, I guarantee
                     readBuf = new byte[readPice];
-                    if (bis.read(readBuf) != readPice) {
-                        System.out.println("HFS0Provider -> getHfs0FilePipedInpStream(): Unable to read requested size from file.");
-                        return;
-                    }
+                    if (bis.read(readBuf) != readPice)
+                        throw new Exception("HFS0Provider -> getHfs0FilePipedInpStream(): Unable to read requested size from file.");
+
                     streamOut.write(readBuf, 0, readPice);
                     readFrom += readPice;
                 }
                 bis.close();
                 streamOut.close();
             }
-            catch (IOException ioe){
+            catch (Exception ioe){
                 System.out.println("HFS0Provider -> getHfs0FilePipedInpStream(): Unable to provide stream");
                 ioe.printStackTrace();
             }
@@ -176,20 +172,17 @@ public class HFS0Provider implements ISuperProvider {
         workerThread.start();
         return streamIn;
     }
-
+    //TODO
     @Override
     public boolean exportContent(String saveToLocation, String subFileName) throws Exception {
-        return false;
+        throw new Exception("Not implemented yet");
     }
-
+    //TODO
     @Override
     public boolean exportContent(String saveToLocation, int subFileNumber) throws Exception {
-        return false;
+        throw new Exception("Not implemented yet");
     }
 
-    /**
-     * Sugar
-     * */
     @Override
     public PipedInputStream getProviderSubFilePipedInpStream(String subFileName) throws Exception {
         for (int i = 0; i < hfs0Files.length; i++){
