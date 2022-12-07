@@ -20,25 +20,31 @@ package libKonogonka.RomFsDecrypted;
 
 import libKonogonka.KeyChainHolder;
 import libKonogonka.RainbowDump;
+import libKonogonka.TitleKeyChainHolder;
 import libKonogonka.Tools.NCA.NCAProvider;
-import libKonogonka.Tools.PFS0.IPFS0Provider;
+import libKonogonka.Tools.PFS0.PFS0Provider;
 import libKonogonka.Tools.PFS0.PFS0subFile;
 import libKonogonka.ctraes.AesCtrBufferedInputStream;
 import libKonogonka.ctraes.AesCtrDecryptSimple;
-import org.junit.jupiter.api.*;
+import org.junit.jupiter.api.Disabled;
+import org.junit.jupiter.api.DisplayName;
+import org.junit.jupiter.api.Test;
 
 import java.io.*;
 import java.nio.file.Files;
+import java.util.HashMap;
 
-public class Pfs0EncryptedTest {
+public class NSPpfs0EncryptedTest {
     private static final String keysFileLocation = "./FilesForTests/prod.keys";
+    private static final String titleFileLocation = "./FilesForTests/simple_nsp.title_key";
     private static final String xci_header_keyFileLocation = "./FilesForTests/xci_header_key.txt";
-    private static final String ncaFileLocation = "./FilesForTests/PFS_RomFS.nca";
+    private static final String nspFileLocation = "./FilesForTests/sample.nsp";
     private static KeyChainHolder keyChainHolder;
+    private static PFS0Provider pfs0Provider;
     private static NCAProvider ncaProvider;
 
     @Disabled
-    @DisplayName("PFS0 Encrypted test")
+    @DisplayName("NSP PFS0 Encrypted test")
     @Test
     void pfs0test() throws Exception{
         BufferedReader br = new BufferedReader(new FileReader(xci_header_keyFileLocation));
@@ -51,7 +57,30 @@ public class Pfs0EncryptedTest {
         keyValue = keyValue.trim();
         keyChainHolder = new KeyChainHolder(keysFileLocation, keyValue);
 
-        ncaProvider = new NCAProvider(new File(ncaFileLocation), keyChainHolder.getRawKeySet());
+        TitleKeyChainHolder titleKeyChainHolder = new TitleKeyChainHolder(titleFileLocation);
+
+        HashMap<String, String> finalKeysSet = keyChainHolder.getRawKeySet();
+        finalKeysSet.putAll(titleKeyChainHolder.getKeySet());
+        /*
+        for (Map.Entry e: titleKeyChainHolder.getKeySet().entrySet()){
+            System.out.println(e.getKey()+" = "+e.getValue());
+        }
+        for (Map.Entry e: finalKeysSet.entrySet()){
+            System.out.println(e.getKey()+" = "+e.getValue());
+        }
+        */
+        File nspFile = new File(nspFileLocation);
+
+        pfs0Provider = new PFS0Provider(nspFile);
+
+        for (PFS0subFile subFile : pfs0Provider.getPfs0subFiles()) {
+            if (subFile.getName().endsWith("890.nca")) {
+                System.out.println("File found: "+subFile.getName());
+                ncaProvider = new NCAProvider(nspFile, finalKeysSet, pfs0Provider.getRawFileDataStart()+subFile.getOffset());
+                break;
+            }
+        }
+        //ncaProvider = new NCAProvider(new File(ncaFileLocation), keyChainHolder.getRawKeySet());
 
         pfs0Validation();
 
@@ -64,8 +93,8 @@ public class Pfs0EncryptedTest {
             if (ncaProvider.getSectionBlock(i).getFsType() == 1 &&
                     ncaProvider.getSectionBlock(i).getHashType() == 2 &&
                     ncaProvider.getSectionBlock(i).getCryptoType() == 3){
-                ncaProvider.getNCAContentProvider(i).getPfs0().printDebug();
-                ncaProvider.getSectionBlock(i).printDebug();
+                //ncaProvider.getNCAContentProvider(i).getPfs0().printDebug();
+                //ncaProvider.getSectionBlock(i).printDebug();
                 return;
             }
         }
@@ -79,7 +108,7 @@ public class Pfs0EncryptedTest {
     long offsetPosition;
 
     void AesCtrBufferedInputStreamTest() throws Exception {
-        File nca = new File(ncaFileLocation);
+        File nca = new File(nspFileLocation);   // TODO:NOTICE
         PFS0subFile[] subfiles = ncaProvider.getNCAContentProvider(0).getPfs0().getPfs0subFiles();
 
         offsetPosition = ncaProvider.getTableEntry0().getMediaStartOffset()*0x200 +
@@ -102,24 +131,21 @@ public class Pfs0EncryptedTest {
         ACBISoffsetPosition = 0;
         ACBISmediaStartOffset = ncaProvider.getTableEntry0().getMediaStartOffset();
         ACBISmediaEndOffset = ncaProvider.getTableEntry0().getMediaEndOffset();
-
+/*
         decryptSimple = new AesCtrDecryptSimple(
                 ncaProvider.getDecryptedKey2(),
                 ncaProvider.getSectionBlock0().getSectionCTR(),
                 ncaProvider.getTableEntry0().getMediaStartOffset()*0x200);
-/*
+
         for (PFS0subFile subFile : subfiles){
-            exportContentLegacy(subFile, "/tmp/legacy_PFS0");
+            exportContentLegacy(subFile, "/tmp/legacy_NSP_PFS0");
         }
 
  */
-        IPFS0Provider pfs0Provider = ncaProvider.getNCAContentProvider(0).getPfs0();
         //----------------------------------------------------------------------
         for (PFS0subFile subFile : subfiles) {
-            System.out.println("Exporting "+subFile.getName());
-            System.out.println("Result: "+pfs0Provider.exportContent("/tmp/1_brandnew_PFS0", subFile.getName()));
+            pfs0Provider.exportContent("/tmp/2_brandnew_NSP_PFS0", subFile.getName());
         }
-
     }
 
     private void exportContent(PFS0subFile entry, String saveToLocation) throws Exception{
@@ -127,7 +153,7 @@ public class Pfs0EncryptedTest {
 
         BufferedOutputStream extractedFileBOS = new BufferedOutputStream(Files.newOutputStream(contentFile.toPath()));
         //---
-        InputStream is = Files.newInputStream(new File(ncaFileLocation).toPath());
+        InputStream is = Files.newInputStream(new File(nspFileLocation).toPath()); //TODO: NOTICE
 
         AesCtrBufferedInputStream aesCtrBufferedInputStream = new AesCtrBufferedInputStream(
                 decryptSimple,

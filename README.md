@@ -2,7 +2,11 @@
 
 ![License](https://img.shields.io/badge/License-GPLv3-blue.svg) [![Build Status](https://ci.redrise.ru/api/badges/desu/libKonogonka/status.svg)](https://ci.redrise.ru/desu/libKonogonka)
 
-Library to work with NS-specific files / filesystem images. Ex-backend of [konogonka](https://github.com/developersu/konogonka) ([independent src location](https://git.redrise.ru/desu/konogonka))
+Library to work with NS-specific files / filesystem images. Ex-backend of [konogonka](https://github.com/developersu/konogonka) ([independent source location](https://git.redrise.ru/desu/konogonka))
+
+### Let's stay in touch
+
+You can get this application from independent source location: [https://git.redrise.ru/desu/libKonogonka](https://git.redrise.ru/desu/libKonogonka)
 
 ### License
 

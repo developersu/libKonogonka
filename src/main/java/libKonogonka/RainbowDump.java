@@ -18,12 +18,17 @@
 */
 package libKonogonka;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.nio.charset.StandardCharsets;
 
 /**
  * Debug tool like hexdump <3
  */
 public class RainbowDump {
+    private final static Logger log = LogManager.getLogger(Converter.class);
+
     private static final String ANSI_RESET = "\u001B[0m";
     private static final String ANSI_BLACK = "\u001B[30m";
     private static final String ANSI_RED = "\u001B[31m";
@@ -34,51 +39,56 @@ public class RainbowDump {
     private static final String ANSI_CYAN = "\u001B[36m";
     private static final String ANSI_WHITE = "\u001B[37m";
 
-
+    private static StringBuilder stringBuilder;
     public static void hexDumpUTF8(byte[] byteArray){
+        stringBuilder = new StringBuilder();
         if (byteArray == null || byteArray.length == 0)
             return;
 
         int k = 0;
-        System.out.printf("%s%08x  %s", ANSI_BLUE, 0, ANSI_RESET);
+        stringBuilder.append(String.format("%s%08x  %s", ANSI_BLUE, 0, ANSI_RESET));
         for (int i = 0; i < byteArray.length; i++) {
             if (k == 8)
-                System.out.print("  ");
+                stringBuilder.append("  ");
             if (k == 16){
-                System.out.print(ANSI_GREEN+"| "+ANSI_RESET);
+                stringBuilder.append(ANSI_GREEN+"| "+ANSI_RESET);
                 printChars(byteArray, i);
-                System.out.println();
-                System.out.printf("%s%08x  %s", ANSI_BLUE, i, ANSI_RESET);
+                stringBuilder.append("\n")
+                        .append(String.format("%s%08x  %s", ANSI_BLUE, i, ANSI_RESET));
                 k = 0;
             }
-            System.out.printf("%02x ", byteArray[i]);
+            stringBuilder.append(String.format("%02x ", byteArray[i]));
             k++;
         }
         int paddingSize = 16 - (byteArray.length % 16);
         if (paddingSize != 16) {
             for (int i = 0; i < paddingSize; i++) {
-                System.out.print("   ");
+                stringBuilder.append("   ");
             }
             if (paddingSize > 7) {
-                System.out.print("  ");
+                stringBuilder.append("  ");
             }
         }
-        System.out.print(ANSI_GREEN+"| "+ANSI_RESET);
+        stringBuilder.append(ANSI_GREEN+"| "+ANSI_RESET);
         printChars(byteArray, byteArray.length);
-        System.out.println();
-        System.out.print(ANSI_RESET+new String(byteArray, StandardCharsets.UTF_8)+"\n");
+        stringBuilder.append("\n")
+                .append(ANSI_RESET)
+                .append(new String(byteArray, StandardCharsets.UTF_8))
+                .append("\n");
+
+        log.debug(stringBuilder.toString());
     }
 
     private static void printChars(byte[] byteArray, int pointer){
         for (int j = pointer-16; j < pointer; j++){
             if ((byteArray[j] > 21) && (byteArray[j] < 126)) // man ascii
-                System.out.print((char) byteArray[j]);
+                stringBuilder.append((char) byteArray[j]);
             else if (byteArray[j] == 0x0a)
-                System.out.print("↲"); //"␤"
+                stringBuilder.append("↲"); //"␤"
             else if (byteArray[j] == 0x0d)
-                System.out.print("←"); // "␍"
+                stringBuilder.append("←"); // "␍"
             else
-                System.out.print(".");
+                stringBuilder.append(".");
         }
     }
 
@@ -105,6 +115,9 @@ public class RainbowDump {
     }
 
     public static String formatDecHexString(long value){
+        return String.format("%-20d 0x%x", value, value);
+    }
+    public static String formatDecHexString(int value){
         return String.format("%-20d 0x%x", value, value);
     }
 }

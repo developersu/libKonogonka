@@ -18,6 +18,7 @@
 */
 package libKonogonka.Tools.NCA;
 
+import libKonogonka.Converter;
 import libKonogonka.Tools.NCA.NCASectionTableBlock.NcaFsHeader;
 import libKonogonka.exceptions.EmptySectionException;
 import libKonogonka.xtsaes.XTSAESCipher;
@@ -45,7 +46,7 @@ public class NCAProvider {
     // Header
     private byte[] rsa2048one;
     private byte[] rsa2048two;
-    private String magicnum;
+    private String magicNumber;
     private byte systemOrGcIndicator;
     private byte contentType;
     private byte cryptoType1;                   // keyblob index. Considering as number within application/ocean/system
@@ -61,41 +62,18 @@ public class NCAProvider {
 
     private byte cryptoTypeReal;
 
-    private byte[] sha256hash0;
-    private byte[] sha256hash1;
-    private byte[] sha256hash2;
-    private byte[] sha256hash3;
-
-    private byte[] encryptedKey0;
-    private byte[] encryptedKey1;
-    private byte[] encryptedKey2;
-    private byte[] encryptedKey3;
-
-    private byte[] decryptedKey0;
-    private byte[] decryptedKey1;
-    private byte[] decryptedKey2;
-    private byte[] decryptedKey3;
-
-    private NCAHeaderTableEntry tableEntry0;
-    private NCAHeaderTableEntry tableEntry1;
-    private NCAHeaderTableEntry tableEntry2;
-    private NCAHeaderTableEntry tableEntry3;
-
-    private NcaFsHeader sectionBlock0;
-    private NcaFsHeader sectionBlock1;
-    private NcaFsHeader sectionBlock2;
-    private NcaFsHeader sectionBlock3;
-
-    private NCAContent ncaContent0;
-    private NCAContent ncaContent1;
-    private NCAContent ncaContent2;
-    private NCAContent ncaContent3;
+    private byte[]  sha256hash0, sha256hash1, sha256hash2, sha256hash3,
+                    encryptedKey0, encryptedKey1, encryptedKey2, encryptedKey3,
+                    decryptedKey0, decryptedKey1, decryptedKey2, decryptedKey3;
+    private NCAHeaderTableEntry tableEntry0, tableEntry1, tableEntry2, tableEntry3;
+    private NcaFsHeader sectionBlock0, sectionBlock1, sectionBlock2, sectionBlock3;
+    private NCAContent ncaContent0, ncaContent1, ncaContent2, ncaContent3;
 
     public NCAProvider(File file, HashMap<String, String> keys) throws Exception{
         this(file, keys, 0);
     }
 
-    public NCAProvider (File file, HashMap<String, String> keys, long offsetPosition) throws Exception{
+    public NCAProvider(File file, HashMap<String, String> keys, long offsetPosition) throws Exception{
         this.file = file;
         this.keys = keys;
         String header_key = keys.get("header_key");
@@ -128,11 +106,11 @@ public class NCAProvider {
             System.arraycopy(decryptedSequence, 0, decryptedHeader, i * 0x200, 0x200);
         }
 
-        getHeader(decryptedHeader);
+        setupHeader(decryptedHeader);
 
         raf.close();
 
-        getNCAContent();
+        setupNCAContent();
         /*//---------------------------------------------------------------------
         FileInputStream fis = new FileInputStream(file);
         try (BufferedOutputStream bos = new BufferedOutputStream(Files.newOutputStream(Paths.get("/tmp/decrypted.nca")))){
@@ -159,16 +137,16 @@ public class NCAProvider {
         }
         return data;
     }
-    private void getHeader(byte[] decryptedData) throws Exception{
+    private void setupHeader(byte[] decryptedData) throws Exception{
         rsa2048one = Arrays.copyOfRange(decryptedData, 0, 0x100);
         rsa2048two = Arrays.copyOfRange(decryptedData, 0x100, 0x200);
-        magicnum = new String(decryptedData, 0x200, 0x4, StandardCharsets.US_ASCII);
+        magicNumber = new String(decryptedData, 0x200, 0x4, StandardCharsets.US_ASCII);
         systemOrGcIndicator = decryptedData[0x204];
         contentType = decryptedData[0x205];
         cryptoType1 = decryptedData[0x206];
         keyIndex = decryptedData[0x207];
         ncaSize = getLElong(decryptedData, 0x208);
-        titleId = Arrays.copyOfRange(decryptedData, 0x210, 0x218);
+        titleId = Converter.flip(Arrays.copyOfRange(decryptedData, 0x210, 0x218));
         contentIndx = Arrays.copyOfRange(decryptedData, 0x218, 0x21C);
         sdkVersion = Arrays.copyOfRange(decryptedData, 0x21c, 0x220);
         cryptoType2 = decryptedData[0x220];
@@ -198,8 +176,8 @@ public class NCAProvider {
             cryptoTypeReal -= 1;
 
         //If nca3 proceed
-        if (! magicnum.equalsIgnoreCase("NCA3"))
-            throw new Exception("Not supported data type: "+magicnum+". Only NCA3 supported");
+        if (! magicNumber.equalsIgnoreCase("NCA3"))
+            throw new Exception("Not supported data type: "+ magicNumber +". Only NCA3 supported");
         // Decrypt keys if encrypted
         if (Arrays.equals(rightsId, new byte[0x10])) {
             String keyAreaKey;
@@ -262,35 +240,34 @@ public class NCAProvider {
         throw new Exception(exceptionStringBuilder.toString());
     }
 
-    private void getNCAContent() throws Exception{
-        byte[] key;
-
-        // If empty Rights ID
-        if (Arrays.equals(rightsId, new byte[0x10])) {
-            key = decryptedKey2;                                       // NOTE: Just remember this dumb hack
-        }
-        else {
-            try {
-                byte[] rightsIDkey = hexStrToByteArray(keys.get(byteArrToHexString(rightsId))); // throws NullPointerException
-
-                SecretKeySpec skSpec = new SecretKeySpec(
-                        hexStrToByteArray(keys.get(String.format("titlekek_%02x", cryptoTypeReal))
-                        ), "AES");
-                Cipher cipher = Cipher.getInstance("AES/ECB/NoPadding");
-                cipher.init(Cipher.DECRYPT_MODE, skSpec);
-                key = cipher.doFinal(rightsIDkey);
-            }
-            catch (Exception e){
-                throw new Exception("No title.keys loaded for '"+
-                        String.format("titlekek_%02x", cryptoTypeReal)+"' or '"+byteArrToHexString(rightsId)+"'? ("+e+")", e);
-            }
-        }
-        getNcaContentByNumber(0, key);
-        getNcaContentByNumber(1, key);
-        getNcaContentByNumber(2, key);
-        getNcaContentByNumber(3, key);
+    private void setupNCAContent() throws Exception{
+        byte[] key = calculateKey();
+        
+        setupNcaContentByNumber(0, key);
+        setupNcaContentByNumber(1, key);
+        setupNcaContentByNumber(2, key);
+        setupNcaContentByNumber(3, key);
     }
-    private void getNcaContentByNumber(int number, byte[] key){
+    private byte[] calculateKey() throws Exception{
+        try {
+            if (Arrays.equals(rightsId, new byte[0x10]))      // If empty Rights ID
+                return decryptedKey2;                         // NOTE: Just remember this dumb hack
+            
+            byte[] rightsIdKey = hexStrToByteArray(keys.get(byteArrToHexString(rightsId))); // throws NullPointerException
+
+            SecretKeySpec skSpec = new SecretKeySpec(
+                    hexStrToByteArray(keys.get(String.format("titlekek_%02x", cryptoTypeReal))
+                    ), "AES");
+            Cipher cipher = Cipher.getInstance("AES/ECB/NoPadding");
+            cipher.init(Cipher.DECRYPT_MODE, skSpec);
+            return cipher.doFinal(rightsIdKey);
+        }
+        catch (Exception e){
+            throw new Exception("No title.keys loaded for '"+
+                    String.format("titlekek_%02x", cryptoTypeReal)+"' or '"+byteArrToHexString(rightsId)+"'? ("+e+")", e);
+        }
+    }
+    private void setupNcaContentByNumber(int number, byte[] key){
         try {
             switch (number) {
                 case 0:
@@ -313,9 +290,11 @@ public class NCAProvider {
         }
     }
 
+    // -=======================     API     =======================-
+
     public byte[] getRsa2048one() { return rsa2048one; }
     public byte[] getRsa2048two() { return rsa2048two; }
-    public String getMagicnum() { return magicnum; }
+    public String getMagicnum() { return magicNumber; }
     public byte getSystemOrGcIndicator() { return systemOrGcIndicator; }
     public byte getContentType() { return contentType; }
     public byte getCryptoType1() { return cryptoType1; }
@@ -345,7 +324,7 @@ public class NCAProvider {
     public byte[] getDecryptedKey3() { return decryptedKey3; }
     /**
      * Get NCA Hedaer Table Entry for selected id
-     * @param id should be 0-3
+     * @param id must be 0-3
      * */
     public NCAHeaderTableEntry getTableEntry(int id) throws Exception{
         switch (id) {
@@ -367,7 +346,7 @@ public class NCAProvider {
     public NCAHeaderTableEntry getTableEntry3() { return tableEntry3; }
     /**
      * Get NCA Section Block for selected section
-     * @param id should be 0-3
+     * @param id must be 0-3
      * */
     public NcaFsHeader getSectionBlock(int id) throws Exception{
         switch (id) {
@@ -396,7 +375,7 @@ public class NCAProvider {
     }
     /**
      * Get content for the selected section
-     * @param sectionNumber should be 0-3
+     * @param sectionNumber must be 0-3
      * */
     public NCAContent getNCAContentProvider(int sectionNumber) throws Exception{
         switch (sectionNumber) {

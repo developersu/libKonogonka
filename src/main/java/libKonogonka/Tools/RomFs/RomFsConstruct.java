@@ -21,15 +21,13 @@ package libKonogonka.Tools.RomFs;
 import libKonogonka.Converter;
 import libKonogonka.ctraes.AesCtrBufferedInputStream;
 import libKonogonka.ctraes.AesCtrDecryptSimple;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.nio.file.Files;
 
 public class RomFsConstruct {
-    private final static Logger log = LogManager.getLogger(RomFsConstruct.class);
+    //private final static Logger log = LogManager.getLogger(RomFsConstruct.class);
 
     private Level6Header header;
 
@@ -66,8 +64,6 @@ public class RomFsConstruct {
         this.file = file;
         this.level6Offset = level6Offset;
         this.offsetPositionInFile = ncaOffset + (mediaStartOffset * 0x200);
-        // In 512-blocks
-        // In 512-blocks
         this.stream = new AesCtrBufferedInputStream(
                 decryptor,
                 ncaOffset,
@@ -141,7 +137,12 @@ public class RomFsConstruct {
     }
 
     private void constructRootFilesystemEntry() throws Exception{
-        rootEntry = new FileSystemEntry(directoryMetadataTable, fileMetadataTable);
+        try {
+            rootEntry = new FileSystemEntry(directoryMetadataTable, fileMetadataTable);
+        }
+        catch (Exception e){
+            throw new Exception("File: " + file.getName(), e);
+        }
     }
 
     private void skipBytes(long size) throws Exception{

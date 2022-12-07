@@ -7,3 +7,12 @@ mvn install:install-file \
    -Dversion=0.1 \
    -Dpackaging=jar \
    -DgeneratePom=true
+
+
+-Dlog4j.configurationFile=/home/loper/Projects/libKonogonka/src/main/resources/log4j2.properties
+
+- NCA flow:
+NCAProvider -> NCAContent                                           -> RomFsEncryptedProvider (needs to know location of the lv6header location)
+               Reads Section Block to understand boundaries            Reads lv6Header via \RomFsEncryptedConstruct'
+               Reads Header Table Entry to get meta info 4 section     Provides stream/streams with requested files via 'RomFsEncrytedContenRetrieve'
+

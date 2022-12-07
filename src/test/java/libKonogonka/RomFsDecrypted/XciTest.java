@@ -18,6 +18,10 @@
  */
 package libKonogonka.RomFsDecrypted;
 
+import libKonogonka.KeyChainHolder;
+import libKonogonka.Tools.NCA.NCAProvider;
+import libKonogonka.Tools.XCI.HFS0File;
+import libKonogonka.Tools.XCI.HFS0Provider;
 import libKonogonka.Tools.XCI.XCIProvider;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
@@ -30,19 +34,28 @@ import java.io.FileReader;
 // log.fatal("Configuration File Defined To Be :: "+System.getProperty("log4j.configurationFile"));
 
 public class XciTest {
+    private static final String keysFileLocation = "./FilesForTests/prod.keys";
+
     private static final String xci_header_keyFileLocation = "./FilesForTests/xci_header_key.txt";
     private static final String decryptedFileAbsolutePath = "./FilesForTests/sample.xci";
     private File xciFile;
     XCIProvider provider;
     String xci_header_key;
+    HFS0Provider hfs0Provider;
+
+    private static KeyChainHolder keyChainHolder;
 
     @Disabled
-    @DisplayName("RomFsDecryptedProvider: tests")
+    @DisplayName("XciTest")
     @Test
     void romFsValidation() throws Exception{
         makeFile();
         getXciHeaderKey();
+        keyChainHolder = new KeyChainHolder(keysFileLocation, xci_header_key);
         makeProvider();
+
+        getHfsSecure();
+        getFirstNca3();
     }
 
     void getXciHeaderKey() throws Exception{
@@ -62,5 +75,21 @@ public class XciTest {
 
     void makeProvider() throws Exception{
         provider = new XCIProvider(xciFile, xci_header_key);
+    }
+
+    void getHfsSecure(){
+        hfs0Provider = provider.getHfs0ProviderSecure();
+    }
+
+    void getFirstNca3() throws Exception{
+        HFS0File hfs0File = hfs0Provider.getHfs0Files()[0];
+
+        System.out.println(hfs0File.getName() +" "+ hfs0Provider.getRawFileDataStart()+" "+hfs0File.getOffset()+ " "
+                +(hfs0Provider.getRawFileDataStart() + hfs0File.getOffset()));
+
+        NCAProvider ncaProvider = new NCAProvider(xciFile, keyChainHolder.getRawKeySet(),
+                        hfs0Provider.getRawFileDataStart() +
+                        hfs0File.getOffset());
+        //ncaProvider.
     }
 }

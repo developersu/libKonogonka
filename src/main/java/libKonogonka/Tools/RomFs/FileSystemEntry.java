@@ -20,7 +20,6 @@
 package libKonogonka.Tools.RomFs;
 
 import libKonogonka.Converter;
-import libKonogonka.Tools.NCA.NCAContent;
 import libKonogonka.Tools.RomFs.view.FileSystemTreeViewMaker;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -32,7 +31,7 @@ import java.util.Comparator;
 import java.util.List;
 
 public class FileSystemEntry {
-    private final static Logger log = LogManager.getLogger(NCAContent.class);
+    private final static Logger log = LogManager.getLogger(FileSystemEntry.class);
 
     private boolean directoryFlag;
     private String name;
@@ -137,7 +136,7 @@ public class FileSystemEntry {
             nextHashTableBucketDirectoryOffset = Converter.getLEint(dirsMetadataTable, i);
             /*
             if (nextHashTableBucketDirectoryOffset < 0) {
-                System.out.println("nextHashTableBucketDirectoryOffset: "+ nextHashTableBucketDirectoryOffset);
+                log.debug("nextHashTableBucketDirectoryOffset: "+ nextHashTableBucketDirectoryOffset);
             }
             //*/
             i += 4;
@@ -149,7 +148,7 @@ public class FileSystemEntry {
             }
             else {
                 dirName = "";
-                System.out.println("dirName: "+dirNameLength);
+                // log.debug("Dir Name Length: "+dirNameLength);
             }
             //i += getRealNameSize(dirNameLength);
         }
@@ -197,12 +196,12 @@ public class FileSystemEntry {
                     fileName = new String(Arrays.copyOfRange(filesMetadataTable, i, i + fileNameLength), StandardCharsets.UTF_8);
                 }
                 catch (Exception e){
-                    System.out.println("fileName sizes are: "+filesMetadataTable.length+"\t"+i+"\t"+i + fileNameLength+"\t\t"+nextHashTableBucketFileOffset);
+                    log.debug("fileName sizes are: "+filesMetadataTable.length+"\t"+i+"\t"+i + fileNameLength+"\t\t"+nextHashTableBucketFileOffset);
                 }
             }
             else {
                 fileName = "";
-                System.out.println("fileName: "+fileNameLength);
+                //log.debug("File Name Length: "+fileNameLength);
             }
             //i += getRealNameSize(fileNameLength);
         }
@@ -214,5 +213,4 @@ public class FileSystemEntry {
     public void printTreeForDebug(){
         log.debug(FileSystemTreeViewMaker.make(content, 100));
     }
-
 }

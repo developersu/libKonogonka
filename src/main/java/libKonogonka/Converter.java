@@ -18,11 +18,18 @@
 */
 package libKonogonka;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 public class Converter {
+    private final static Logger log = LogManager.getLogger(Converter.class);
+
     public static int getLEint(byte[] bytes, int fromOffset){
+        if (fromOffset < 0 || fromOffset >= bytes.length)
+            log.debug("\tLen =" + bytes.length + "\tFrom =" + fromOffset);
         return ByteBuffer.wrap(bytes, fromOffset, 0x4).order(ByteOrder.LITTLE_ENDIAN).getInt();
     }
 
