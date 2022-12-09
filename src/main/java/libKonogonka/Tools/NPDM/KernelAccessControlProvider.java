@@ -19,6 +19,8 @@
 package libKonogonka.Tools.NPDM;
 
 import libKonogonka.Converter;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -73,6 +75,7 @@ for (byte i = 0; i < 16; i++){
  */
 
 public class KernelAccessControlProvider {
+    private final static Logger log = LogManager.getLogger(KernelAccessControlProvider.class);
 
     private static final int    KERNELFLAGS = 3,
                                 SYSCALLMASK = 4,
@@ -85,7 +88,7 @@ public class KernelAccessControlProvider {
                                 DEBUGFLAGS = 16;
 
     // RAW data
-    private LinkedList<Integer> rawData;
+    private final LinkedList<Integer> rawData;
     // Kernel flags
     private boolean kernelFlagsAvailable;
     private int     kernelFlagCpuIdHi,
@@ -93,13 +96,13 @@ public class KernelAccessControlProvider {
                     kernelFlagThreadPrioHi,
                     kernelFlagThreadPrioLo;
     // Syscall Masks as index | mask  - order AS IS. [0] = bit5; [1] = bit6
-    private LinkedHashMap<Byte, byte[]> syscallMasks; // Index, Mask
+    private final LinkedHashMap<Byte, byte[]> syscallMasks; // Index, Mask
     // MapIoOrNormalRange
-    private LinkedHashMap<byte[], Boolean> mapIoOrNormalRange; // alt page+num, RO flag
+    private final LinkedHashMap<byte[], Boolean> mapIoOrNormalRange; // alt page+num, RO flag
     // MapNormalPage (RW)
     private byte[] mapNormalPage;   // TODO: clarify is possible to have multiple
     // InterruptPair
-    private LinkedHashMap<Integer, byte[][]> interruptPairs;   // Number; irq0, irq2
+    private final LinkedHashMap<Integer, byte[][]> interruptPairs;   // Number; irq0, irq2
     // Application type
     private int applicationType;
     // KernelReleaseVersion
@@ -142,42 +145,42 @@ public class KernelAccessControlProvider {
                     kernelFlagCpuIdLo = block >> 16 & 0b11111111;
                     kernelFlagThreadPrioHi = block >> 10 & 0b111111;
                     kernelFlagThreadPrioLo = block >> 4 & 0b111111;
-                    //System.out.println("KERNELFLAGS "+kernelFlagCpuIdHi+" "+kernelFlagCpuIdLo+" "+kernelFlagThreadPrioHi+" "+kernelFlagThreadPrioLo);
+                    //log.debug("KERNELFLAGS "+kernelFlagCpuIdHi+" "+kernelFlagCpuIdLo+" "+kernelFlagThreadPrioHi+" "+kernelFlagThreadPrioLo);
                     break;
                 case SYSCALLMASK:
                     byte maskTableIndex = (byte) (block >> 29 & 0b111); // declared as byte; max value could be 7; min - 0;
                     byte[] mask = new byte[24];                         // Consider as bit.
-                    //System.out.println("SYSCALLMASK ind: "+maskTableIndex);
+                    //log.debug("SYSCALLMASK ind: "+maskTableIndex);
 
                     for (int k = 28; k >= 5; k--) {
                         mask[k-5] = (byte) (block >> k & 1);        // Only 1 or 0 possible
-                        //System.out.print(mask[k-5]);
+                        //log.debug("  " + mask[k-5]);
                     }
-                    //System.out.println();
+                    //log.debug();
                     syscallMasks.put(maskTableIndex, mask);
                     break;
                 case MAPIOORNORMALRANGE:
                     byte[] altStPgNPgNum = new byte[24];
-                    //System.out.println("MAPIOORNORMALRANGE Flag: "+((block >> 31 & 1) != 0));
+                    //log.debug("MAPIOORNORMALRANGE Flag: "+((block >> 31 & 1) != 0));
 
                     for (int k = 30; k >= 7; k--){
                         altStPgNPgNum[k-7] = (byte) (block >> k & 1);        // Only 1 or 0 possible
-                        //System.out.print(altStPgNPgNum[k-7]);
+                        //log.debug("  " + altStPgNPgNum[k-7]);
                     }
                     mapIoOrNormalRange.put(altStPgNPgNum, (block >> 31 & 1) != 0);
-                    //System.out.println();
+                    //log.debug();
                     break;
                 case MAPNORMALPAGE_RW:
-                    //System.out.println("MAPNORMALPAGE_RW\t");
+                    //log.debug("MAPNORMALPAGE_RW\t");
                     mapNormalPage = new byte[24];
                     for (int k = 31; k >= 8; k--){
                         mapNormalPage[k-8] = (byte) (block >> k & 1);
-                        //System.out.print(mapNormalPage[k-8]);
+                        //log.debug("  " + mapNormalPage[k-8]);
                     }
-                    //System.out.println();
+                    //log.debug();
                     break;
                 case INTERRUPTPAIR:
-                    //System.out.println("INTERRUPTPAIR");
+                    //log.debug("INTERRUPTPAIR");
                     //RainbowHexDump.octDumpInt(block);
                     byte[][] pair = new byte[2][];
                     byte[] irq0 = new byte[10];
@@ -193,26 +196,26 @@ public class KernelAccessControlProvider {
                     break;
                 case APPLICATIONTYPE:
                     applicationType = block >> 14 & 0b111;
-                    //System.out.println("APPLICATIONTYPE "+applicationType);
+                    //log.debug("APPLICATIONTYPE "+applicationType);
                     break;
                 case KERNELRELEASEVERSION:
-                    //System.out.println("KERNELRELEASEVERSION\t"+(block >> 19 & 0b111111111111)+"."+(block >> 15 & 0b1111)+".X");
+                    //log.debug("KERNELRELEASEVERSION\t"+(block >> 19 & 0b111111111111)+"."+(block >> 15 & 0b1111)+".X");
                     isKernelRelVersionAvailable = true;
                     kernelRelVersionMajor = (block >> 19 & 0b111111111111);
                     kernelRelVersionMinor = (block >> 15 & 0b1111);
                     break;
                 case HANDLETABLESIZE:
                     handleTableSize = block >> 16 & 0b1111111111;
-                    //System.out.println("HANDLETABLESIZE "+handleTableSize);
+                    //log.debug("HANDLETABLESIZE "+handleTableSize);
                     break;
                 case DEBUGFLAGS:
                     debugFlagsAvailable = true;
                     canBeDebugged = (block >> 17 & 1) != 0;
                     canDebugOthers = (block >> 18 & 1) != 0;
-                    //System.out.println("DEBUGFLAGS "+canBeDebugged+" "+canDebugOthers);
+                    //log.debug("DEBUGFLAGS "+canBeDebugged+" "+canDebugOthers);
                     break;
                 default:
-                    System.out.println("UNKNOWN\t\t"+block+" "+type);
+                    log.error("UNKNOWN\t\t"+block+" "+type);
             }
         }
     }

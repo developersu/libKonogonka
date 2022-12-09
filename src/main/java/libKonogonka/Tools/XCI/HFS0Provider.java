@@ -19,6 +19,8 @@
 package libKonogonka.Tools.XCI;
 
 import libKonogonka.Tools.ISuperProvider;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
@@ -31,6 +33,8 @@ import static libKonogonka.Converter.*;
  * HFS0
  * */
 public class HFS0Provider implements ISuperProvider {
+    private final static Logger log = LogManager.getLogger(HFS0Provider.class);
+
     private final String magic;
     private final int filesCount;
     private final byte[] padding;
@@ -136,7 +140,7 @@ public class HFS0Provider implements ISuperProvider {
         PipedInputStream streamIn = new PipedInputStream(streamOut);
 
         workerThread = new Thread(() -> {
-            System.out.println("HFS0Provider -> getHfs0FilePipedInpStream(): Executing thread");
+            log.trace("HFS0Provider -> getHfs0FilePipedInpStream(): Executing thread");
             try{
                 long subFileRealPosition = rawFileDataStart + hfs0Files[subFileNumber].getOffset();
                 BufferedInputStream bis = new BufferedInputStream(Files.newInputStream(file.toPath()));
@@ -164,10 +168,10 @@ public class HFS0Provider implements ISuperProvider {
                 streamOut.close();
             }
             catch (Exception ioe){
-                System.out.println("HFS0Provider -> getHfs0FilePipedInpStream(): Unable to provide stream");
+                log.error("HFS0Provider -> getHfs0FilePipedInpStream(): Unable to provide stream");
                 ioe.printStackTrace();
             }
-            System.out.println("HFS0Provider -> getHfs0FilePipedInpStream(): Thread died");
+            log.trace("HFS0Provider -> getHfs0FilePipedInpStream(): Thread died");
         });
         workerThread.start();
         return streamIn;

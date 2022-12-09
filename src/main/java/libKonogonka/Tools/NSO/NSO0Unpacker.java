@@ -29,15 +29,14 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 
-public class NSO0Unpacker {
+class NSO0Unpacker {
     private static final String DECOMPRESSED_FILE_NAME = "main_decompressed";
     private final MessageDigest digest = MessageDigest.getInstance("SHA-256");
 
-    private NSO0Provider provider;
-    private InFileStreamProducer producer;
+    private final NSO0Header nso0Header;
+    private final InFileStreamProducer producer;
 
     private byte[] _textDecompressedSection;
     private byte[] _rodataDecompressedSection;
@@ -47,19 +46,29 @@ public class NSO0Unpacker {
     private int rodataFileOffsetNew;
     private int dataFileOffsetNew;
 
-    private NSO0Unpacker() throws NoSuchAlgorithmException { }
+    private NSO0Unpacker(NSO0Header nso0Header, InFileStreamProducer producer) throws Exception {
+        this.nso0Header = nso0Header;
+        this.producer = producer;
 
-    public static void unpack(NSO0Provider provider, InFileStreamProducer producer, String saveToLocation) throws Exception{
-        if (! provider.isTextCompressFlag() && ! provider.isRoCompressFlag() && ! provider.isDataCompressFlag())
+        decompressSections();
+        validateHashes();
+        makeHeader();
+    }
+
+    static NSO0Raw getNSO0Raw(NSO0Header nso0Header, InFileStreamProducer producer) throws Exception{
+        NSO0Unpacker instance = new NSO0Unpacker(nso0Header, producer);
+
+        return new NSO0Raw(instance.header,
+                instance._textDecompressedSection,
+                instance._rodataDecompressedSection,
+                instance._dataDecompressedSection);
+    }
+
+    static void unpack(NSO0Header nso0Header, InFileStreamProducer producer, String saveToLocation) throws Exception{
+        if (! nso0Header.isTextCompressFlag() && ! nso0Header.isRoCompressFlag() && ! nso0Header.isDataCompressFlag())
             throw new Exception("This file is not compressed");
+        NSO0Unpacker instance = new NSO0Unpacker(nso0Header, producer);
 
-        NSO0Unpacker instance = new NSO0Unpacker();
-        instance.provider = provider;
-        instance.producer = producer;
-
-        instance.decompressSections();
-        instance.validateHashes();
-        instance.makeHeader();
         instance.writeFile(saveToLocation);
     }
 
@@ -69,22 +78,22 @@ public class NSO0Unpacker {
         decompressDataSection();
     }
     private void decompressTextSection() throws Exception{
-        if (provider.isTextCompressFlag())
-            _textDecompressedSection = decompressSection(provider.getTextSegmentHeader(), provider.getTextCompressedSize());
+        if (nso0Header.isTextCompressFlag())
+            _textDecompressedSection = decompressSection(nso0Header.getTextSegmentHeader(), nso0Header.getTextCompressedSize());
         else
-            _textDecompressedSection = duplicateSection(provider.getTextSegmentHeader());
+            _textDecompressedSection = duplicateSection(nso0Header.getTextSegmentHeader());
     }
     private void decompressRodataSection() throws Exception{
-        if (provider.isRoCompressFlag())
-            _rodataDecompressedSection = decompressSection(provider.getRodataSegmentHeader(), provider.getRodataCompressedSize());
+        if (nso0Header.isRoCompressFlag())
+            _rodataDecompressedSection = decompressSection(nso0Header.getRodataSegmentHeader(), nso0Header.getRodataCompressedSize());
         else
-            _rodataDecompressedSection = duplicateSection(provider.getRodataSegmentHeader());
+            _rodataDecompressedSection = duplicateSection(nso0Header.getRodataSegmentHeader());
     }
     private void decompressDataSection() throws Exception{
-        if (provider.isDataCompressFlag())
-            _dataDecompressedSection = decompressSection(provider.getDataSegmentHeader(), provider.getDataCompressedSize());
+        if (nso0Header.isDataCompressFlag())
+            _dataDecompressedSection = decompressSection(nso0Header.getDataSegmentHeader(), nso0Header.getDataCompressedSize());
         else
-            _dataDecompressedSection = duplicateSection(provider.getDataSegmentHeader());
+            _dataDecompressedSection = duplicateSection(nso0Header.getDataSegmentHeader());
     }
 
     private byte[] decompressSection(SegmentHeader segmentHeader, int compressedSectionSize) throws Exception{
@@ -126,13 +135,13 @@ public class NSO0Unpacker {
     }
 
     private void validateHashes() throws Exception{
-        if ( ! Arrays.equals(provider.getTextHash(), digest.digest(_textDecompressedSection)) ) {
+        if ( ! Arrays.equals(nso0Header.getTextHash(), digest.digest(_textDecompressedSection)) ) {
             throw new Exception(".text hash mismatch for .text section");
         }
-        if ( ! Arrays.equals(provider.getRodataHash(), digest.digest(_rodataDecompressedSection)) ) {
+        if ( ! Arrays.equals(nso0Header.getRodataHash(), digest.digest(_rodataDecompressedSection)) ) {
             throw new Exception(".rodata hash mismatch for .text section");
         }
-        if ( ! Arrays.equals(provider.getDataHash(), digest.digest(_dataDecompressedSection)) ) {
+        if ( ! Arrays.equals(nso0Header.getDataHash(), digest.digest(_dataDecompressedSection)) ) {
             throw new Exception(".data hash mismatch for .text section");
         }
     }
@@ -163,41 +172,41 @@ public class NSO0Unpacker {
             header = resultingHeader.array();
 */
 
-            textFileOffsetNew = provider.getTextSegmentHeader().getMemoryOffset()+0x100;
-            rodataFileOffsetNew = provider.getRodataSegmentHeader().getMemoryOffset()+0x100;
-            dataFileOffsetNew = provider.getDataSegmentHeader().getMemoryOffset()+0x100;
+            textFileOffsetNew = nso0Header.getTextSegmentHeader().getMemoryOffset()+0x100;
+            rodataFileOffsetNew = nso0Header.getRodataSegmentHeader().getMemoryOffset()+0x100;
+            dataFileOffsetNew = nso0Header.getDataSegmentHeader().getMemoryOffset()+0x100;
 
             ByteBuffer resultingHeader = ByteBuffer.allocate(0x100).order(ByteOrder.LITTLE_ENDIAN);
             resultingHeader.put("NSO0".getBytes(StandardCharsets.US_ASCII))
-                    .putInt(provider.getVersion())
-                    .put(provider.getUpperReserved())
-                    .putInt(provider.getFlags() & 0b111000)
+                    .putInt(nso0Header.getVersion())
+                    .put(nso0Header.getUpperReserved())
+                    .putInt(nso0Header.getFlags() & 0b111000)
                     .putInt(textFileOffsetNew)
-                    .putInt(provider.getTextSegmentHeader().getMemoryOffset())
-                    .putInt(provider.getTextSegmentHeader().getSizeAsDecompressed())
+                    .putInt(nso0Header.getTextSegmentHeader().getMemoryOffset())
+                    .putInt(nso0Header.getTextSegmentHeader().getSizeAsDecompressed())
                     .putInt(0x100)
                     .putInt(rodataFileOffsetNew)
-                    .putInt(provider.getRodataSegmentHeader().getMemoryOffset())
-                    .putInt(provider.getRodataSegmentHeader().getSizeAsDecompressed())
+                    .putInt(nso0Header.getRodataSegmentHeader().getMemoryOffset())
+                    .putInt(nso0Header.getRodataSegmentHeader().getSizeAsDecompressed())
                     .putInt(0)
                     .putInt(dataFileOffsetNew)
-                    .putInt(provider.getDataSegmentHeader().getMemoryOffset())
-                    .putInt(provider.getDataSegmentHeader().getSizeAsDecompressed())
-                    .putInt(provider.getBssSize())
-                    .put(provider.getModuleId())
-                    .putInt(provider.getTextSegmentHeader().getSizeAsDecompressed())
-                    .putInt(provider.getRodataSegmentHeader().getSizeAsDecompressed())
-                    .putInt(provider.getDataSegmentHeader().getSizeAsDecompressed())
-                    .put(provider.getBottomReserved())
-                    .putInt(provider.get_api_infoRelative().getOffset())
-                    .putInt(provider.get_api_infoRelative().getSize())
-                    .putInt(provider.get_dynstrRelative().getOffset())
-                    .putInt(provider.get_dynstrRelative().getSize())
-                    .putInt(provider.get_dynsymRelative().getOffset())
-                    .putInt(provider.get_dynsymRelative().getSize())
-                    .put(provider.getTextHash())
-                    .put(provider.getRodataHash())
-                    .put(provider.getDataHash());
+                    .putInt(nso0Header.getDataSegmentHeader().getMemoryOffset())
+                    .putInt(nso0Header.getDataSegmentHeader().getSizeAsDecompressed())
+                    .putInt(nso0Header.getBssSize())
+                    .put(nso0Header.getModuleId())
+                    .putInt(nso0Header.getTextSegmentHeader().getSizeAsDecompressed())
+                    .putInt(nso0Header.getRodataSegmentHeader().getSizeAsDecompressed())
+                    .putInt(nso0Header.getDataSegmentHeader().getSizeAsDecompressed())
+                    .put(nso0Header.getBottomReserved())
+                    .putInt(nso0Header.get_api_infoRelative().getOffset())
+                    .putInt(nso0Header.get_api_infoRelative().getSize())
+                    .putInt(nso0Header.get_dynstrRelative().getOffset())
+                    .putInt(nso0Header.get_dynstrRelative().getSize())
+                    .putInt(nso0Header.get_dynsymRelative().getOffset())
+                    .putInt(nso0Header.get_dynsymRelative().getSize())
+                    .put(nso0Header.getTextHash())
+                    .put(nso0Header.getRodataHash())
+                    .put(nso0Header.getDataHash());
 
             header = resultingHeader.array();
         }

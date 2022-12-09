@@ -18,20 +18,26 @@
 */
 package libKonogonka.Tools.XCI;
 
+import libKonogonka.Converter;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.util.Arrays;
 
 /**
  * Gamecard Cert
  * */
 public class XCIGamecardCert {
-    private byte[] rsa2048PKCS1sig;
-    private byte[] magicCert;
-    private byte[] unknown1;
-    private byte kekIndex;
-    private byte[] unknown2;
-    private byte[] deviceID;
-    private byte[] unknown3;
-    private byte[] encryptedData;
+    private final static Logger log = LogManager.getLogger(XCIGamecardCert.class);
+
+    private final byte[] rsa2048PKCS1sig;
+    private final byte[] magicCert;
+    private final byte[] unknown1;
+    private final byte kekIndex;
+    private final byte[] unknown2;
+    private final byte[] deviceID;
+    private final byte[] unknown3;
+    private final byte[] encryptedData;
 
     XCIGamecardCert(byte[] certBytes) throws Exception{
         if (certBytes.length != 512)
@@ -44,16 +50,6 @@ public class XCIGamecardCert {
         deviceID = Arrays.copyOfRange(certBytes, 272, 288);
         unknown3 = Arrays.copyOfRange(certBytes, 288, 298);
         encryptedData = Arrays.copyOfRange(certBytes, 298, 512);
-        /*
-        RainbowHexDump.hexDumpUTF8(rsa2048PKCS1sig);
-        RainbowHexDump.hexDumpUTF8(magicCert);
-        RainbowHexDump.hexDumpUTF8(unknown1);
-        System.out.println(kekIndex);
-        RainbowHexDump.hexDumpUTF8(unknown2);
-        RainbowHexDump.hexDumpUTF8(deviceID);
-        RainbowHexDump.hexDumpUTF8(unknown3);
-        RainbowHexDump.hexDumpUTF8(encryptedData);
-        */
     }
     public byte[] getRsa2048PKCS1sig() { return rsa2048PKCS1sig; }
     public byte[] getMagicCert() { return magicCert; }
@@ -64,4 +60,17 @@ public class XCIGamecardCert {
     public byte[] getDeviceID() { return deviceID; }
     public byte[] getUnknown3() { return unknown3; }
     public byte[] getEncryptedData() { return encryptedData; }
+
+    public void printDebug(){
+        log.debug("== XCIGamecardCert ==\n" +
+                "rsa2048PKCS1sig  " + Converter.byteArrToHexString(rsa2048PKCS1sig) + "\n" +
+                "magicCert        " + Converter.byteArrToHexString(magicCert) + "\n" +
+                "unknown1         " + Converter.byteArrToHexString(unknown1) + "\n" +
+                "kekIndex         " + kekIndex + "\n" +
+                "unknown2         " + Converter.byteArrToHexString(unknown2) + "\n" +
+                "deviceID         " + Converter.byteArrToHexString(deviceID) + "\n" +
+                "unknown3         " + Converter.byteArrToHexString(unknown3) + "\n" +
+                "encryptedData    " + Converter.byteArrToHexString(encryptedData) + "\n"
+        );
+    }
 }

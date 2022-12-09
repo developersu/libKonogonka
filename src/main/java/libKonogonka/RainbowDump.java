@@ -22,7 +22,11 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.nio.charset.StandardCharsets;
-
+/*  ANSI_BLACK = "\u001B[30m";
+    ANSI_YELLOW = "\u001B[33m";
+    ANSI_PURPLE = "\u001B[35m";
+    ANSI_CYAN = "\u001B[36m";
+    ANSI_WHITE = "\u001B[37m"; */
 /**
  * Debug tool like hexdump <3
  */
@@ -30,14 +34,9 @@ public class RainbowDump {
     private final static Logger log = LogManager.getLogger(Converter.class);
 
     private static final String ANSI_RESET = "\u001B[0m";
-    private static final String ANSI_BLACK = "\u001B[30m";
     private static final String ANSI_RED = "\u001B[31m";
     private static final String ANSI_GREEN = "\u001B[32m";
-    private static final String ANSI_YELLOW = "\u001B[33m";
     private static final String ANSI_BLUE = "\u001B[34m";
-    private static final String ANSI_PURPLE = "\u001B[35m";
-    private static final String ANSI_CYAN = "\u001B[36m";
-    private static final String ANSI_WHITE = "\u001B[37m";
 
     private static StringBuilder stringBuilder;
     public static void hexDumpUTF8(byte[] byteArray){
@@ -80,7 +79,13 @@ public class RainbowDump {
     }
 
     private static void printChars(byte[] byteArray, int pointer){
-        for (int j = pointer-16; j < pointer; j++){
+        int j;
+        if (pointer < 16)
+            j = 0;
+        else
+            j = pointer-16;
+
+        for (; j < pointer; j++){
             if ((byteArray[j] > 21) && (byteArray[j] < 126)) // man ascii
                 stringBuilder.append((char) byteArray[j]);
             else if (byteArray[j] == 0x0a)
@@ -92,18 +97,22 @@ public class RainbowDump {
         }
     }
 
-
     public static void hexDumpUTF8Legacy(byte[] byteArray){
+        StringBuilder stringBuilderLegacy = new StringBuilder("HexDumpUTF8Legacy");
+        stringBuilderLegacy.append(ANSI_BLUE);
+
         if (byteArray == null || byteArray.length == 0)
             return;
-        System.out.print(ANSI_BLUE);
+
         for (int i=0; i < byteArray.length; i++)
-            System.out.printf("%02d-", i%100);
-        System.out.println(">"+ANSI_RED+byteArray.length+ANSI_RESET);
+            stringBuilderLegacy.append(String.format("%02d-", i%100));
+        stringBuilderLegacy.append(">" + ANSI_RED).append(byteArray.length).append(ANSI_RESET).append("\n");
         for (byte b: byteArray)
-            System.out.printf("%02x ", b);
-        System.out.println();
-        System.out.print(new String(byteArray, StandardCharsets.UTF_8)+"\n");
+            stringBuilderLegacy.append(String.format("%02x ", b));
+        stringBuilderLegacy.append("\n")
+                .append(new String(byteArray, StandardCharsets.UTF_8))
+                .append("\n");
+        log.debug(stringBuilderLegacy.toString());
     }
 
     public static void binDumpInt(int value){
@@ -111,7 +120,7 @@ public class RainbowDump {
     }
 
     public static void binDumpLong(long value){
-        System.out.println(String.format("%64s", Long.toBinaryString( value )).replace(' ', '0')+" | "+value);
+        log.debug(String.format("%64s", Long.toBinaryString( value )).replace(' ', '0')+" | "+value);
     }
 
     public static String formatDecHexString(long value){

@@ -88,7 +88,7 @@ public class AesCtrBufferedInputStream extends BufferedInputStream {
             //1
             System.arraycopy(decryptedBytes, pointerInsideDecryptedSection, b, 0, bytesFromFirstBlock);
             //2
-            System.out.println("\n"+bytesFromFirstBlock+"\n"+ middleBlocksCount+" = "+(middleBlocksCount*0x200)+" bytes\n"+ bytesFromEnd+"\n");
+            //log.debug("\n"+bytesFromFirstBlock+"\n"+ middleBlocksCount+" = "+(middleBlocksCount*0x200)+" bytes\n"+ bytesFromEnd+"\n");
             for (int i = 0; i < middleBlocksCount; i++) {
                 fillDecryptedCache();
                 System.arraycopy(decryptedBytes, 0, b, bytesFromFirstBlock+i*0x200, 0x200);

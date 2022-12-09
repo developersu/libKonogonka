@@ -184,7 +184,7 @@ public class FileSystemEntry {
             nextHashTableBucketFileOffset = Converter.getLEint(filesMetadataTable, i);
             /*
             if (nextHashTableBucketFileOffset < 0) {
-                System.out.println("nextHashTableBucketFileOffset: "+ nextHashTableBucketFileOffset);
+                log.debug("nextHashTableBucketFileOffset: "+ nextHashTableBucketFileOffset);
             }
             //*/
             i += 4;

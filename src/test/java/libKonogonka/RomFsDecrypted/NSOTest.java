@@ -30,7 +30,6 @@ import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.io.*;
-import java.nio.file.Files;
 
 public class NSOTest {
     private static final String keysFileLocation = "./FilesForTests/prod.keys";
@@ -116,6 +115,7 @@ public class NSOTest {
 
         NSO0Provider nso0Provider = new NSO0Provider(pfs0Provider.getStreamProducer(0));
         nso0Provider.printDebug();
+        nso0Provider.exportAsDecompressedNSO0("./tmp");
 
         // NPDMProvider npdmProvider = new NPDMProvider(pfs0Provider.getProviderSubFilePipedInpStream(1));
 

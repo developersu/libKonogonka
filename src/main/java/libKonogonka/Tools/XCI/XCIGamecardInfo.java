@@ -30,6 +30,7 @@ import static libKonogonka.Converter.getLElong;
  * Gamecard Info
  * */
 public class XCIGamecardInfo{
+    //private final static Logger log = LogManager.getLogger(XCIGamecardInfo.class);
 
     private long fwVersion;
     private byte[] accessCtrlFlags; // 0x00A10011 for 25MHz access or 0x00A10010 for 50MHz access
@@ -73,12 +74,12 @@ public class XCIGamecardInfo{
             cupID = Arrays.copyOfRange(decrypted, 48, 56);
             emptyPadding2 = Arrays.copyOfRange(decrypted, 56, 112);
             /*
-            System.out.println(fwVersion);
+            log.debug(fwVersion);
             RainbowHexDump.hexDumpUTF8(accessCtrlFlags);
-            System.out.println(readWaitTime1);
-            System.out.println(readWaitTime2);
-            System.out.println(writeWaitTime1);
-            System.out.println(writeWaitTime2);
+            log.debug(readWaitTime1);
+            log.debug(readWaitTime2);
+            log.debug(writeWaitTime1);
+            log.debug(writeWaitTime2);
             RainbowHexDump.hexDumpUTF8(fwMode);
             RainbowHexDump.hexDumpUTF8(cupVersion);
             RainbowHexDump.hexDumpUTF8(emptyPadding1);
