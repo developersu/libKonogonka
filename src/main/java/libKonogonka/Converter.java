@@ -56,6 +56,10 @@ public class Converter {
         return sb.toString();
     }
 
+    public static String intToBinaryString(int value){
+        return String.format("%32s", Integer.toBinaryString( value )).replace(' ', '0')+" | "+value;
+    }
+
     public static String longToOctString(long value){
         return String.format("%64s", Long.toBinaryString( value )).replace(' ', '0');
     }

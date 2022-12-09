@@ -1,4 +1,4 @@
-# libKonogonka
+<img src="misc/logo.svg" title="" alt="libKonogonka" data-align="center">
 
 ![License](https://img.shields.io/badge/License-GPLv3-blue.svg) [![Build Status](https://ci.redrise.ru/api/badges/desu/libKonogonka/status.svg)](https://ci.redrise.ru/desu/libKonogonka)
 
@@ -13,10 +13,13 @@ You can get this application from independent source location: [https://git.redr
 [GNU General Public License v3 or higher](https://git.redrise.ru/desu/libKonogonka/LICENSE)
 
 ### Used libraries & resources
+
 * [Bouncy Castle](https://www.bouncycastle.org/) for Java.
 * [Java-XTS-AES](https://github.com/horrorho/Java-XTS-AES) by horrorho with minimal changes.
+* [lz4-java](https://github.com/lz4/lz4-java) 
 
-#### Thanks 
+#### Thanks
+
 * Switch brew wiki
 * Original ScriesM software
 * roothorick, [shchmue](https://github.com/shchmue/), He, other Team AtlasNX discord members for their advices, notes and examples!

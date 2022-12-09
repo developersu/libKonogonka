@@ -32,26 +32,26 @@ import static libKonogonka.Converter.*;
 
 public class NPDMProvider extends ASuperInFileProvider {
 
-    private String magicNum;
-    private byte[] reserved1;
-    private byte MMUFlags;
-    private byte reserved2;
-    private byte mainThreadPrio;
-    private byte mainThreadCoreNum;
-    private byte[] reserved3;
-    private int personalMmHeapSize;     // safe-to-store
-    private int version;                // safe?
-    private long mainThreadStackSize;    // TODO: check if safe
-    private String titleName;
-    private byte[] productCode;
-    private byte[] reserved4;
-    private int aci0offset;            // originally 4-bytes (u-int)
-    private int aci0size;              // originally 4-bytes (u-int)
-    private int acidOffset;            // originally 4-bytes (u-int)
-    private int acidSize;              // originally 4-bytes (u-int)
+    private final String magicNum;
+    private final byte[] reserved1;
+    private final byte MMUFlags;
+    private final byte reserved2;
+    private final byte mainThreadPrio;
+    private final byte mainThreadCoreNum;
+    private final byte[] reserved3;
+    private final int personalMmHeapSize;     // safe-to-store
+    private final int version;                // safe?
+    private final long mainThreadStackSize;    // TODO: check if safe
+    private final String titleName;
+    private final byte[] productCode;
+    private final byte[] reserved4;
+    private final int aci0offset;            // originally 4-bytes (u-int)
+    private final int aci0size;              // originally 4-bytes (u-int)
+    private final int acidOffset;            // originally 4-bytes (u-int)
+    private final int acidSize;              // originally 4-bytes (u-int)
 
-    private ACI0Provider aci0;
-    private ACIDProvider acid;
+    private final ACI0Provider aci0;
+    private final ACIDProvider acid;
 
     public NPDMProvider(PipedInputStream pis) throws Exception{
         byte[] mainBuf = new byte[0x80];

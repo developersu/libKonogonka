@@ -1,6 +1,6 @@
 /*
-    Copyright 2019-2022 Dmitry Isaenko
-
+    Copyright 2018-2022 Dmitry Isaenko
+     
     This file is part of libKonogonka.
 
     libKonogonka is free software: you can redistribute it and/or modify
@@ -15,29 +15,29 @@
 
     You should have received a copy of the GNU General Public License
     along with libKonogonka.  If not, see <https://www.gnu.org/licenses/>.
-*/
-package libKonogonka.Tools.PFS0;
+ */
+package libKonogonka.Tools.NSO;
 
-import libKonogonka.Tools.ISuperProvider;
-import libKonogonka.ctraes.InFileStreamProducer;
+import libKonogonka.Converter;
 
-import java.io.FileNotFoundException;
-import java.util.LinkedList;
+public class SegmentHeaderRelative {
+    private final int offset;
+    private final int size;
 
-public interface IPFS0Provider extends ISuperProvider {
-    boolean isEncrypted();
-    String getMagic();
-    int getFilesCount();
-    int getStringTableSize();
-    byte[] getPadding();
+    SegmentHeaderRelative(byte[] data){
+        this(data, 0);
+    }
 
-    PFS0subFile[] getPfs0subFiles();
+    SegmentHeaderRelative(byte[] data, int fromOffset){
+        this.offset = Converter.getLEint(data, fromOffset);
+        this.size = Converter.getLEint(data, fromOffset+4);
+    }
 
-    void printDebug();
+    public int getOffset() {
+        return offset;
+    }
 
-    InFileStreamProducer getStreamProducer(String subFileName) throws FileNotFoundException;
-
-    InFileStreamProducer getStreamProducer(int subFileNumber);
-
-    LinkedList<byte[]> getPfs0SHA256hashes();
+    public int getSize() {
+        return size;
+    }
 }

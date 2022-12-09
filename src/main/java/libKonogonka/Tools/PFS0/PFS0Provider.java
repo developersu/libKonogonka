@@ -23,6 +23,7 @@ import libKonogonka.RainbowDump;
 import libKonogonka.Tools.NCA.NCASectionTableBlock.SuperBlockPFS0;
 import libKonogonka.ctraes.AesCtrBufferedInputStream;
 import libKonogonka.ctraes.AesCtrDecryptSimple;
+import libKonogonka.ctraes.InFileStreamProducer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -292,6 +293,31 @@ public class PFS0Provider implements IPFS0Provider{
             return false;
         }
         return true;
+    }
+
+    @Override
+    public InFileStreamProducer getStreamProducer(String subFileName) throws FileNotFoundException {
+        for (int i = 0; i < pfs0subFiles.length; i++) {
+            if (pfs0subFiles[i].getName().equals(subFileName))
+                return getStreamProducer(i);
+        }
+        throw new FileNotFoundException("No file with such name exists: "+subFileName);
+    }
+    @Override
+    public InFileStreamProducer getStreamProducer(int subFileNumber) {
+        PFS0subFile subFile = pfs0subFiles[subFileNumber];
+        long subFileOffset = subFile.getOffset() + mediaStartOffset * 0x200 + rawBlockDataStart;
+
+        if (encrypted) {
+            return new InFileStreamProducer(file,
+                    pfs0subFiles[subFileNumber].getSize(),
+                    ncaOffset,
+                    subFileOffset,
+                    decryptor,
+                    mediaStartOffset,
+                    mediaEndOffset);
+        }
+        return new InFileStreamProducer(file, offsetPositionInFile, subFileOffset);
     }
 
     /**

@@ -41,7 +41,7 @@ public class RainbowDump {
 
     private static StringBuilder stringBuilder;
     public static void hexDumpUTF8(byte[] byteArray){
-        stringBuilder = new StringBuilder();
+        stringBuilder = new StringBuilder(" -- RainbowDump --\n");
         if (byteArray == null || byteArray.length == 0)
             return;
 
@@ -106,11 +106,11 @@ public class RainbowDump {
         System.out.print(new String(byteArray, StandardCharsets.UTF_8)+"\n");
     }
 
-    public static void octDumpInt(int value){
-        System.out.println(String.format("%32s", Integer.toBinaryString( value )).replace(' ', '0')+" | "+value);
+    public static void binDumpInt(int value){
+        log.debug(Converter.intToBinaryString(value));
     }
 
-    public static void octDumpLong(long value){
+    public static void binDumpLong(long value){
         System.out.println(String.format("%64s", Long.toBinaryString( value )).replace(' ', '0')+" | "+value);
     }
 

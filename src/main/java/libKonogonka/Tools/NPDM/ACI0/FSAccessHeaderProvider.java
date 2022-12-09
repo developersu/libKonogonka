@@ -27,14 +27,14 @@ import java.util.Arrays;
  * */
 public class FSAccessHeaderProvider {
 
-    private byte version;
-    private byte[] padding;
-    private long permissionsBitmask;
-    private int dataSize;
-    private int contentOwnIdSectionSize;
-    private int dataNownerSizes;
-    private int saveDataOwnSectionSize;
-    private byte[] unknownData;
+    private final byte version;
+    private final byte[] padding;
+    private final long permissionsBitmask;
+    private final int dataSize;
+    private final int contentOwnIdSectionSize;
+    private final int dataOwnerSizes;
+    private final int saveDataOwnSectionSize;
+    private final byte[] unknownData;
 
     public FSAccessHeaderProvider(byte[] bytes) {
         version = bytes[0];
@@ -42,7 +42,7 @@ public class FSAccessHeaderProvider {
         permissionsBitmask = Converter.getLElong(bytes, 0x4);
         dataSize = Converter.getLEint(bytes, 0xC);
         contentOwnIdSectionSize = Converter.getLEint(bytes, 0x10);
-        dataNownerSizes = Converter.getLEint(bytes, 0x14);
+        dataOwnerSizes = Converter.getLEint(bytes, 0x14);
         saveDataOwnSectionSize = Converter.getLEint(bytes, 0x18);
         unknownData = Arrays.copyOfRange(bytes, 0x1C, bytes.length);
     }
@@ -52,7 +52,7 @@ public class FSAccessHeaderProvider {
     public long getPermissionsBitmask() { return permissionsBitmask; }
     public int getDataSize() { return dataSize; }
     public int getContentOwnIdSectionSize() { return contentOwnIdSectionSize; }
-    public int getDataNownerSizes() { return dataNownerSizes; }
+    public int getDataNownerSizes() { return dataOwnerSizes; }
     public int getSaveDataOwnSectionSize() { return saveDataOwnSectionSize; }
     public byte[] getUnknownData() { return unknownData; }
 }
