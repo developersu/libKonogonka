@@ -90,6 +90,6 @@ public class XciTest {
         NCAProvider ncaProvider = new NCAProvider(xciFile, keyChainHolder.getRawKeySet(),
                         hfs0Provider.getRawFileDataStart() +
                         hfs0File.getOffset());
-        //ncaProvider.
+        ncaProvider.getSectionBlock0().printDebug();
     }
 }

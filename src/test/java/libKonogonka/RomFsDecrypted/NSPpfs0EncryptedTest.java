@@ -73,7 +73,7 @@ public class NSPpfs0EncryptedTest {
 
         pfs0Provider = new PFS0Provider(nspFile);
 
-        for (PFS0subFile subFile : pfs0Provider.getPfs0subFiles()) {
+        for (PFS0subFile subFile : pfs0Provider.getHeader().getPfs0subFiles()) {
             if (subFile.getName().endsWith("890.nca")) {
                 System.out.println("File found: "+subFile.getName());
                 ncaProvider = new NCAProvider(nspFile, finalKeysSet, pfs0Provider.getRawFileDataStart()+subFile.getOffset());
@@ -109,7 +109,7 @@ public class NSPpfs0EncryptedTest {
 
     void AesCtrBufferedInputStreamTest() throws Exception {
         File nca = new File(nspFileLocation);   // TODO:NOTICE
-        PFS0subFile[] subfiles = ncaProvider.getNCAContentProvider(0).getPfs0().getPfs0subFiles();
+        PFS0subFile[] subfiles = ncaProvider.getNCAContentProvider(0).getPfs0().getHeader().getPfs0subFiles();
 
         offsetPosition = ncaProvider.getTableEntry0().getMediaStartOffset()*0x200 +
                         ncaProvider.getNCAContentProvider(0).getPfs0().getRawFileDataStart();
@@ -207,7 +207,10 @@ public class NSPpfs0EncryptedTest {
         File contentFile = new File(saveToLocation + entry.getName());
 
         BufferedOutputStream extractedFileBOS = new BufferedOutputStream(new FileOutputStream(contentFile));
-        PipedInputStream pis = ncaProvider.getNCAContentProvider(0).getPfs0().getProviderSubFilePipedInpStream(entry.getName());
+        BufferedInputStream pis = ncaProvider.getNCAContentProvider(0)
+                .getPfs0()
+                .getStreamProducer(entry.getName())
+                .produce();
 
         byte[] readBuf = new byte[0x200]; // 8mb NOTE: consider switching to 1mb 1048576
         int readSize;

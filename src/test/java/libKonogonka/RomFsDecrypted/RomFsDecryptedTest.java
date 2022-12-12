@@ -18,9 +18,11 @@
  */
 package libKonogonka.RomFsDecrypted;
 
-import java.io.File;
+import java.io.*;
+import java.nio.file.Files;
 import java.nio.file.Path;
 
+import libKonogonka.Tools.RomFs.FileSystemEntry;
 import libKonogonka.Tools.RomFs.RomFsProvider;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
@@ -39,13 +41,14 @@ public class RomFsDecryptedTest {
     RomFsProvider provider;
 
     @Disabled
-    @DisplayName("RomFsDecryptedProvider: tests")
+    @DisplayName("RomFsDecryptedProvider: Overall and export")
     @Test
     void romFsValidation() throws Exception{
         makeFile();
         parseLv6offsetFromFileName();
         makeProvider();
         provider.printDebug();
+        export();
     }
 
     void makeFile(){
@@ -58,12 +61,93 @@ public class RomFsDecryptedTest {
         provider = new RomFsProvider(decryptedFile, lv6offset);
     }
 
-/*
-    void checkFilesWorkers(){
-        assertTrue(fw1 instanceof WorkerFiles);
-        assertTrue(fw2 instanceof WorkerFiles);
-        assertTrue(fw3 instanceof WorkerFiles);
+    void export() throws Exception {
+        System.out.println("lv6offset = "+lv6offset);
+
+        FileSystemEntry entry = provider.getRootEntry();
+        System.out.print(" entry.getFileOffset(): " + entry.getOffset() +
+                "\n entry.getFileSize():   " + entry.getSize() +
+                "\nExport new.......");
+        exportFolderContent(entry, "/tmp/decrypted_brandnew");
+        System.out.println("done");
+        /*----------------------------------------------------------------------
+        System.out.print("Export legacy....");
+        exportFolderContentLegacy(entry, "/tmp/decrypted_legacy");
+        System.out.println("done"); */
     }
 
- */
+    private void exportFolderContent(FileSystemEntry entry, String saveToLocation) throws Exception{
+        File contentFile = new File(saveToLocation + entry.getName());
+        contentFile.mkdirs();
+        String currentDirPath = saveToLocation + entry.getName() + File.separator;
+        for (FileSystemEntry fse : entry.getContent()){
+            if (fse.isDirectory())
+                exportFolderContent(fse, currentDirPath);
+            else
+                exportSingleFile(fse, currentDirPath);
+        }
+    }
+    private void exportSingleFile(FileSystemEntry entry, String saveToLocation) throws Exception {
+        File contentFile = new File(saveToLocation + entry.getName());
+        try(BufferedOutputStream extractedFileBOS = new BufferedOutputStream(Files.newOutputStream(contentFile.toPath()));
+            BufferedInputStream stream = new BufferedInputStream(Files.newInputStream(decryptedFile.toPath()))) {
+            long skipBytes = entry.getOffset()+
+                    //ncaProvider.getTableEntry1().getMediaStartOffset()*0x200+
+                    provider.getHeader().getFileDataOffset()+
+                    lv6offset;
+            if (skipBytes != stream.skip(skipBytes))
+                throw new Exception("Can't skip");
+
+            int blockSize = 0x200;
+            if (entry.getSize() < 0x200)
+                blockSize = (int) entry.getSize();
+
+            long i = 0;
+            byte[] block = new byte[blockSize];
+
+            int actuallyRead;
+
+            while (true) {
+                if ((actuallyRead = stream.read(block)) != blockSize)
+                    throw new Exception("Read failure. Block Size: "+blockSize+", actuallyRead: "+actuallyRead);
+                extractedFileBOS.write(block);
+                i += blockSize;
+                if ((i + blockSize) >= entry.getSize()) {
+                    blockSize = (int) (entry.getSize() - i);
+                    if (blockSize == 0)
+                        break;
+                    block = new byte[blockSize];
+                }
+            }
+        }
+    }
+/*
+    private void exportFolderContentLegacy(FileSystemEntry entry, String saveToLocation) throws Exception{
+        File contentFile = new File(saveToLocation + entry.getName());
+        contentFile.mkdirs();
+        String currentDirPath = saveToLocation + entry.getName() + File.separator;
+        for (FileSystemEntry fse : entry.getContent()){
+            if (fse.isDirectory())
+                exportFolderContentLegacy(fse, currentDirPath);
+            else
+                exportSingleFileLegacy(fse, currentDirPath);
+        }
+    }
+
+    private void exportSingleFileLegacy(FileSystemEntry entry, String saveToLocation) throws Exception {
+        File contentFile = new File(saveToLocation + entry.getName());
+
+        BufferedOutputStream extractedFileBOS = new BufferedOutputStream(Files.newOutputStream(contentFile.toPath()));
+        PipedInputStream pis = provider.getContent(entry);
+
+        byte[] readBuf = new byte[0x200]; // 8mb NOTE: consider switching to 1mb 1048576
+        int readSize;
+
+        while ((readSize = pis.read(readBuf)) > -1) {
+            extractedFileBOS.write(readBuf, 0, readSize);
+            readBuf = new byte[0x200];
+        }
+
+        extractedFileBOS.close();
+    }*/
 }

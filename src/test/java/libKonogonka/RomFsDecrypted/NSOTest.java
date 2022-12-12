@@ -22,7 +22,7 @@ import libKonogonka.KeyChainHolder;
 import libKonogonka.RainbowDump;
 import libKonogonka.Tools.NCA.NCAProvider;
 import libKonogonka.Tools.NSO.NSO0Provider;
-import libKonogonka.Tools.PFS0.IPFS0Provider;
+import libKonogonka.Tools.PFS0.PFS0Provider;
 import libKonogonka.Tools.PFS0.PFS0subFile;
 import libKonogonka.ctraes.AesCtrDecryptSimple;
 import org.junit.jupiter.api.Disabled;
@@ -83,7 +83,7 @@ public class NSOTest {
 
     void nso0Validation() throws Exception{
         File nca = new File(ncaFileLocation);
-        PFS0subFile[] subfiles = ncaProvider.getNCAContentProvider(0).getPfs0().getPfs0subFiles();
+        PFS0subFile[] subfiles = ncaProvider.getNCAContentProvider(0).getPfs0().getHeader().getPfs0subFiles();
 
         offsetPosition = ncaProvider.getTableEntry0().getMediaStartOffset()*0x200 +
                 ncaProvider.getNCAContentProvider(0).getPfs0().getRawFileDataStart();
@@ -111,7 +111,8 @@ public class NSOTest {
                 ncaProvider.getSectionBlock0().getSectionCTR(),
                 ncaProvider.getTableEntry0().getMediaStartOffset() * 0x200);
 
-        IPFS0Provider pfs0Provider = ncaProvider.getNCAContentProvider(0).getPfs0();
+        PFS0Provider pfs0Provider = ncaProvider.getNCAContentProvider(0).getPfs0();
+        pfs0Provider.printDebug();
 
         NSO0Provider nso0Provider = new NSO0Provider(pfs0Provider.getStreamProducer(0));
         nso0Provider.printDebug();

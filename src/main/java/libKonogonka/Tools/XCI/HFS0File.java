@@ -19,12 +19,12 @@
 package libKonogonka.Tools.XCI;
 
 public class HFS0File {
-    private String name;
-    private long offset;
-    private long size;
-    private long hashedRegionSize;
-    private boolean padding;
-    private byte[] SHA256Hash;
+    private final String name;
+    private final long offset;
+    private final long size;
+    private final long hashedRegionSize;
+    private final boolean padding;
+    private final byte[] SHA256Hash;
     
     public HFS0File(String name, long offset, long size, long hashedRegionSize, boolean padding, byte[] SHA256Hash){
         this.name = name;

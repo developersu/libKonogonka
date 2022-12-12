@@ -18,192 +18,61 @@
 */
 package libKonogonka.Tools.PFS0;
 
-import libKonogonka.Converter;
 import libKonogonka.RainbowDump;
+import libKonogonka.Tools.ISuperProvider;
 import libKonogonka.Tools.NCA.NCASectionTableBlock.SuperBlockPFS0;
-import libKonogonka.ctraes.AesCtrBufferedInputStream;
-import libKonogonka.ctraes.AesCtrDecryptSimple;
 import libKonogonka.ctraes.InFileStreamProducer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.*;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.LinkedList;
 
-import static libKonogonka.Converter.*;
-
-public class PFS0Provider implements IPFS0Provider{
+public class PFS0Provider implements ISuperProvider {
     private final static Logger log = LogManager.getLogger(PFS0Provider.class);
 
-    private String magic;
-    private int filesCount;
-    private int stringTableSize;
-    private byte[] padding;
-    private PFS0subFile[] pfs0subFiles;
-    //---------------------------------------
-    private long rawBlockDataStart;
+    private final long rawBlockDataStart;
 
-    private final File file;
     private long offsetPositionInFile;
-    private long mediaStartOffset;  // In 512-blocks
-    private long mediaEndOffset;    // In 512-blocks
-
-    private long ncaOffset;
+    private final InFileStreamProducer producer;
     private BufferedInputStream stream;
     private SuperBlockPFS0 superBlockPFS0;
-    private AesCtrDecryptSimple decryptor;
 
+    private long mediaStartOffset;
+
+    private final PFS0Header header;
     private LinkedList<byte[]> pfs0SHA256hashes;
 
-    private boolean encrypted;
-
     public PFS0Provider(File nspFile) throws Exception{
-        this.file = nspFile;
-        createBufferedInputStream();
-        readPfs0Header();
+        this.producer = new InFileStreamProducer(nspFile);
+        this.stream = producer.produce();
+        this.header = new PFS0Header(stream);
+        this.rawBlockDataStart = 0x10L + (header.getFilesCount() * 0x18L) + header.getStringTableSize();
     }
 
-    public PFS0Provider(File file,
-                        long ncaOffset,
+    public PFS0Provider(InFileStreamProducer producer,
+                        long offsetPositionInFile,
                         SuperBlockPFS0 superBlockPFS0,
-                        long mediaStartOffset,
-                        long mediaEndOffset) throws Exception{
-        this.file = file;
-        this.ncaOffset = ncaOffset;
+                        long mediaStartOffset) throws Exception {
+        this.producer = producer;
+        this.offsetPositionInFile = offsetPositionInFile;
         this.superBlockPFS0 = superBlockPFS0;
-        this.offsetPositionInFile = ncaOffset + mediaStartOffset * 0x200;
         this.mediaStartOffset = mediaStartOffset;
-        this.mediaEndOffset = mediaEndOffset;
-        this.rawBlockDataStart = superBlockPFS0.getPfs0offset();
-        //bufferedInputStream = new BufferedInputStream(Files.newInputStream(fileWithPfs0.toPath()));
-        createBufferedInputStream();
+
+        this.stream = producer.produce();
         long toSkip = offsetPositionInFile + superBlockPFS0.getHashTableOffset();
         if (toSkip != stream.skip(toSkip))
             throw new Exception("Can't skip bytes prior Hash Table offset");
         collectHashes();
 
-        createBufferedInputStream();
+        this.stream = producer.produce();
         toSkip = offsetPositionInFile + superBlockPFS0.getPfs0offset();
         if (toSkip != stream.skip(toSkip))
             throw new Exception("Can't skip bytes prior PFS0 offset");
-        readPfs0Header();
-    }
-
-    public PFS0Provider(File file,
-                        long ncaOffset,
-                        SuperBlockPFS0 superBlockPFS0,
-                        AesCtrDecryptSimple decryptor,
-                        long mediaStartOffset,
-                        long mediaEndOffset
-    ) throws Exception {
-        this.file = file;
-        this.ncaOffset = ncaOffset;
-        this.superBlockPFS0 = superBlockPFS0;
-        this.decryptor = decryptor;
-        this.offsetPositionInFile = ncaOffset + mediaStartOffset * 0x200;
-        this.mediaStartOffset = mediaStartOffset;
-        this.mediaEndOffset = mediaEndOffset;
-        this.rawBlockDataStart = superBlockPFS0.getPfs0offset();
-        this.encrypted = true;
-
-        createAesCtrEncryptedBufferedInputStream();
-        long toSkip = offsetPositionInFile + superBlockPFS0.getHashTableOffset();
-        if (toSkip != stream.skip(toSkip))
-            throw new Exception("Can't skip bytes prior Hash Table offset");
-        collectHashes();
-
-        createAesCtrEncryptedBufferedInputStream();
-        toSkip = offsetPositionInFile + superBlockPFS0.getPfs0offset();
-        if (toSkip != stream.skip(toSkip))
-            throw new Exception("Can't skip bytes prior PFS0 offset");
-        readPfs0Header();
-    }
-
-    private void readPfs0Header()throws Exception{
-        byte[] fileStartingBytes = new byte[0x10];
-        if (0x10 != stream.read(fileStartingBytes))
-            throw new Exception("Reading stream suddenly ended while trying to read starting 0x10 bytes");
-
-        // Update position
-        rawBlockDataStart += 0x10;
-        // Check PFS0Provider
-        magic = new String(fileStartingBytes, 0x0, 0x4, StandardCharsets.US_ASCII);
-        if (! magic.equals("PFS0")){
-            throw new Exception("Bad magic");
-        }
-        // Get files count
-        filesCount = getLEint(fileStartingBytes, 0x4);
-        if (filesCount <= 0 ) {
-            throw new Exception("Files count is too small");
-        }
-        // Get string table
-        stringTableSize = getLEint(fileStartingBytes, 0x8);
-        if (stringTableSize <= 0 ){
-            throw new Exception("String table is too small");
-        }
-        padding = Arrays.copyOfRange(fileStartingBytes, 0xc, 0x10);
-        //-------------------------------------------------------------------
-        pfs0subFiles = new PFS0subFile[filesCount];
-
-        long[] offsetsSubFiles = new long[filesCount];
-        long[] sizesSubFiles = new long[filesCount];
-        int[] strTableOffsets = new int[filesCount];
-        byte[][] zeroBytes = new byte[filesCount][];
-
-        byte[] fileEntryTable = new byte[0x18];
-        for (int i=0; i < filesCount; i++){
-            if (0x18 != stream.read(fileEntryTable))
-                throw new Exception("Reading stream suddenly ended while trying to read File Entry Table #"+i);
-
-            offsetsSubFiles[i] = getLElong(fileEntryTable, 0);
-            sizesSubFiles[i] = getLElong(fileEntryTable, 0x8);
-            strTableOffsets[i] = getLEint(fileEntryTable, 0x10);
-            zeroBytes[i] = Arrays.copyOfRange(fileEntryTable, 0x14, 0x18);
-            rawBlockDataStart += 0x18;
-        }
-        //*******************************************************************
-        // In here pointer in front of String table
-        String[] subFileNames = new String[filesCount];
-        byte[] stringTbl = new byte[stringTableSize];
-        if (stream.read(stringTbl) != stringTableSize){
-            throw new Exception("Read PFS0Provider String table failure. Can't read requested string table size ("+stringTableSize+")");
-        }
-
-        // Update position
-        rawBlockDataStart += stringTableSize;
-
-        for (int i=0; i < filesCount; i++){
-            int j = 0;
-            while (stringTbl[strTableOffsets[i]+j] != (byte)0x00)
-                j++;
-            subFileNames[i] = new String(stringTbl, strTableOffsets[i], j, StandardCharsets.UTF_8);
-        }
-        for (int i = 0; i < filesCount; i++){
-            pfs0subFiles[i] = new PFS0subFile(
-                    subFileNames[i],
-                    offsetsSubFiles[i],
-                    sizesSubFiles[i],
-                    zeroBytes[i]);
-        }
-        stream.close();
-    }
-
-    private void createAesCtrEncryptedBufferedInputStream() throws Exception{
-        decryptor.reset();
-        this.stream = new AesCtrBufferedInputStream(
-                decryptor,
-                ncaOffset,
-                mediaStartOffset,
-                mediaEndOffset,
-                Files.newInputStream(file.toPath()));
-    }
-
-    private void createBufferedInputStream() throws Exception{
-        this.stream = new BufferedInputStream(Files.newInputStream(file.toPath()));
+        this.header = new PFS0Header(stream);
+        this.rawBlockDataStart = superBlockPFS0.getPfs0offset() + 0x10L + (header.getFilesCount() * 0x18L) + header.getStringTableSize();
     }
 
     private void collectHashes() throws Exception{
@@ -223,25 +92,14 @@ public class PFS0Provider implements IPFS0Provider{
         }
     }
 
-    @Override
-    public boolean isEncrypted() { return true; }
-    @Override
-    public String getMagic() { return magic; }
-    @Override
-    public int getFilesCount() { return filesCount; }
-    @Override
-    public int getStringTableSize() { return stringTableSize; }
-    @Override
-    public byte[] getPadding() { return padding; }
+    public boolean isEncrypted() { return producer.isEncrypted(); }
+    public PFS0Header getHeader() {return header;}
+
     @Override
     public long getRawFileDataStart() { return rawBlockDataStart;}
     @Override
-    public PFS0subFile[] getPfs0subFiles() { return pfs0subFiles; }
-    @Override
-    public File getFile(){ return file; }
-
-    @Override
     public boolean exportContent(String saveToLocation, String subFileName){
+        PFS0subFile[] pfs0subFiles = header.getPfs0subFiles();
         for (int i = 0; i < pfs0subFiles.length; i++){
             if (pfs0subFiles[i].getName().equals(subFileName))
                 return exportContent(saveToLocation, i);
@@ -250,16 +108,14 @@ public class PFS0Provider implements IPFS0Provider{
     }
     @Override
     public boolean exportContent(String saveToLocation, int subFileNumber){
-        PFS0subFile subFile = pfs0subFiles[subFileNumber];
+        PFS0subFile subFile = header.getPfs0subFiles()[subFileNumber];
         File location = new File(saveToLocation);
         location.mkdirs();
 
         try (BufferedOutputStream extractedFileBOS = new BufferedOutputStream(
                 Files.newOutputStream(Paths.get(saveToLocation+File.separator+subFile.getName())))){
-            if (encrypted)
-                createAesCtrEncryptedBufferedInputStream();
-            else
-                createBufferedInputStream();
+
+            this.stream = producer.produce();
 
             long subFileSize = subFile.getSize();
 
@@ -297,6 +153,7 @@ public class PFS0Provider implements IPFS0Provider{
 
     @Override
     public InFileStreamProducer getStreamProducer(String subFileName) throws FileNotFoundException {
+        PFS0subFile[] pfs0subFiles = header.getPfs0subFiles();
         for (int i = 0; i < pfs0subFiles.length; i++) {
             if (pfs0subFiles[i].getName().equals(subFileName))
                 return getStreamProducer(i);
@@ -305,110 +162,28 @@ public class PFS0Provider implements IPFS0Provider{
     }
     @Override
     public InFileStreamProducer getStreamProducer(int subFileNumber) {
-        PFS0subFile subFile = pfs0subFiles[subFileNumber];
+        PFS0subFile subFile = header.getPfs0subFiles()[subFileNumber];
         long subFileOffset = subFile.getOffset() + mediaStartOffset * 0x200 + rawBlockDataStart;
 
-        if (encrypted) {
-            return new InFileStreamProducer(file,
-                    pfs0subFiles[subFileNumber].getSize(),
-                    ncaOffset,
-                    subFileOffset,
-                    decryptor,
-                    mediaStartOffset,
-                    mediaEndOffset);
-        }
-        return new InFileStreamProducer(file, offsetPositionInFile, subFileOffset);
+        return producer.getSuccessor(subFileOffset);
     }
-
-    /**
-     * @deprecated
-     * */
-    @Override
-    public PipedInputStream getProviderSubFilePipedInpStream(String subFileName) throws Exception {
-        for (int i = 0; i < pfs0subFiles.length; i++) {
-            if (pfs0subFiles[i].getName().equals(subFileName))
-                return getProviderSubFilePipedInpStream(i);
-        }
-        throw new Exception("No file with such name exists: "+subFileName);
-    }
-    /**
-     * @deprecated
-     * */
-    @Override
-    public PipedInputStream getProviderSubFilePipedInpStream(int subFileNumber) throws Exception {
-        PipedOutputStream streamOut = new PipedOutputStream();
-        PipedInputStream streamInp = new PipedInputStream(streamOut);
-
-        Thread workerThread = new Thread(() -> {
-            try {
-                PFS0subFile subFile = pfs0subFiles[subFileNumber];
-
-                if (encrypted)
-                    createAesCtrEncryptedBufferedInputStream();
-                else
-                    createBufferedInputStream();
-
-                long subFileSize = subFile.getSize();
-
-                long toSkip = subFile.getOffset() + mediaStartOffset * 0x200 + rawBlockDataStart;
-                if (toSkip != stream.skip(toSkip))
-                    throw new Exception("Unable to skip offset: " + toSkip);
-
-                int blockSize = 0x200;
-                if (subFileSize < 0x200)
-                    blockSize = (int) subFileSize;
-
-                long i = 0;
-                byte[] block = new byte[blockSize];
-
-                int actuallyRead;
-                while (true) {
-                    if ((actuallyRead = stream.read(block)) != blockSize)
-                        throw new Exception("Read failure. Block Size: " + blockSize + ", actuallyRead: " + actuallyRead);
-                    streamOut.write(block);
-                    i += blockSize;
-                    if ((i + blockSize) > subFileSize) {
-                        blockSize = (int) (subFileSize - i);
-                        if (blockSize == 0)
-                            break;
-                        block = new byte[blockSize];
-                    }
-                }
-            }
-            catch (Exception e){
-                log.error(e);
-            }
-        });
-        workerThread.start();
-        return streamInp;
-    }
-
 
     public LinkedList<byte[]> getPfs0SHA256hashes() {
         return pfs0SHA256hashes;
     }
 
+    @Override
+    public File getFile() {
+        return producer.getFile();
+    }
+
     public void printDebug(){
         log.debug(".:: PFS0Provider ::.\n" +
-                "File name:                " + file.getName() + "\n" +
+                "File name:                " + getFile().getName() + "\n" +
                 "Raw block data start      " + RainbowDump.formatDecHexString(rawBlockDataStart) + "\n" +
-                "Magic                     " + magic + "\n" +
-                "Files count               " + RainbowDump.formatDecHexString(filesCount) + "\n" +
-                "String Table Size         " + RainbowDump.formatDecHexString(stringTableSize) + "\n" +
-                "Padding                   " + Converter.byteArrToHexString(padding) + "\n\n" +
-
                 "Offset position in file   " + RainbowDump.formatDecHexString(offsetPositionInFile) + "\n" +
-                "Media Start Offset        " + RainbowDump.formatDecHexString(mediaStartOffset) + "\n" +
-                "Media End Offset          " + RainbowDump.formatDecHexString(mediaEndOffset) + "\n"
+                "Media Start Offset        " + RainbowDump.formatDecHexString(mediaStartOffset) + "\n"
         );
-        for (PFS0subFile subFile : pfs0subFiles){
-            log.debug(
-                    "\nName:                     " + subFile.getName() + "\n" +
-                    "Offset                    " + RainbowDump.formatDecHexString(subFile.getOffset()) + "\n" +
-                    "Size                      " + RainbowDump.formatDecHexString(subFile.getSize()) + "\n" +
-                    "Zeroes                    " + Converter.byteArrToHexString(subFile.getZeroes()) + "\n" +
-                    "----------------------------------------------------------------"
-            );
-        }
+        header.printDebug();
     }
 }

@@ -21,7 +21,7 @@ package libKonogonka.RomFsDecrypted;
 import libKonogonka.KeyChainHolder;
 import libKonogonka.RainbowDump;
 import libKonogonka.Tools.NCA.NCAProvider;
-import libKonogonka.Tools.PFS0.IPFS0Provider;
+import libKonogonka.Tools.PFS0.PFS0Provider;
 import libKonogonka.Tools.PFS0.PFS0subFile;
 import libKonogonka.ctraes.AesCtrBufferedInputStream;
 import libKonogonka.ctraes.AesCtrDecryptSimple;
@@ -80,7 +80,7 @@ public class Pfs0EncryptedTest {
 
     void AesCtrBufferedInputStreamTest() throws Exception {
         File nca = new File(ncaFileLocation);
-        PFS0subFile[] subfiles = ncaProvider.getNCAContentProvider(0).getPfs0().getPfs0subFiles();
+        PFS0subFile[] subfiles = ncaProvider.getNCAContentProvider(0).getPfs0().getHeader().getPfs0subFiles();
 
         offsetPosition = ncaProvider.getTableEntry0().getMediaStartOffset()*0x200 +
                         ncaProvider.getNCAContentProvider(0).getPfs0().getRawFileDataStart();
@@ -113,7 +113,7 @@ public class Pfs0EncryptedTest {
         }
 
  */
-        IPFS0Provider pfs0Provider = ncaProvider.getNCAContentProvider(0).getPfs0();
+        PFS0Provider pfs0Provider = ncaProvider.getNCAContentProvider(0).getPfs0();
         //----------------------------------------------------------------------
         for (PFS0subFile subFile : subfiles) {
             System.out.println("Exporting "+subFile.getName());
@@ -181,7 +181,10 @@ public class Pfs0EncryptedTest {
         File contentFile = new File(saveToLocation + entry.getName());
 
         BufferedOutputStream extractedFileBOS = new BufferedOutputStream(new FileOutputStream(contentFile));
-        PipedInputStream pis = ncaProvider.getNCAContentProvider(0).getPfs0().getProviderSubFilePipedInpStream(entry.getName());
+        BufferedInputStream pis = ncaProvider.getNCAContentProvider(0)
+                .getPfs0()
+                .getStreamProducer(entry.getName())
+                .produce();
 
         byte[] readBuf = new byte[0x200]; // 8mb NOTE: consider switching to 1mb 1048576
         int readSize;

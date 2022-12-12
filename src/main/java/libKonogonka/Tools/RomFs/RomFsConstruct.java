@@ -19,16 +19,11 @@
 package libKonogonka.Tools.RomFs;
 
 import libKonogonka.Converter;
-import libKonogonka.ctraes.AesCtrBufferedInputStream;
-import libKonogonka.ctraes.AesCtrDecryptSimple;
+import libKonogonka.ctraes.InFileStreamProducer;
 
 import java.io.BufferedInputStream;
-import java.io.File;
-import java.nio.file.Files;
 
 public class RomFsConstruct {
-    //private final static Logger log = LogManager.getLogger(RomFsConstruct.class);
-
     private Level6Header header;
 
     private FileSystemEntry rootEntry;
@@ -37,55 +32,29 @@ public class RomFsConstruct {
     private byte[] directoryMetadataTable;
     private byte[] fileMetadataTable;
 
-
-    private final File file;
-    private long offsetPositionInFile;
+    private final long offsetPositionInFile;
     private final long level6Offset;
 
-    RomFsConstruct(File file,
-                   long level6Offset) throws Exception{
-        if (level6Offset < 0)
-            throw new Exception("Incorrect Level 6 Offset");
-        this.file = file;
-        this.level6Offset = level6Offset;
-        this.stream = new BufferedInputStream(Files.newInputStream(file.toPath()));
-        constructEverything();
+    RomFsConstruct(InFileStreamProducer producer, long level6Offset) throws Exception{
+        this(producer, level6Offset, 0);
     }
 
-    RomFsConstruct(File file,
-                   long ncaOffset, // NCA offset position
+    RomFsConstruct(InFileStreamProducer producer,
                    long level6Offset,
-                   AesCtrDecryptSimple decryptor,
-                   long mediaStartOffset,
-                   long mediaEndOffset
-                            ) throws Exception {
+                   long offsetPositionInFile) throws Exception{
         if (level6Offset < 0)
             throw new Exception("Incorrect Level 6 Offset");
-        this.file = file;
         this.level6Offset = level6Offset;
-        this.offsetPositionInFile = ncaOffset + (mediaStartOffset * 0x200);
-        this.stream = new AesCtrBufferedInputStream(
-                decryptor,
-                ncaOffset,
-                mediaStartOffset,
-                mediaEndOffset,
-                Files.newInputStream(file.toPath()));
-        constructEverything();
-    }
+        this.stream = producer.produce();
+        this.offsetPositionInFile = offsetPositionInFile;
 
-    private void constructEverything() throws Exception{
         goToStartingPosition();
-
         constructHeader();
-
         directoryMetadataTableLengthCheck();
         directoryMetadataTableConstruct();
-
         fileMetadataTableLengthCheck();
         fileMetadataTableConstruct();
-
         constructRootFilesystemEntry();
-
         stream.close();
     }
 
@@ -137,12 +106,7 @@ public class RomFsConstruct {
     }
 
     private void constructRootFilesystemEntry() throws Exception{
-        try {
-            rootEntry = new FileSystemEntry(directoryMetadataTable, fileMetadataTable);
-        }
-        catch (Exception e){
-            throw new Exception("File: " + file.getName(), e);
-        }
+        rootEntry = new FileSystemEntry(directoryMetadataTable, fileMetadataTable);
     }
 
     private void skipBytes(long size) throws Exception{

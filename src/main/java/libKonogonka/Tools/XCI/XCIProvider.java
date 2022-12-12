@@ -27,14 +27,14 @@ public class XCIProvider{
     // TODO: Since LOGO partition added, we have to handle it properly. Is it works??
 
     //private BufferedInputStream xciBIS;
-    private XCIGamecardHeader xciGamecardHeader;
-    private XCIGamecardInfo xciGamecardInfo;
-    private XCIGamecardCert xciGamecardCert;
-    private HFS0Provider hfs0ProviderMain,
-            hfs0ProviderUpdate,
-            hfs0ProviderNormal,
-            hfs0ProviderSecure,
-            hfs0ProviderLogo;
+    private final XCIGamecardHeader xciGamecardHeader;
+    private final XCIGamecardInfo xciGamecardInfo;
+    private final XCIGamecardCert xciGamecardCert;
+    private final HFS0Provider hfs0ProviderMain;
+    private HFS0Provider hfs0ProviderUpdate;
+    private HFS0Provider hfs0ProviderNormal;
+    private HFS0Provider hfs0ProviderSecure;
+    private HFS0Provider hfs0ProviderLogo;
 
     public XCIProvider(File file, String XCI_HEADER_KEY) throws Exception{                                                   // TODO: ADD FILE SIZE CHECK !!! Check xciHdrKey
         RandomAccessFile raf;

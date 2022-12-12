@@ -63,10 +63,9 @@ public class KeyChainHolder {
     private HashMap<String, String> collectKeysByType(String keyName){
         HashMap<String, String> tempKeySet = new HashMap<>();
         String keyNamePattern = keyName+"_%02x";
-        HashMap<String, String> map = new HashMap<>();
         String keyParsed;
         int counter = 0;
-        while ((keyParsed = map.get(String.format(keyNamePattern, counter))) != null){
+        while ((keyParsed = rawKeySet.get(String.format(keyNamePattern, counter))) != null){
             tempKeySet.put(String.format(keyNamePattern, counter), keyParsed);
             counter++;
         }

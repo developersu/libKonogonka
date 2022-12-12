@@ -27,10 +27,10 @@ import java.util.Arrays;
  * */
 public class FSAccessControlProvider {
 
-    private byte version;
-    private byte[] padding;
-    private long permissionsBitmask;
-    private byte[] reserved;
+    private final byte version;
+    private final byte[] padding;
+    private final long permissionsBitmask;
+    private final byte[] reserved;
 
     public FSAccessControlProvider(byte[] bytes) {
         version = bytes[0];

@@ -19,12 +19,14 @@
 package libKonogonka.Tools.XCI;
 
 import libKonogonka.Tools.ISuperProvider;
+import libKonogonka.ctraes.InFileStreamProducer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Arrays;
 
 import static libKonogonka.Converter.*;
@@ -125,74 +127,71 @@ public class HFS0Provider implements ISuperProvider {
     @Override
     public long getRawFileDataStart() { return rawFileDataStart; }
     public HFS0File[] getHfs0Files() { return hfs0Files; }
-    @Override
-    public File getFile(){ return file; }
-    /**
-     * @deprecated
-     * */
-    @Override
-    public PipedInputStream getProviderSubFilePipedInpStream(int subFileNumber) throws Exception{
-        PipedOutputStream streamOut = new PipedOutputStream();
-        Thread workerThread;
-        if (subFileNumber >= hfs0Files.length) {
-            throw new Exception("HFS0Provider -> getHfs0FilePipedInpStream(): Requested sub file doesn't exists");
-        }
-        PipedInputStream streamIn = new PipedInputStream(streamOut);
 
-        workerThread = new Thread(() -> {
-            log.trace("HFS0Provider -> getHfs0FilePipedInpStream(): Executing thread");
-            try{
-                long subFileRealPosition = rawFileDataStart + hfs0Files[subFileNumber].getOffset();
-                BufferedInputStream bis = new BufferedInputStream(Files.newInputStream(file.toPath()));
-                if (bis.skip(subFileRealPosition) != subFileRealPosition)
-                    throw new Exception("HFS0Provider -> getHfs0FilePipedInpStream(): Unable to skip requested offset");
-
-                int readPice = 0x800000; // 8mb NOTE: consider switching to 1mb 1048576
-
-                long readFrom = 0;
-                long realFileSize = hfs0Files[subFileNumber].getSize();
-
-                byte[] readBuf;
-
-                while (readFrom < realFileSize){
-                    if (realFileSize - readFrom < readPice)
-                        readPice = Math.toIntExact(realFileSize - readFrom);    // it's safe, I guarantee
-                    readBuf = new byte[readPice];
-                    if (bis.read(readBuf) != readPice)
-                        throw new Exception("HFS0Provider -> getHfs0FilePipedInpStream(): Unable to read requested size from file.");
-
-                    streamOut.write(readBuf, 0, readPice);
-                    readFrom += readPice;
-                }
-                bis.close();
-                streamOut.close();
-            }
-            catch (Exception ioe){
-                log.error("HFS0Provider -> getHfs0FilePipedInpStream(): Unable to provide stream");
-                ioe.printStackTrace();
-            }
-            log.trace("HFS0Provider -> getHfs0FilePipedInpStream(): Thread died");
-        });
-        workerThread.start();
-        return streamIn;
-    }
-    //TODO
     @Override
     public boolean exportContent(String saveToLocation, String subFileName) throws Exception {
-        throw new Exception("Not implemented yet");
-    }
-    //TODO
-    @Override
-    public boolean exportContent(String saveToLocation, int subFileNumber) throws Exception {
-        throw new Exception("Not implemented yet");
+        for (int i = 0; i < hfs0Files.length; i++) {
+            if (hfs0Files[i].getName().equals(subFileName))
+                return exportContent(saveToLocation, i);
+        }
+        throw new FileNotFoundException("No file with such name exists: " + subFileName);
     }
 
     @Override
-    public PipedInputStream getProviderSubFilePipedInpStream(String subFileName) throws Exception {
+    public boolean exportContent(String saveToLocation, int subFileNumber) throws Exception {
+        HFS0File subFile = hfs0Files[subFileNumber];
+        File location = new File(saveToLocation);
+        location.mkdirs();
+
+        try (BufferedOutputStream extractedFileBOS = new BufferedOutputStream(
+                Files.newOutputStream(Paths.get(saveToLocation+File.separator+subFile.getName())));
+                BufferedInputStream stream = getStreamProducer(subFileNumber).produce()){
+
+            long subFileSize = subFile.getSize();
+
+            int blockSize = 0x200;
+            if (subFileSize < 0x200)
+                blockSize = (int) subFileSize;
+
+            long i = 0;
+            byte[] block = new byte[blockSize];
+
+            int actuallyRead;
+            while (true) {
+                if ((actuallyRead = stream.read(block)) != blockSize)
+                    throw new Exception("Read failure. Block Size: "+blockSize+", actuallyRead: "+actuallyRead);
+                extractedFileBOS.write(block);
+                i += blockSize;
+                if ((i + blockSize) > subFileSize) {
+                    blockSize = (int) (subFileSize - i);
+                    if (blockSize == 0)
+                        break;
+                    block = new byte[blockSize];
+                }
+            }
+        }
+        catch (Exception e){
+            log.error("File export failure", e);
+            return false;
+        }
+        return true;
+    }
+    @Override
+    public InFileStreamProducer getStreamProducer(String subFileName) throws FileNotFoundException{
         for (int i = 0; i < hfs0Files.length; i++){
             if (hfs0Files[i].getName().equals(subFileName))
-                return getProviderSubFilePipedInpStream(i);
+                return getStreamProducer(i);
         }
-        return null;
+        throw new FileNotFoundException("No file with such name exists: "+subFileName);
+    }
+    @Override
+    public InFileStreamProducer getStreamProducer(int subFileNumber) {
+        long offset = rawFileDataStart + hfs0Files[subFileNumber].getOffset();
+        return new InFileStreamProducer(file, offset);
+    }
+
+    @Override
+    public File getFile() {
+        return file;
     }
 }

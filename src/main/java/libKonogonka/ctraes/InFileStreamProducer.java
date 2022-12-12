@@ -22,10 +22,8 @@ import java.io.BufferedInputStream;
 import java.io.File;
 import java.nio.file.Files;
 
-// TODO: rework, simplify
 public class InFileStreamProducer {
-    private final boolean encrypted;
-    private final long size;
+    private boolean encrypted;
 
     private final File file;
     private final long initialOffset;
@@ -34,50 +32,35 @@ public class InFileStreamProducer {
     private long mediaStartOffset;
     private long mediaEndOffset;
 
+    public InFileStreamProducer(File file){
+        this.file = file;
+        this.initialOffset = 0;
+        this.subOffset = 0;
+    }
+    public InFileStreamProducer(File file, long subOffset){
+        this.file = file;
+        this.initialOffset = 0;
+        this.subOffset = subOffset;
+    }
     public InFileStreamProducer(
             File file,
-            long size,
             long initialOffset,
             long subOffset,
             AesCtrDecryptSimple decryptor,
             long mediaStartOffset,
-            long mediaEndOffset
-    ){
+            long mediaEndOffset){
         this.encrypted = (decryptor != null);
         this.file = file;
-        this.size = size;
         this.initialOffset = initialOffset;
         this.subOffset = subOffset;
         this.decryptor = decryptor;
         this.mediaStartOffset = mediaStartOffset;
         this.mediaEndOffset = mediaEndOffset;
     }
-    public InFileStreamProducer(File file, long size, long initialOffset, long subOffset){
-        this.encrypted = false;
-        this.file = file;
-        this.size = size;
-        this.initialOffset = 0;
-        this.subOffset = initialOffset+subOffset;
-    }
-    public InFileStreamProducer(File file, long size){
-        this.encrypted = false;
-        this.file = file;
-        this.size = size;
-        this.initialOffset = 0;
-        this.subOffset = 0;
-    }
-    public InFileStreamProducer(File file, long size, long subOffset){
-        this.encrypted = false;
-        this.file = file;
-        this.size = size;
-        this.initialOffset = 0;
-        this.subOffset = subOffset;
-    }
 
     public BufferedInputStream produce() throws Exception{
-        if (encrypted) {
+        if (encrypted)
             return produceAesCtr();
-        }
         return produceNotEncrypted();
     }
     private AesCtrBufferedInputStream produceAesCtr() throws Exception{
@@ -88,30 +71,34 @@ public class InFileStreamProducer {
                 mediaStartOffset,
                 mediaEndOffset,
                 Files.newInputStream(file.toPath()));
-        if (subOffset != stream.skip(subOffset))
-            throw new Exception("Unable to skip offset: " + subOffset);
+        skipBytesTillBeginning(stream, subOffset);
         return stream;
     }
     private BufferedInputStream produceNotEncrypted() throws Exception{
         BufferedInputStream stream = new BufferedInputStream(Files.newInputStream(file.toPath()));
-        if (subOffset != stream.skip(subOffset))
-            throw new Exception("Unable to skip offset: " + subOffset);
+        skipBytesTillBeginning(stream, subOffset);
         return stream;
     }
 
-    public InFileStreamProducer getSuccessor(long subOffset, long size){
+    public InFileStreamProducer getSuccessor(long subOffset){
         this.subOffset = subOffset;
-        return new InFileStreamProducer(file, size, initialOffset, subOffset, decryptor, mediaStartOffset, mediaEndOffset);
+        return new InFileStreamProducer(file, initialOffset, subOffset, decryptor, mediaStartOffset, mediaEndOffset);
     }
 
     public boolean isEncrypted() {
         return encrypted;
     }
 
-    public long getSize() {
-        return size;
+    private void skipBytesTillBeginning(BufferedInputStream stream, long size) throws Exception{
+        long mustSkip = size;
+        long skipped = 0;
+        while (mustSkip > 0){
+            skipped += stream.skip(mustSkip);
+            mustSkip = size - skipped;
+        }
     }
 
+    public File getFile(){ return file; }
     @Override
     public String toString(){
         return file.getName();

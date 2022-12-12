@@ -117,7 +117,7 @@ public class RomFsEncryptedTest {
 
         exportFolderContent(entry, "/tmp/brandnew");
         //----------------------------------------------------------------------
-        // exportFolderContentLegacy(entry, "/tmp/legacy");
+        //exportFolderContentLegacy(entry, "/tmp/legacy");
     }
 
     private void exportFolderContent(FileSystemEntry entry, String saveToLocation) throws Exception{
@@ -170,7 +170,7 @@ public class RomFsEncryptedTest {
                 throw new Exception("Read failure. Block Size: "+blockSize+", actuallyRead: "+actuallyRead);
             extractedFileBOS.write(block);
             i += blockSize;
-            if ((i + blockSize) > entry.getSize()) {
+            if ((i + blockSize) >= entry.getSize()) {
                 blockSize = (int) (entry.getSize() - i);
                 if (blockSize == 0)
                     break;
@@ -180,7 +180,7 @@ public class RomFsEncryptedTest {
         //---
         extractedFileBOS.close();
     }
-
+/*
     private void exportFolderContentLegacy(FileSystemEntry entry, String saveToLocation) throws Exception{
         File contentFile = new File(saveToLocation + entry.getName());
         contentFile.mkdirs();
@@ -192,6 +192,7 @@ public class RomFsEncryptedTest {
                 exportSingleFileLegacy(fse, currentDirPath);
         }
     }
+
     private void exportSingleFileLegacy(FileSystemEntry entry, String saveToLocation) throws Exception {
         File contentFile = new File(saveToLocation + entry.getName());
 
@@ -207,8 +208,7 @@ public class RomFsEncryptedTest {
         }
 
         extractedFileBOS.close();
-    }
-
+    }*/
     @Disabled
     @Order(6)
     @DisplayName("RomFsEncryptedProvider: PFS test")

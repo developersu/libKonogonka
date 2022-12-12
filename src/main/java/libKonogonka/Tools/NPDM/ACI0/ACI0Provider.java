@@ -27,21 +27,21 @@ import java.util.Arrays;
 import static libKonogonka.Converter.getLEint;
 
 public class ACI0Provider  {
-    private String magicNum;
-    private byte[] reserved1;
-    private byte[] titleID;
-    private byte[] reserved2;
-    private int fsAccessHeaderOffset;
-    private int fsAccessHeaderSize;
-    private int serviceAccessControlOffset;
-    private int serviceAccessControlSize;
-    private int kernelAccessControlOffset;
-    private int kernelAccessControlSize;
-    private byte[] reserved3;
+    private final String magicNum;
+    private final byte[] reserved1;
+    private final byte[] titleID;
+    private final byte[] reserved2;
+    private final int fsAccessHeaderOffset;
+    private final int fsAccessHeaderSize;
+    private final int serviceAccessControlOffset;
+    private final int serviceAccessControlSize;
+    private final int kernelAccessControlOffset;
+    private final int kernelAccessControlSize;
+    private final byte[] reserved3;
 
-    private FSAccessHeaderProvider fsAccessHeaderProvider;
-    private ServiceAccessControlProvider serviceAccessControlProvider;
-    private KernelAccessControlProvider kernelAccessControlProvider;
+    private final FSAccessHeaderProvider fsAccessHeaderProvider;
+    private final ServiceAccessControlProvider serviceAccessControlProvider;
+    private final KernelAccessControlProvider kernelAccessControlProvider;
 
     public ACI0Provider(byte[] aci0bytes) throws Exception {
         if (aci0bytes.length < 0x40)

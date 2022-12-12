@@ -184,8 +184,8 @@ public class NcaFsHeader {
                 "Crypto Type                      : " + cryptoType + " (" + cryptoTypeDescription + ")\n" +
                 "Meta Data Hash Type              : " + metaDataHashType + "\n" +
                 "Padding                          : " + byteArrToHexString(padding) + "\n" +
-                "Super Block IVFC                 : " + superBlockIVFC + "\n" +
-                "Super Block PFS0                 : " + superBlockPFS0 + "\n" +
+                "Super Block IVFC                 : " + (superBlockIVFC == null ? "-\n": "YES\n") +
+                "Super Block PFS0                 : " + (superBlockPFS0 == null ? "-\n": "YES\n") +
                 "================================================================================================\n" +
                 (((fsType == 0) && (hashType == 0x3))?
                 ("|                   Hash Data - RomFS\n" +

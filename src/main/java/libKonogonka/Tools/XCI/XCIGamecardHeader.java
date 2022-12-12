@@ -18,9 +18,9 @@
 */
 package libKonogonka.Tools.XCI;
 
+import libKonogonka.Converter;
+
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.List;
 
 import static libKonogonka.Converter.getLEint;
 import static libKonogonka.Converter.getLElong;
@@ -28,27 +28,27 @@ import static libKonogonka.Converter.getLElong;
  * Header information
  * */
 public class XCIGamecardHeader{
-    private byte[] rsa2048PKCS1sig;
-    private boolean magicHead;
-    private byte[] SecureAreaStartAddr;
-    private boolean bkupAreaStartAddr;
-    private byte titleKEKIndexBoth;
-    private byte titleKEKIndex;
-    private byte KEKIndex;
-    private byte gcSize;
-    private byte gcVersion;
-    private byte gcFlags;
-    private byte[] pkgID;
-    private long valDataEndAddr;
-    private byte[] gcInfoIV;
-    private long hfs0partOffset;
-    private long hfs0headerSize;
-    private byte[] hfs0headerSHA256;
-    private byte[] hfs0initDataSHA256 ;
-    private int secureModeFlag;
-    private int titleKeyFlag;
-    private int keyFlag;
-    private byte[] normAreaEndAddr;
+    private final byte[] rsa2048PKCS1sig;
+    private final boolean magicHead;
+    private final byte[] SecureAreaStartAddr;
+    private final boolean bkupAreaStartAddr;
+    private final byte titleKEKIndexBoth;
+    private final byte titleKEKIndex;
+    private final byte KEKIndex;
+    private final byte gcSize;
+    private final byte gcVersion;
+    private final byte gcFlags;
+    private final byte[] pkgID;
+    private final long valDataEndAddr;
+    private final byte[] gcInfoIV;
+    private final long hfs0partOffset;
+    private final long hfs0headerSize;
+    private final byte[] hfs0headerSHA256;
+    private final byte[] hfs0initDataSHA256;
+    private final int secureModeFlag;
+    private final int titleKeyFlag;
+    private final int keyFlag;
+    private final byte[] normAreaEndAddress;
 
     XCIGamecardHeader(byte[] headerBytes) throws Exception{
         if (headerBytes.length != 400)
@@ -65,7 +65,7 @@ public class XCIGamecardHeader{
         gcFlags = headerBytes[271];
         pkgID = Arrays.copyOfRange(headerBytes, 272, 280);
         valDataEndAddr = getLElong(headerBytes, 280);       //TODO: FIX/simplify //
-        gcInfoIV = reverseBytes(Arrays.copyOfRange(headerBytes, 288, 304));
+        gcInfoIV = Converter.flip(Arrays.copyOfRange(headerBytes, 288, 304));
         hfs0partOffset = getLElong(headerBytes, 304);
         hfs0headerSize = getLElong(headerBytes, 312);
         hfs0headerSHA256 = Arrays.copyOfRange(headerBytes, 320, 352);
@@ -73,7 +73,7 @@ public class XCIGamecardHeader{
         secureModeFlag = getLEint(headerBytes, 384);
         titleKeyFlag = getLEint(headerBytes, 388);
         keyFlag = getLEint(headerBytes, 392);
-        normAreaEndAddr = Arrays.copyOfRange(headerBytes, 396, 400);
+        normAreaEndAddress = Arrays.copyOfRange(headerBytes, 396, 400);
     }
 
     public byte[] getRsa2048PKCS1sig() { return rsa2048PKCS1sig; }
@@ -83,67 +83,21 @@ public class XCIGamecardHeader{
     public byte getTitleKEKIndexBoth() { return titleKEKIndexBoth; }
     public byte getTitleKEKIndex() { return titleKEKIndex; }
     public byte getKEKIndex() { return KEKIndex; }
-
-    public byte getGcSize() {
-        return gcSize;
-    }
-    public byte getGcVersion() {
-        return gcVersion;
-    }
-    public byte getGcFlags() {
-        return gcFlags;
-    }
-    public byte[] getPkgID() {
-        return pkgID;
-    }
-    public long getValDataEndAddr() {
-        return valDataEndAddr;
-    }
-    public byte[] getGcInfoIV() {
-        return gcInfoIV;
-    }
-    public long getHfs0partOffset() {
-        return hfs0partOffset;
-    }
-    public long getHfs0headerSize() {
-        return hfs0headerSize;
-    }
-    public byte[] getHfs0headerSHA256() {
-        return hfs0headerSHA256;
-    }
-    public byte[] getHfs0initDataSHA256() {
-        return hfs0initDataSHA256;
-    }
-    public int getSecureModeFlag() {
-        return secureModeFlag;
-    }
-    public boolean isSecureModeFlagOk(){
-        return secureModeFlag == 1;
-    }
-    public int getTitleKeyFlag() {
-        return titleKeyFlag;
-    }
-    public boolean istitleKeyFlagOk(){
-        return titleKeyFlag == 2;
-    }
-    public int getKeyFlag() {
-        return keyFlag;
-    }
-    public boolean iskeyFlagOk(){
-        return keyFlag == 0;
-    }
-    public byte[] getNormAreaEndAddr() {
-        return normAreaEndAddr;
-    }
-
-    private byte[] reverseBytes(byte[] bArr){
-        Byte[] objArr = new Byte[bArr.length];
-        for (int i=0;i < bArr.length; i++)
-            objArr[i] = bArr[i];
-        List<Byte> bytesList = Arrays.asList(objArr);
-        Collections.reverse(bytesList);
-        for (int i=0;i < bArr.length; i++)
-            bArr[i] = objArr[i];
-        return bArr;
-    }
+    public byte getGcSize() { return gcSize; }
+    public byte getGcVersion() { return gcVersion; }
+    public byte getGcFlags() { return gcFlags; }
+    public byte[] getPkgID() { return pkgID; }
+    public long getValDataEndAddr() { return valDataEndAddr; }
+    public byte[] getGcInfoIV() { return gcInfoIV; }
+    public long getHfs0partOffset() { return hfs0partOffset; }
+    public long getHfs0headerSize() { return hfs0headerSize; }
+    public byte[] getHfs0headerSHA256() { return hfs0headerSHA256; }
+    public byte[] getHfs0initDataSHA256() { return hfs0initDataSHA256; }
+    public int getSecureModeFlag() { return secureModeFlag; }
+    public boolean isSecureModeFlagOk(){ return secureModeFlag == 1; }
+    public int getTitleKeyFlag() { return titleKeyFlag; }
+    public boolean istitleKeyFlagOk(){ return titleKeyFlag == 2; }
+    public int getKeyFlag() { return keyFlag; }
+    public boolean iskeyFlagOk(){ return keyFlag == 0; }
+    public byte[] getNormAreaEndAddr() { return normAreaEndAddress; }
 }

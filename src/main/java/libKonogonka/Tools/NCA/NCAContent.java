@@ -19,12 +19,11 @@
 package libKonogonka.Tools.NCA;
 
 import libKonogonka.Tools.NCA.NCASectionTableBlock.NcaFsHeader;
-import libKonogonka.Tools.PFS0.IPFS0Provider;
 import libKonogonka.Tools.PFS0.PFS0Provider;
-import libKonogonka.Tools.RomFs.IRomFsProvider;
 import libKonogonka.Tools.RomFs.RomFsProvider;
 import libKonogonka.ctraes.AesCtrBufferedInputStream;
 import libKonogonka.ctraes.AesCtrDecryptSimple;
+import libKonogonka.ctraes.InFileStreamProducer;
 import libKonogonka.exceptions.EmptySectionException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -35,15 +34,15 @@ import java.nio.file.Paths;
 
 public class NCAContent {
     private final static Logger log = LogManager.getLogger(NCAContent.class);
-    
+
     private final File file;
     private final long ncaOffsetPosition;
     private final NcaFsHeader ncaFsHeader;
     private final NCAHeaderTableEntry ncaHeaderTableEntry;
     private final byte[] decryptedKey;
 
-    private IPFS0Provider pfs0;
-    private IRomFsProvider romfs;
+    private PFS0Provider pfs0;
+    private RomFsProvider romfs;
 
     // TODO: if decryptedKey is empty, throw exception?
     public NCAContent(File file,
@@ -82,22 +81,16 @@ public class NCAContent {
         }
     }
     private void proceedPFS0NotEncrypted() throws Exception{
-        pfs0 = new PFS0Provider(file,
-                ncaOffsetPosition,
+        InFileStreamProducer producer = new InFileStreamProducer(file); // no need to bypass ncaOffsetPosition!
+        pfs0 = new PFS0Provider(producer,
+                makeOffsetPositionInFile(),
                 ncaFsHeader.getSuperBlockPFS0(),
-                ncaHeaderTableEntry.getMediaStartOffset(),
-                ncaHeaderTableEntry.getMediaEndOffset());
+                ncaHeaderTableEntry.getMediaStartOffset());
     }
 
     private void proceedPFS0Encrypted() throws Exception{
-        AesCtrDecryptSimple decryptor = new AesCtrDecryptSimple(decryptedKey, ncaFsHeader.getSectionCTR(),
-                ncaHeaderTableEntry.getMediaStartOffset() * 0x200);
-        pfs0 = new PFS0Provider(file,
-                ncaOffsetPosition,
-                ncaFsHeader.getSuperBlockPFS0(),
-                decryptor,
-                ncaHeaderTableEntry.getMediaStartOffset(),
-                ncaHeaderTableEntry.getMediaEndOffset());
+        pfs0 = new PFS0Provider(makeEncryptedProducer(), makeOffsetPositionInFile(), ncaFsHeader.getSuperBlockPFS0(),
+                ncaHeaderTableEntry.getMediaStartOffset());
     }
 
     private void proceedRomFs() throws Exception{
@@ -109,7 +102,7 @@ public class NCAContent {
                 proceedRomFsEncrypted();
                 break;
             default:
-                throw new Exception("Non-supported 'Crypto type'");
+                throw new Exception("Non-supported 'Crypto type' "+ncaFsHeader.getCryptoType());
         }
     }
     private void proceedRomFsNotEncrypted(){   // TODO: Clarify, implement if needed
@@ -119,18 +112,21 @@ public class NCAContent {
         if (decryptedKey == null)
             throw new Exception("CryptoSection03: unable to proceed. No decrypted key provided.");
 
-        this.romfs = new RomFsProvider(
-                ncaFsHeader.getSuperBlockIVFC().getLvl6Offset(),
-                file,
-                ncaOffsetPosition,
-                decryptedKey,
-                ncaFsHeader.getSectionCTR(),
-                ncaHeaderTableEntry.getMediaStartOffset(),
-                ncaHeaderTableEntry.getMediaEndOffset());
+        this.romfs = new RomFsProvider(makeEncryptedProducer(), ncaFsHeader.getSuperBlockIVFC().getLvl6Offset(),
+                makeOffsetPositionInFile(), ncaHeaderTableEntry.getMediaStartOffset());
     }
-    public IPFS0Provider getPfs0() { return pfs0; }
-    public IRomFsProvider getRomfs() { return romfs; }
+    public PFS0Provider getPfs0() { return pfs0; }
+    public RomFsProvider getRomfs() { return romfs; }
 
+    private InFileStreamProducer makeEncryptedProducer() throws Exception{
+        AesCtrDecryptSimple decryptor = new AesCtrDecryptSimple(decryptedKey, ncaFsHeader.getSectionCTR(),
+                ncaHeaderTableEntry.getMediaStartOffset() * 0x200);
+        return new InFileStreamProducer(file, ncaOffsetPosition, 0, decryptor,
+                ncaHeaderTableEntry.getMediaStartOffset(), ncaHeaderTableEntry.getMediaEndOffset());
+    }
+    private long makeOffsetPositionInFile(){
+        return ncaOffsetPosition + ncaHeaderTableEntry.getMediaStartOffset() * 0x200;
+    }
     /**
      * Export NCA content AS IS.
      * Not so good for PFS0 since there are SHAs list that discourages but good for 'romfs' and things like that

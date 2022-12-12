@@ -28,28 +28,28 @@ import static libKonogonka.Converter.*;
 
 public class ACIDProvider {
 
-    private byte[] rsa2048signature;
-    private byte[] rsa2048publicKey;
-    private String magicNum;
-    private int dataSize;
-    private byte[] reserved1;
-    private byte flag1;
-    private byte flag2;
-    private byte flag3;
-    private byte flag4;
-    private long titleRangeMin;
-    private long titleRangeMax;
-    private int fsAccessControlOffset;
-    private int fsAccessControlSize;
-    private int serviceAccessControlOffset;
-    private int serviceAccessControlSize;
-    private int kernelAccessControlOffset;
-    private int kernelAccessControlSize;
-    private byte[] reserved2;
+    private final byte[] rsa2048signature;
+    private final byte[] rsa2048publicKey;
+    private final String magicNum;
+    private final int dataSize;
+    private final byte[] reserved1;
+    private final byte flag1;
+    private final byte flag2;
+    private final byte flag3;
+    private final byte flag4;
+    private final long titleRangeMin;
+    private final long titleRangeMax;
+    private final int fsAccessControlOffset;
+    private final int fsAccessControlSize;
+    private final int serviceAccessControlOffset;
+    private final int serviceAccessControlSize;
+    private final int kernelAccessControlOffset;
+    private final int kernelAccessControlSize;
+    private final byte[] reserved2;
 
-    private FSAccessControlProvider fsAccessControlProvider;
-    private ServiceAccessControlProvider serviceAccessControlProvider;
-    private KernelAccessControlProvider kernelAccessControlProvider;
+    private final FSAccessControlProvider fsAccessControlProvider;
+    private final ServiceAccessControlProvider serviceAccessControlProvider;
+    private final KernelAccessControlProvider kernelAccessControlProvider;
 
     public ACIDProvider(byte[] acidBytes) throws Exception{
         if (acidBytes.length < 0x240)

@@ -23,7 +23,7 @@ import java.util.LinkedHashMap;
 
 public class ServiceAccessControlProvider {
 
-    private LinkedHashMap<String, Byte> collection;
+    private final LinkedHashMap<String, Byte> collection;
 
     public ServiceAccessControlProvider(byte[] bytes){
         collection = new LinkedHashMap<>();
