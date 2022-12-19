@@ -18,6 +18,7 @@
  */
 package libKonogonka.ctraes;
 
+import libKonogonka.Converter;
 import libKonogonka.RainbowDump;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -30,16 +31,19 @@ public class AesCtrBufferedInputStream extends BufferedInputStream {
     private final AesCtrDecryptSimple decryptor;
     private final long mediaOffsetPositionStart;
     private final long mediaOffsetPositionEnd;
+    private final long fileSize;
 
     public AesCtrBufferedInputStream(AesCtrDecryptSimple decryptor,
                                      long ncaOffsetPosition,
                                      long mediaStartOffset,
                                      long mediaEndOffset,
-                                     InputStream inputStream){
+                                     InputStream inputStream,
+                                     long fileSize){
         super(inputStream);
         this.decryptor = decryptor;
         this.mediaOffsetPositionStart = ncaOffsetPosition + (mediaStartOffset * 0x200);
         this.mediaOffsetPositionEnd = ncaOffsetPosition + (mediaEndOffset * 0x200);
+        this.fileSize = fileSize;
 
         log.trace("\n  Offset Position             "+ncaOffsetPosition+
                   "\n  MediaOffsetPositionStart    "+RainbowDump.formatDecHexString(mediaOffsetPositionStart)+
@@ -75,9 +79,11 @@ public class AesCtrBufferedInputStream extends BufferedInputStream {
                     fillDecryptedCache();
                     System.arraycopy(decryptedBytes, 0, b, bytesFromFirstBlock+i*0x200, 0x200);
                 }
-                //3                 // TODO: ONLY IF NON-NULL??
-                fillDecryptedCache();
-                System.arraycopy(decryptedBytes, 0, b, bytesFromFirstBlock+middleBlocksCount*0x200, bytesFromLastBlock);
+                //3
+                if(fileSize > (pseudoPos+bytesToRead)) {
+                    fillDecryptedCache();
+                    System.arraycopy(decryptedBytes, 0, b, bytesFromFirstBlock + middleBlocksCount * 0x200, bytesFromLastBlock);
+                }
                 pseudoPos += bytesToRead;
                 pointerInsideDecryptedSection = bytesFromLastBlock;
                 return b.length;

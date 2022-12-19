@@ -57,11 +57,24 @@ public class Converter {
     }
 
     public static String intToBinaryString(int value){
-        return String.format("%32s", Integer.toBinaryString( value )).replace(' ', '0')+" | "+value;
+        return String.format("%32s", Integer.toBinaryString( value )).replace(' ', '0');
     }
 
     public static String longToOctString(long value){
         return String.format("%64s", Long.toBinaryString( value )).replace(' ', '0');
+    }
+
+    public static byte[] hexStringToByteArray(String string){
+        if (string.length() % 2 != 0)
+            string = "0" + string;
+
+        int resultSize = string.length() / 2;
+        byte[] resultingArray = new byte[resultSize];
+
+        for (int i = 0; i < resultSize; i++){
+            resultingArray[i] = (byte) Integer.parseInt(string.substring(i*2, i*2+2), 16);
+        }
+        return resultingArray;
     }
 
     public static byte[] flip(byte[] bytes){

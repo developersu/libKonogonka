@@ -29,6 +29,7 @@ import org.junit.jupiter.api.*;
 
 import java.io.*;
 import java.nio.file.Files;
+import java.nio.file.Path;
 
 public class Pfs0EncryptedTest {
     private static final String keysFileLocation = "./FilesForTests/prod.keys";
@@ -127,14 +128,16 @@ public class Pfs0EncryptedTest {
 
         BufferedOutputStream extractedFileBOS = new BufferedOutputStream(Files.newOutputStream(contentFile.toPath()));
         //---
-        InputStream is = Files.newInputStream(new File(ncaFileLocation).toPath());
+        Path filePath = new File(ncaFileLocation).toPath();
+        InputStream is = Files.newInputStream(filePath);
 
         AesCtrBufferedInputStream aesCtrBufferedInputStream = new AesCtrBufferedInputStream(
                 decryptSimple,
                 ACBISoffsetPosition,
                 ACBISmediaStartOffset,
                 ACBISmediaEndOffset,
-                is);
+                is,
+                Files.size(filePath));
 
         //long offsetToSkip = entry.getOffset() + ncaProvider.getNCAContentProvider(0).getPfs0().getRawFileDataStart();
         long offsetToSkip = offsetPosition+entry.getOffset();

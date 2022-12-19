@@ -196,7 +196,7 @@ public class FileSystemEntry {
                     fileName = new String(Arrays.copyOfRange(filesMetadataTable, i, i + fileNameLength), StandardCharsets.UTF_8);
                 }
                 catch (Exception e){
-                    log.debug("fileName sizes are: "+filesMetadataTable.length+"\t"+i+"\t"+i + fileNameLength+"\t\t"+nextHashTableBucketFileOffset);
+                    log.debug("fileName sizes are: "+filesMetadataTable.length+"\t"+i+"\t"+i + fileNameLength+"\t\t"+nextHashTableBucketFileOffset, e);
                 }
             }
             else {

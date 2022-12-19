@@ -24,7 +24,6 @@ import libKonogonka.Tools.NCA.NCAProvider;
 import libKonogonka.Tools.NSO.NSO0Provider;
 import libKonogonka.Tools.PFS0.PFS0Provider;
 import libKonogonka.Tools.PFS0.PFS0subFile;
-import libKonogonka.ctraes.AesCtrDecryptSimple;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -74,19 +73,13 @@ public class NSOTest {
         }
     }
 
-    long ACBISoffsetPosition;
-    long ACBISmediaStartOffset;
-    long ACBISmediaEndOffset;
-
-    long offsetPosition;
-
-
     void nso0Validation() throws Exception{
         File nca = new File(ncaFileLocation);
         PFS0subFile[] subfiles = ncaProvider.getNCAContentProvider(0).getPfs0().getHeader().getPfs0subFiles();
 
-        offsetPosition = ncaProvider.getTableEntry0().getMediaStartOffset()*0x200 +
+        long offsetPosition = ncaProvider.getTableEntry0().getMediaStartOffset()*0x200 +
                 ncaProvider.getNCAContentProvider(0).getPfs0().getRawFileDataStart();
+
         System.out.println("\t=============================================================");
         System.out.println("\tNCA SIZE:                         "+ RainbowDump.formatDecHexString(nca.length()));
         System.out.println("\tPFS0 Offset(get)                  "+RainbowDump.formatDecHexString(ncaProvider.getSectionBlock0().getSuperBlockPFS0().getPfs0offset()));
@@ -102,15 +95,6 @@ public class NSOTest {
         }
         System.out.println("\t=============================================================");
 
-        ACBISoffsetPosition = 0;
-        ACBISmediaStartOffset = ncaProvider.getTableEntry0().getMediaStartOffset();
-        ACBISmediaEndOffset = ncaProvider.getTableEntry0().getMediaEndOffset();
-
-        AesCtrDecryptSimple decryptSimple = new AesCtrDecryptSimple(
-                ncaProvider.getDecryptedKey2(),
-                ncaProvider.getSectionBlock0().getSectionCTR(),
-                ncaProvider.getTableEntry0().getMediaStartOffset() * 0x200);
-
         PFS0Provider pfs0Provider = ncaProvider.getNCAContentProvider(0).getPfs0();
         pfs0Provider.printDebug();
 
@@ -118,7 +102,7 @@ public class NSOTest {
         nso0Provider.printDebug();
         nso0Provider.exportAsDecompressedNSO0("./tmp");
 
-        // NPDMProvider npdmProvider = new NPDMProvider(pfs0Provider.getProviderSubFilePipedInpStream(1));
+        //NPDMProvider npdmProvider = new NPDMProvider(pfs0Provider.getStreamProducer(1));
 
         System.out.println("__--++ SDK VERSION ++--__\n"
                 +ncaProvider.getSdkVersion()[3]

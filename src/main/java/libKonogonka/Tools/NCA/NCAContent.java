@@ -154,7 +154,8 @@ public class NCAContent {
                         ncaOffsetPosition,
                         mediaStartOffset,
                         mediaEndOffset,
-                        Files.newInputStream(file.toPath()));
+                        Files.newInputStream(file.toPath()),
+                        Files.size(file.toPath()));
             }
             else
                 throw new Exception("Crypto type not supported");

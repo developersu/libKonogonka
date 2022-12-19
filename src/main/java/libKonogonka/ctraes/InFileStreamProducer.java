@@ -70,7 +70,8 @@ public class InFileStreamProducer {
                 initialOffset,
                 mediaStartOffset,
                 mediaEndOffset,
-                Files.newInputStream(file.toPath()));
+                Files.newInputStream(file.toPath()),
+                Files.size(file.toPath()));
         skipBytesTillBeginning(stream, subOffset);
         return stream;
     }

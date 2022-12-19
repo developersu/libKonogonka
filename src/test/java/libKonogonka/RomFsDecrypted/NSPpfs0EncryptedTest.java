@@ -32,6 +32,7 @@ import org.junit.jupiter.api.Test;
 
 import java.io.*;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.util.HashMap;
 
 public class NSPpfs0EncryptedTest {
@@ -153,14 +154,16 @@ public class NSPpfs0EncryptedTest {
 
         BufferedOutputStream extractedFileBOS = new BufferedOutputStream(Files.newOutputStream(contentFile.toPath()));
         //---
-        InputStream is = Files.newInputStream(new File(nspFileLocation).toPath()); //TODO: NOTICE
+        Path filePath = new File(nspFileLocation).toPath();
+        InputStream is = Files.newInputStream(filePath);
 
         AesCtrBufferedInputStream aesCtrBufferedInputStream = new AesCtrBufferedInputStream(
                 decryptSimple,
                 ACBISoffsetPosition,
                 ACBISmediaStartOffset,
                 ACBISmediaEndOffset,
-                is);
+                is,
+                Files.size(filePath));
 
         //long offsetToSkip = entry.getOffset() + ncaProvider.getNCAContentProvider(0).getPfs0().getRawFileDataStart();
         long offsetToSkip = offsetPosition+entry.getOffset();

@@ -26,18 +26,18 @@ import org.junit.jupiter.api.Test;
 import java.io.File;
 
 public class NSODecompressTest {
-    private static final String ncaExtractedFileLocation = "./FilesForTests/NSO0/main";
-    private static final String ncaExtractedFileLocationDec = "./FilesForTests/NSO0/main_d";
+    private static final String nsoExtractedFileLocation = "./FilesForTests/NSO0/main";
+    private static final String nsoExtractedFileLocationDec = "./FilesForTests/NSO0/main_d";
 
     @Disabled
     @DisplayName("NSO0 Decompression test")
     @Test
     void nso0DecompressionTest() throws Exception {
-        NSO0Provider nso0Provider = new NSO0Provider(new File(ncaExtractedFileLocation));
+        NSO0Provider nso0Provider = new NSO0Provider(new File(nsoExtractedFileLocation));
         //nso0Provider.exportAsDecompressedNSO0("./FilesForTests/NSO0");
         nso0Provider.printDebug();
 
-        NSO0Provider nso0Provider1 = new NSO0Provider(new File(ncaExtractedFileLocationDec));
+        NSO0Provider nso0Provider1 = new NSO0Provider(new File(nsoExtractedFileLocationDec));
         nso0Provider1.printDebug();
     }
 }

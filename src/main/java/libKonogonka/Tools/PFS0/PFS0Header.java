@@ -85,7 +85,7 @@ public class PFS0Header {
             throw new Exception("Read PFS0Provider String table failure. Can't read requested string table size ("+stringTableSize+")");
         }
 
-        for (int i=0; i < filesCount; i++){
+        for (int i = 0; i < filesCount; i++){
             int j = 0;
             while (stringTbl[strTableOffsets[i]+j] != (byte)0x00)
                 j++;

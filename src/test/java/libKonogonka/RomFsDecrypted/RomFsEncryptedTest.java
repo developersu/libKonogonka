@@ -29,6 +29,7 @@ import org.junit.jupiter.api.*;
 
 import java.io.*;
 import java.nio.file.Files;
+import java.nio.file.Path;
 
 @TestMethodOrder(MethodOrderer.OrderAnnotation.class)
 public class RomFsEncryptedTest {
@@ -136,14 +137,16 @@ public class RomFsEncryptedTest {
 
         BufferedOutputStream extractedFileBOS = new BufferedOutputStream(Files.newOutputStream(contentFile.toPath()));
         //---
-        InputStream is = Files.newInputStream(new File(ncaFileLocation).toPath());
+        Path filePath = new File(ncaFileLocation).toPath();
+        InputStream is = Files.newInputStream(filePath);
 
         AesCtrBufferedInputStream aesCtrBufferedInputStream = new AesCtrBufferedInputStream(
                 decryptSimple,
                 ACBISoffsetPosition,
                 ACBISmediaStartOffset,
                 ACBISmediaEndOffset,
-                is);
+                is,
+                Files.size(filePath));
 
         long skipBytes = entry.getOffset()
                 +ncaProvider.getTableEntry1().getMediaStartOffset()*0x200

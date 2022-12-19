@@ -286,7 +286,7 @@ public class NCAProvider {
         }
         catch (EmptySectionException ignored){}
         catch (Exception e){
-            log.debug("Unable to get NCA Content "+number, e);
+            log.debug("Unable to get NCA Content "+number+" ("+file.getParentFile().getName()+"/"+file.getName()+")", e);
         }
     }
 
@@ -390,5 +390,9 @@ public class NCAProvider {
             default:
                 throw new Exception("NCA Content must be requested in range of 0-3, while 'Section Number "+sectionNumber+"' requested");
         }
+    }
+
+    public File getFile() {
+        return file;
     }
 }
