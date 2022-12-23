@@ -121,7 +121,7 @@ public class NSO0Header {
                 " ============================================================= \n" +
                 "Magic \"NSO0\"                                     " + magic + "\n" +
                 "Version (always 0)                               " + version + "\n" +
-                "Reserved                                         " + Converter.byteArrToHexString(upperReserved) + "\n" +
+                "Reserved                                         " + Converter.byteArrToHexStringAsLE(upperReserved) + "\n" +
                 "Flags                                            " + Converter.intToBinaryString(flags)  + "\n" +
                 "  |- 0.   .text Compress                         " + isTextCompressFlag() + "\n" +
                 "  |- 1.   .rodata Compress                       " + isRoCompressFlag() + "\n" +
@@ -147,11 +147,11 @@ public class NSO0Header {
                 "    |-  Memory Offset - - - - - - - - - - - - -  " + RainbowDump.formatDecHexString(dataSegmentHeader.getMemoryOffset()) + "\n" +
                 "    |-  Size As Decompressed  - - - - - - - - -  " + RainbowDump.formatDecHexString(dataSegmentHeader.getSizeAsDecompressed()) + "\n" +
                 "  .bss Size                                      " + RainbowDump.formatDecHexString(bssSize) + "\n" + // Block Started by Symbol
-                "Module ID (aka Build ID)                         " + Converter.byteArrToHexString(moduleId) + "\n" +
+                "Module ID (aka Build ID)                         " + Converter.byteArrToHexStringAsLE(moduleId) + "\n" +
                 "  .text Size (compressed)                        " + RainbowDump.formatDecHexString(textCompressedSize) + "\n" +
                 "  .rodata Size (compressed)                      " + RainbowDump.formatDecHexString(rodataCompressedSize) + "\n" +
                 "  .data Size (compressed)                        " + RainbowDump.formatDecHexString(dataCompressedSize) + "\n" +
-                "Reserved                                         " + Converter.byteArrToHexString(bottomReserved) + "\n" +
+                "Reserved                                         " + Converter.byteArrToHexStringAsLE(bottomReserved) + "\n" +
                 "                                     xxx\n"+
                 "SegmentHeaderRelative for .api_info\n" +
                 "    |-  Offset  - - - - - - - - - - - - - - - -  " + RainbowDump.formatDecHexString(_api_infoRelative.getOffset()) + "\n" +
@@ -165,9 +165,9 @@ public class NSO0Header {
                 "    |-  Offset  - - - - - - - - - - - - - - - -  " + RainbowDump.formatDecHexString(_dynsymRelative.getOffset()) + "\n" +
                 "    |-  Size  - - - - - - - - - - - - - - - - -  " + RainbowDump.formatDecHexString(_dynsymRelative.getSize()) + "\n" +
                 "                                     xxx\n"+
-                ".text decompressed' SHA-256 hash                 " + Converter.byteArrToHexString(textHash) + "\n" +
-                ".rodata decompressed' SHA-256 hash               " + Converter.byteArrToHexString(rodataHash) + "\n" +
-                ".data decompressed' SHA-256 hash                 " + Converter.byteArrToHexString(dataHash) + "\n" +
+                ".text decompressed' SHA-256 hash                 " + Converter.byteArrToHexStringAsLE(textHash) + "\n" +
+                ".rodata decompressed' SHA-256 hash               " + Converter.byteArrToHexStringAsLE(rodataHash) + "\n" +
+                ".data decompressed' SHA-256 hash                 " + Converter.byteArrToHexStringAsLE(dataHash) + "\n" +
                 " ============================================================= "
         );
     }

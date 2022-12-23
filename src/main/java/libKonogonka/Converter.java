@@ -47,7 +47,7 @@ public class Converter {
         return ByteBuffer.wrap(holder).order(ByteOrder.LITTLE_ENDIAN).getLong();
     }
 
-    public static String byteArrToHexString(byte[] bArr){
+    public static String byteArrToHexStringAsLE(byte[] bArr){
         if (bArr == null)
             return "";
         StringBuilder sb = new StringBuilder();

@@ -63,14 +63,14 @@ public class XCIGamecardCert {
 
     public void printDebug(){
         log.debug("== XCIGamecardCert ==\n" +
-                "rsa2048PKCS1sig  " + Converter.byteArrToHexString(rsa2048PKCS1sig) + "\n" +
-                "magicCert        " + Converter.byteArrToHexString(magicCert) + "\n" +
-                "unknown1         " + Converter.byteArrToHexString(unknown1) + "\n" +
+                "rsa2048PKCS1sig  " + Converter.byteArrToHexStringAsLE(rsa2048PKCS1sig) + "\n" +
+                "magicCert        " + Converter.byteArrToHexStringAsLE(magicCert) + "\n" +
+                "unknown1         " + Converter.byteArrToHexStringAsLE(unknown1) + "\n" +
                 "kekIndex         " + kekIndex + "\n" +
-                "unknown2         " + Converter.byteArrToHexString(unknown2) + "\n" +
-                "deviceID         " + Converter.byteArrToHexString(deviceID) + "\n" +
-                "unknown3         " + Converter.byteArrToHexString(unknown3) + "\n" +
-                "encryptedData    " + Converter.byteArrToHexString(encryptedData) + "\n"
+                "unknown2         " + Converter.byteArrToHexStringAsLE(unknown2) + "\n" +
+                "deviceID         " + Converter.byteArrToHexStringAsLE(deviceID) + "\n" +
+                "unknown3         " + Converter.byteArrToHexStringAsLE(unknown3) + "\n" +
+                "encryptedData    " + Converter.byteArrToHexStringAsLE(encryptedData) + "\n"
         );
     }
 }

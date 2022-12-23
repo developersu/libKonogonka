@@ -33,7 +33,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.HashMap;
 
-import static libKonogonka.Converter.byteArrToHexString;
+import static libKonogonka.Converter.byteArrToHexStringAsLE;
 import static libKonogonka.Converter.getLElong;
 
 // TODO: check file size
@@ -253,7 +253,7 @@ public class NCAProvider {
             if (Arrays.equals(rightsId, new byte[0x10]))      // If empty Rights ID
                 return decryptedKey2;                         // NOTE: Just remember this dumb hack
             
-            byte[] rightsIdKey = hexStrToByteArray(keys.get(byteArrToHexString(rightsId))); // throws NullPointerException
+            byte[] rightsIdKey = hexStrToByteArray(keys.get(byteArrToHexStringAsLE(rightsId))); // throws NullPointerException
 
             SecretKeySpec skSpec = new SecretKeySpec(
                     hexStrToByteArray(keys.get(String.format("titlekek_%02x", cryptoTypeReal))
@@ -264,7 +264,7 @@ public class NCAProvider {
         }
         catch (Exception e){
             throw new Exception("No title.keys loaded for '"+
-                    String.format("titlekek_%02x", cryptoTypeReal)+"' or '"+byteArrToHexString(rightsId)+"'? ("+e+")", e);
+                    String.format("titlekek_%02x", cryptoTypeReal)+"' or '"+ byteArrToHexStringAsLE(rightsId)+"'? ("+e+")", e);
         }
     }
     private void setupNcaContentByNumber(int number, byte[] key){
@@ -371,7 +371,7 @@ public class NCAProvider {
         if (Arrays.equals(rightsId, new byte[0x10]))
             return false;
         else
-            return keys.containsKey(byteArrToHexString(rightsId));
+            return keys.containsKey(byteArrToHexStringAsLE(rightsId));
     }
     /**
      * Get content for the selected section

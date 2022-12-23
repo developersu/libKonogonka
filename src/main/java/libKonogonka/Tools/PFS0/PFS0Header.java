@@ -111,13 +111,13 @@ public class PFS0Header {
                 "Magic                     " + magic + "\n" +
                 "Files count               " + RainbowDump.formatDecHexString(filesCount) + "\n" +
                 "String Table Size         " + RainbowDump.formatDecHexString(stringTableSize) + "\n" +
-                "Padding                   " + Converter.byteArrToHexString(padding) + "\n\n"
+                "Padding                   " + Converter.byteArrToHexStringAsLE(padding) + "\n\n"
         );
         for (PFS0subFile subFile : pfs0subFiles){
             log.debug("\nName:                     " + subFile.getName() + "\n" +
                     "Offset                    " + RainbowDump.formatDecHexString(subFile.getOffset()) + "\n" +
                     "Size                      " + RainbowDump.formatDecHexString(subFile.getSize()) + "\n" +
-                    "Zeroes                    " + Converter.byteArrToHexString(subFile.getZeroes()) + "\n" +
+                    "Zeroes                    " + Converter.byteArrToHexStringAsLE(subFile.getZeroes()) + "\n" +
                     "----------------------------------------------------------------"
             );
         }

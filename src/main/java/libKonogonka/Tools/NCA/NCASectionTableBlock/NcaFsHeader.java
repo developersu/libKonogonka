@@ -24,7 +24,7 @@ import org.apache.logging.log4j.Logger;
 
 import java.util.Arrays;
 
-import static libKonogonka.Converter.byteArrToHexString;
+import static libKonogonka.Converter.byteArrToHexStringAsLE;
 import static libKonogonka.Converter.getLElong;
 
 public class NcaFsHeader {
@@ -178,12 +178,12 @@ public class NcaFsHeader {
         }
         
         log.debug("NCASectionBlock:\n" +
-                "Version                          : " + byteArrToHexString(version) + "\n" +
+                "Version                          : " + byteArrToHexStringAsLE(version) + "\n" +
                 "FS Type                          : " + fsType +(fsType == 0?" (RomFS)":fsType == 1?" (PartitionFS)":" (Unknown)")+ "\n" +
                 "Hash Type                        : " + hashType +" ("+ hashTypeDescription + ")\n" +
                 "Crypto Type                      : " + cryptoType + " (" + cryptoTypeDescription + ")\n" +
                 "Meta Data Hash Type              : " + metaDataHashType + "\n" +
-                "Padding                          : " + byteArrToHexString(padding) + "\n" +
+                "Padding                          : " + byteArrToHexStringAsLE(padding) + "\n" +
                 "Super Block IVFC                 : " + (superBlockIVFC == null ? "-\n": "YES\n") +
                 "Super Block PFS0                 : " + (superBlockPFS0 == null ? "-\n": "YES\n") +
                 "================================================================================================\n" +
@@ -197,47 +197,47 @@ public class NcaFsHeader {
                 "|     Level 1 Offset             : " + RainbowDump.formatDecHexString(superBlockIVFC.getLvl1Offset()) + "\n" +
                 "|     Level 1 Size               : " + RainbowDump.formatDecHexString(superBlockIVFC.getLvl1Size()) + "\n" +
                 "|     Level 1 Block Size (log2)  : " + RainbowDump.formatDecHexString(superBlockIVFC.getLvl1SBlockSize()) + "\n" +
-                "|     Level 1 reserved           : " + byteArrToHexString(superBlockIVFC.getReserved1()) + "\n\n" +
+                "|     Level 1 reserved           : " + byteArrToHexStringAsLE(superBlockIVFC.getReserved1()) + "\n\n" +
 
                 "|     Level 2 Offset             : " + RainbowDump.formatDecHexString(superBlockIVFC.getLvl2Offset()) + "\n" +
                 "|     Level 2 Size               : " + RainbowDump.formatDecHexString(superBlockIVFC.getLvl2Size()) + "\n" +
                 "|     Level 2 Block Size (log2)  : " + RainbowDump.formatDecHexString(superBlockIVFC.getLvl2SBlockSize()) + "\n" +
-                "|     Level 2 reserved           : " + byteArrToHexString(superBlockIVFC.getReserved2()) + "\n\n" +
+                "|     Level 2 reserved           : " + byteArrToHexStringAsLE(superBlockIVFC.getReserved2()) + "\n\n" +
 
                 "|     Level 3 Offset             : " + RainbowDump.formatDecHexString(superBlockIVFC.getLvl3Offset()) + "\n" +
                 "|     Level 3 Size               : " + RainbowDump.formatDecHexString(superBlockIVFC.getLvl3Size()) + "\n" +
                 "|     Level 3 Block Size (log2)  : " + RainbowDump.formatDecHexString(superBlockIVFC.getLvl3SBlockSize()) + "\n" +
-                "|     Level 3 reserved           : " + byteArrToHexString(superBlockIVFC.getReserved3()) + "\n\n" +
+                "|     Level 3 reserved           : " + byteArrToHexStringAsLE(superBlockIVFC.getReserved3()) + "\n\n" +
 
                 "|     Level 4 Offset             : " + RainbowDump.formatDecHexString(superBlockIVFC.getLvl4Offset()) + "\n" +
                 "|     Level 4 Size               : " + RainbowDump.formatDecHexString(superBlockIVFC.getLvl4Size()) + "\n" +
                 "|     Level 4 Block Size (log2)  : " + RainbowDump.formatDecHexString(superBlockIVFC.getLvl4SBlockSize()) + "\n" +
-                "|     Level 4 reserved           : " + byteArrToHexString(superBlockIVFC.getReserved4()) + "\n\n" +
+                "|     Level 4 reserved           : " + byteArrToHexStringAsLE(superBlockIVFC.getReserved4()) + "\n\n" +
 
                 "|     Level 5 Offset             : " + RainbowDump.formatDecHexString(superBlockIVFC.getLvl5Offset()) + "\n" +
                 "|     Level 5 Size               : " + RainbowDump.formatDecHexString(superBlockIVFC.getLvl5Size()) + "\n" +
                 "|     Level 5 Block Size (log2)  : " + RainbowDump.formatDecHexString(superBlockIVFC.getLvl5SBlockSize()) + "\n" +
-                "|     Level 5 reserved           : " + byteArrToHexString(superBlockIVFC.getReserved5()) + "\n\n" +
+                "|     Level 5 reserved           : " + byteArrToHexStringAsLE(superBlockIVFC.getReserved5()) + "\n\n" +
 
                 "|     Level 6 Offset             : " + RainbowDump.formatDecHexString(superBlockIVFC.getLvl6Offset()) + "\n" +
                 "|     Level 6 Size               : " + RainbowDump.formatDecHexString(superBlockIVFC.getLvl6Size()) + "\n" +
                 "|     Level 6 Block Size (log2)  : " + RainbowDump.formatDecHexString(superBlockIVFC.getLvl6SBlockSize()) + "\n" +
-                "|     Level 6 reserved           : " + byteArrToHexString(superBlockIVFC.getReserved6()) + "\n\n" +
+                "|     Level 6 reserved           : " + byteArrToHexStringAsLE(superBlockIVFC.getReserved6()) + "\n\n" +
                 
-                "|   SignatureSalt                : " + byteArrToHexString(superBlockIVFC.getSignatureSalt()) + "\n" +
-                "| Master Hash                    : " + byteArrToHexString(superBlockIVFC.getMasterHash()) + "\n" +
-                "| Reserved (tail)                : " + byteArrToHexString(superBlockIVFC.getReservedTail()) + "\n"
+                "|   SignatureSalt                : " + byteArrToHexStringAsLE(superBlockIVFC.getSignatureSalt()) + "\n" +
+                "| Master Hash                    : " + byteArrToHexStringAsLE(superBlockIVFC.getMasterHash()) + "\n" +
+                "| Reserved (tail)                : " + byteArrToHexStringAsLE(superBlockIVFC.getReservedTail()) + "\n"
                 )
                 :(((fsType == 0x1) && (hashType == 0x2))?
                 ("|                   Hash Data - PFS0\n" +
-                "| SHA256 hash                    : " + byteArrToHexString(superBlockPFS0.getSHA256hash()) + "\n" +
+                "| SHA256 hash                    : " + byteArrToHexStringAsLE(superBlockPFS0.getSHA256hash()) + "\n" +
                 "| Block Size (bytes)             : " + superBlockPFS0.getBlockSize() + "\n" +
                 "| Layer Count (2)                : " + superBlockPFS0.getLayerCount() + "\n" +
                 "| Hash table offset              : " + RainbowDump.formatDecHexString(superBlockPFS0.getHashTableOffset()) + "\n" +
                 "| Hash table size                : " + RainbowDump.formatDecHexString(superBlockPFS0.getHashTableSize()) + "\n" +
                 "| PFS0 header offset             : " + RainbowDump.formatDecHexString(superBlockPFS0.getPfs0offset()) + "\n" +
                 "| PFS0 header size               : " + RainbowDump.formatDecHexString(superBlockPFS0.getPfs0size()) + "\n" +
-                "| Unknown (reserved)             : " + byteArrToHexString(superBlockPFS0.getZeroes()) + "\n"
+                "| Unknown (reserved)             : " + byteArrToHexStringAsLE(superBlockPFS0.getZeroes()) + "\n"
                 )
                 :
                 "               //    Hash Data - EMPTY     \\\\ \n"
@@ -250,17 +250,17 @@ public class NcaFsHeader {
                 "Magic ('BKTR')                   : " + BktrSection1.getMagic() + "\n" +
                 "Version                          : " + BktrSection1.getVersion() + "\n" +
                 "EntryCount                       : " + BktrSection1.getEntryCount() + "\n" +
-                "Unknown (reserved)               : " + byteArrToHexString(BktrSection1.getUnknown()) + "\n" +
+                "Unknown (reserved)               : " + byteArrToHexStringAsLE(BktrSection1.getUnknown()) + "\n" +
                 "------------------------------------------------------------------------------------------------\n" +
                 "AesCtrEx Offset                  : " + PatchInfoOffsetSection2 + "\n" +
                 "AesCtrEx Size                    : " + PatchInfoSizeSection2 + "\n" +
                 "Magic ('BKTR')                   : " + BktrSection2.getMagic() + "\n" +
                 "Version                          : " + BktrSection2.getVersion() + "\n" +
                 "EntryCount                       : " + BktrSection2.getEntryCount() + "\n" +
-                "Unknown (reserved)               : " + byteArrToHexString(BktrSection2.getUnknown()) + "\n" +
+                "Unknown (reserved)               : " + byteArrToHexStringAsLE(BktrSection2.getUnknown()) + "\n" +
                 "================================================================================================\n" +
-                "Generation                       : " + byteArrToHexString(generation) + "\n" +
-                "Section CTR                      : " + byteArrToHexString(sectionCTR) + "\n" +
+                "Generation                       : " + byteArrToHexStringAsLE(generation) + "\n" +
+                "Section CTR                      : " + byteArrToHexStringAsLE(sectionCTR) + "\n" +
                 "================================================================================================\n" +
                 "                    Sparse Info\n" +
                 "Table Offset                     : " + sparseInfo.getOffset() + "\n" +
@@ -268,10 +268,10 @@ public class NcaFsHeader {
                 "Magic ('BKTR')                   : " + sparseInfo.getBktrMagic() + "\n" +
                 "Version                          : " + sparseInfo.getBktrVersion() + "\n" +
                 "EntryCount                       : " + sparseInfo.getBktrEntryCount() + "\n" +
-                "Unknown (BKTR)                   : " + byteArrToHexString(sparseInfo.getBktrUnknown()) + "\n" +
+                "Unknown (BKTR)                   : " + byteArrToHexStringAsLE(sparseInfo.getBktrUnknown()) + "\n" +
                 "PhysicalOffset                   : " + sparseInfo.getPhysicalOffset() + "\n" +
-                "Generation                       : " + byteArrToHexString(sparseInfo.getGeneration()) + "\n" +
-                "Unknown (reserved)               : " + byteArrToHexString(sparseInfo.getUnknown()) + "\n" +
+                "Generation                       : " + byteArrToHexStringAsLE(sparseInfo.getGeneration()) + "\n" +
+                "Unknown (reserved)               : " + byteArrToHexStringAsLE(sparseInfo.getUnknown()) + "\n" +
                 "================================================================================================\n" +
                 "                    Compression Info\n" +
                 "Table Offset                     : " + compressionInfo.getOffset() + "\n" +
@@ -279,15 +279,15 @@ public class NcaFsHeader {
                 "Magic ('BKTR')                   : " + compressionInfo.getBktrMagic() + "\n" +
                 "Version                          : " + compressionInfo.getBktrVersion() + "\n" +
                 "EntryCount                       : " + compressionInfo.getBktrEntryCount() + "\n" +
-                "Unknown (reserved)               : " + byteArrToHexString(compressionInfo.getBktrUnknown()) + "\n" +
-                "Reserved                         : " + byteArrToHexString(compressionInfo.getUnknown()) + "\n" +
+                "Unknown (reserved)               : " + byteArrToHexStringAsLE(compressionInfo.getBktrUnknown()) + "\n" +
+                "Reserved                         : " + byteArrToHexStringAsLE(compressionInfo.getUnknown()) + "\n" +
                 "================================================================================================\n" +
                 "                    Meta Data Hash Data Info\n" +
                 "Table Offset                     : " + metaDataHashDataInfo.getOffset() + "\n" +
                 "Table Size                       : " + metaDataHashDataInfo.getSize() + "\n" +
-                "Unknown (reserved)               : " + byteArrToHexString(metaDataHashDataInfo.getTableHash()) + "\n" +
+                "Unknown (reserved)               : " + byteArrToHexStringAsLE(metaDataHashDataInfo.getTableHash()) + "\n" +
                 "================================================================================================\n" +
-                "Unknown End Padding              : " + byteArrToHexString(unknownEndPadding) + "\n" +
+                "Unknown End Padding              : " + byteArrToHexStringAsLE(unknownEndPadding) + "\n" +
                 "################################################################################################\n"
         );
     }
