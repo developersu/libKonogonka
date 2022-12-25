@@ -34,8 +34,8 @@ public class AesCtr {
         BCinitialized = true;
     }
 
-    private Cipher cipher;
-    private SecretKeySpec key;
+    private final Cipher cipher;
+    private final SecretKeySpec key;
 
     public AesCtr(byte[] keyArray) throws Exception{
         if ( ! BCinitialized)

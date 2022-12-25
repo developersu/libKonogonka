@@ -1,5 +1,5 @@
 /*
-    Copyright 2018-2022 Dmitry Isaenko
+    Copyright 2019-2022 Dmitry Isaenko
      
     This file is part of libKonogonka.
 
@@ -18,11 +18,17 @@
  */
 package libKonogonka.Tools.NCA.NCASectionTableBlock;
 
+import libKonogonka.Converter;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.util.Arrays;
 
 import static libKonogonka.Converter.getLElong;
 
 public class SparseInfo {
+    private final static Logger log = LogManager.getLogger(SparseInfo.class);
+
     private final long offset;
     private final long size;
     private final BucketTreeHeader bktr;
@@ -48,4 +54,15 @@ public class SparseInfo {
     public long getPhysicalOffset() {return physicalOffset;}
     public byte[] getGeneration() {return generation;}
     public byte[] getUnknown() {return unknown;}
+
+    public void printDebug(){
+        log.debug("SparseInfo:\n" +
+        "Offset            : " + offset + "\n" +
+        "Size              : " + size + "\n");
+        bktr.printDebug();
+        log.debug(
+        "\nPhysicalOffset    : " + physicalOffset + "\n" +
+        "Generation        : " + Converter.byteArrToHexStringAsLE(generation) + "\n" +
+        "Unknown           : " + Converter.byteArrToHexStringAsLE(unknown) + "\n");
+    }
 }

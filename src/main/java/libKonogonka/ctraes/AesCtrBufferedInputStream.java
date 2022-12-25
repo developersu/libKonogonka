@@ -1,5 +1,5 @@
 /*
-    Copyright 2018-2022 Dmitry Isaenko
+    Copyright 2019-2022 Dmitry Isaenko
      
     This file is part of libKonogonka.
 
@@ -18,7 +18,6 @@
  */
 package libKonogonka.ctraes;
 
-import libKonogonka.Converter;
 import libKonogonka.RainbowDump;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;

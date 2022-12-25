@@ -1,5 +1,5 @@
 /*
-    Copyright 2018-2022 Dmitry Isaenko
+    Copyright 2019-2022 Dmitry Isaenko
      
     This file is part of libKonogonka.
 

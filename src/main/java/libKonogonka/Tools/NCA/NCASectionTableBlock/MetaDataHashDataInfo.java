@@ -1,5 +1,5 @@
 /*
-    Copyright 2018-2022 Dmitry Isaenko
+    Copyright 2019-2022 Dmitry Isaenko
      
     This file is part of libKonogonka.
 
@@ -18,21 +18,36 @@
  */
 package libKonogonka.Tools.NCA.NCASectionTableBlock;
 
+import libKonogonka.Converter;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.util.Arrays;
 
 import static libKonogonka.Converter.getLElong;
 
 public class MetaDataHashDataInfo {
+    private final static Logger log = LogManager.getLogger(MetaDataHashDataInfo.class);
+
     private final long offset;
     private final long size;
     private final byte[] tableHash;
+
     MetaDataHashDataInfo(byte[] rawTable){
-        offset = getLElong(rawTable, 0);
-        size = getLElong(rawTable, 0x8);
-        tableHash = Arrays.copyOfRange(rawTable, 0x10, 0x20);
+        this.offset = getLElong(rawTable, 0);
+        this.size = getLElong(rawTable, 0x8);
+        this.tableHash = Arrays.copyOfRange(rawTable, 0x10, 0x20);
     }
 
     public long getOffset() {return offset;}
     public long getSize() {return size;}
     public byte[] getTableHash() {return tableHash;}
+
+    public void printDebug(){
+        log.debug("MetaDataHashDataInfo:\n" +
+                "Offset       : " + offset + "\n" +
+                "Size         : " + size + "\n" +
+                "Table Hash   : " + Converter.byteArrToHexStringAsLE(tableHash) + "\n"
+        );
+    }
 }

@@ -290,6 +290,10 @@ public class NcaFsHeader {
                 "Unknown End Padding              : " + byteArrToHexStringAsLE(unknownEndPadding) + "\n" +
                 "################################################################################################\n"
         );
+
+        sparseInfo.printDebug();
+        compressionInfo.printDebug();
+        metaDataHashDataInfo.printDebug();
     }
 }
 

@@ -1,5 +1,5 @@
 /*
-    Copyright 2018-2022 Dmitry Isaenko
+    Copyright 2019-2022 Dmitry Isaenko
      
     This file is part of libKonogonka.
 
@@ -18,26 +18,41 @@
  */
 package libKonogonka.Tools.NCA.NCASectionTableBlock;
 
+import libKonogonka.Converter;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 
 import static libKonogonka.Converter.getLEint;
 
 public class BucketTreeHeader {
+    private final static Logger log = LogManager.getLogger(BucketTreeHeader.class);
+
     private final String magic;
     private final int version;
     private final int entryCount;
     private final byte[] unknown;
 
     BucketTreeHeader(byte[] rawBytes){
-        magic = new String(Arrays.copyOfRange(rawBytes, 0x0, 0x4), StandardCharsets.US_ASCII);
-        version = getLEint(rawBytes, 0x4);
-        entryCount = getLEint(rawBytes, 0x8);
-        unknown = Arrays.copyOfRange(rawBytes, 0xc, 0x10);
+        this.magic = new String(Arrays.copyOfRange(rawBytes, 0x0, 0x4), StandardCharsets.US_ASCII);
+        this.version = getLEint(rawBytes, 0x4);
+        this.entryCount = getLEint(rawBytes, 0x8);
+        this.unknown = Arrays.copyOfRange(rawBytes, 0xc, 0x10);
     }
 
     public String getMagic() {return magic;}
     public int getVersion() {return version;}
     public int getEntryCount() {return entryCount;}
     public byte[] getUnknown() {return unknown;}
+
+    public void printDebug(){
+        log.debug("BucketTreeHeader\n" +
+                "Magic       : " + magic  + "\n" +
+                "Version     : " + version  + "\n" +
+                "EntryCount  :" + entryCount  + "\n" +
+                "Unknown     :" + Converter.byteArrToHexStringAsLE(unknown) + "\n"
+        );
+    }
 }

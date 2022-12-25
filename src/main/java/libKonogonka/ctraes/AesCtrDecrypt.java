@@ -18,12 +18,10 @@
 */
 package libKonogonka.ctraes;
 
-import libKonogonka.Converter;
-
 /**
- * Simplify decryption of the CTR for NCA's AesCtr sections
+ * Simplify decryption of the CTR
  */
-public class AesCtrDecryptSimple {
+public class AesCtrDecrypt {
 
     private long realMediaOffset;
     private byte[] IVarray;
@@ -33,8 +31,8 @@ public class AesCtrDecryptSimple {
     private final byte[] initialSectionCTR;
     private final long initialRealMediaOffset;
 
-    public AesCtrDecryptSimple(byte[] key, byte[] sectionCTR, long realMediaOffset) throws Exception{
-        this.initialKey = key;
+    public AesCtrDecrypt(String key, byte[] sectionCTR, long realMediaOffset) throws Exception{
+        this.initialKey = hexStrToByteArray(key);
         this.initialSectionCTR = sectionCTR;
         this.initialRealMediaOffset = realMediaOffset;
         reset();
@@ -49,26 +47,23 @@ public class AesCtrDecryptSimple {
     }
 
     public byte[] decryptNext(byte[] encryptedBlock) throws Exception{
-        updateIV();
         byte[] decryptedBlock = aesCtr.decrypt(encryptedBlock, IVarray);
         realMediaOffset += 0x200;
         return decryptedBlock;
-    }
-    // Populate last 8 bytes calculated. Thanks hactool project!
-    private void updateIV(){
-        long offset = realMediaOffset >> 4;
-        for (int i = 0; i < 0x8; i++){
-            IVarray[0x10-i-1] = (byte)(offset & 0xff);         // Note: issues could be here
-            offset >>= 8;
-        }
     }
 
     public void reset() throws Exception{
         realMediaOffset = initialRealMediaOffset;
         aesCtr = new AesCtr(initialKey);
-        // IV for CTR == 16 bytes
-        IVarray = new byte[0x10];
-        // Populate first 4 bytes taken from Header's section Block CTR (aka SecureValue)
-        System.arraycopy(Converter.flip(initialSectionCTR), 0x0, IVarray, 0x0, 0x8);
+        IVarray = initialSectionCTR;//Converter.flip();
+    }
+    private byte[] hexStrToByteArray(String s) {
+        int len = s.length();
+        byte[] data = new byte[len / 2];
+        for (int i = 0; i < len; i += 2) {
+            data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
+                    + Character.digit(s.charAt(i+1), 16));
+        }
+        return data;
     }
 }
