@@ -25,7 +25,7 @@ import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.security.Security;
 
-public class AesCtr {
+public class AesCtrForMediaBlocks {
 
     private static boolean BCinitialized = false;
 
@@ -37,7 +37,7 @@ public class AesCtr {
     private final Cipher cipher;
     private final SecretKeySpec key;
 
-    public AesCtr(byte[] keyArray) throws Exception{
+    AesCtrForMediaBlocks(byte[] keyArray) throws Exception{
         if ( ! BCinitialized)
             initBCProvider();
 
@@ -45,7 +45,7 @@ public class AesCtr {
         cipher = Cipher.getInstance("AES/CTR/NoPadding", "BC");
     }
 
-    public byte[] decrypt(byte[] encryptedData, byte[] IVarray) throws Exception{
+    byte[] decrypt(byte[] encryptedData, byte[] IVarray) throws Exception{
         IvParameterSpec iv = new IvParameterSpec(IVarray);
         cipher.init(Cipher.DECRYPT_MODE, key, iv);
         return cipher.doFinal(encryptedData);

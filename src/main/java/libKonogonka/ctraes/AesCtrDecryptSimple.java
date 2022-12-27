@@ -27,7 +27,7 @@ public class AesCtrDecryptSimple {
 
     private long realMediaOffset;
     private byte[] IVarray;
-    private AesCtr aesCtr;
+    private AesCtrForMediaBlocks aesCtr;
 
     private final byte[] initialKey;
     private final byte[] initialSectionCTR;
@@ -65,7 +65,7 @@ public class AesCtrDecryptSimple {
 
     public void reset() throws Exception{
         realMediaOffset = initialRealMediaOffset;
-        aesCtr = new AesCtr(initialKey);
+        aesCtr = new AesCtrForMediaBlocks(initialKey);
         // IV for CTR == 16 bytes
         IVarray = new byte[0x10];
         // Populate first 4 bytes taken from Header's section Block CTR (aka SecureValue)

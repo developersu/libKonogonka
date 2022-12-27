@@ -18,45 +18,40 @@
 */
 package libKonogonka.ctraes;
 
-/**
- * Simplify decryption of the CTR
- */
-public class AesCtrDecrypt {
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
-    private long realMediaOffset;
-    private byte[] IVarray;
-    private AesCtr aesCtr;
+import javax.crypto.Cipher;
+import javax.crypto.CipherOutputStream;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
+import java.security.Security;
 
-    private final byte[] initialKey;
-    private final byte[] initialSectionCTR;
-    private final long initialRealMediaOffset;
+public class AesCtrClassic {
 
-    public AesCtrDecrypt(String key, byte[] sectionCTR, long realMediaOffset) throws Exception{
-        this.initialKey = hexStrToByteArray(key);
-        this.initialSectionCTR = sectionCTR;
-        this.initialRealMediaOffset = realMediaOffset;
-        reset();
+    private static boolean BCinitialized = false;
+
+    private void initBCProvider(){
+        Security.addProvider(new BouncyCastleProvider());
+        BCinitialized = true;
     }
 
-    public void skipNext(){
-        realMediaOffset += 0x200;
+    private final Cipher cipher;
+
+    public AesCtrClassic(String keyString, byte[] IVarray) throws Exception{
+        if ( ! BCinitialized)
+            initBCProvider();
+        byte[] keyArray = hexStrToByteArray(keyString);
+        SecretKeySpec key = new SecretKeySpec(keyArray, "AES");
+        cipher = Cipher.getInstance("AES/CTR/NoPadding", "BC");
+        IvParameterSpec iv = new IvParameterSpec(IVarray.clone());
+        cipher.init(Cipher.DECRYPT_MODE, key, iv);
+        //TODO: CipherOutputStream
     }
 
-    public void skipNext(long blocksNum){
-        realMediaOffset += blocksNum * 0x200;
+    public byte[] decryptNext(byte[] encryptedData) {
+        return cipher.update(encryptedData);
     }
 
-    public byte[] decryptNext(byte[] encryptedBlock) throws Exception{
-        byte[] decryptedBlock = aesCtr.decrypt(encryptedBlock, IVarray);
-        realMediaOffset += 0x200;
-        return decryptedBlock;
-    }
-
-    public void reset() throws Exception{
-        realMediaOffset = initialRealMediaOffset;
-        aesCtr = new AesCtr(initialKey);
-        IVarray = initialSectionCTR;//Converter.flip();
-    }
     private byte[] hexStrToByteArray(String s) {
         int len = s.length();
         byte[] data = new byte[len / 2];

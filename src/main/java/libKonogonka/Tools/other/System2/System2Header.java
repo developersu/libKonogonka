@@ -20,7 +20,7 @@ package libKonogonka.Tools.other.System2;
 
 import libKonogonka.Converter;
 import libKonogonka.RainbowDump;
-import libKonogonka.ctraes.AesCtrDecrypt;
+import libKonogonka.ctraes.AesCtrClassic;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -56,6 +56,8 @@ public class System2Header {
     private byte[] sha256overEncryptedSection2;
     private byte[] sha256overEncryptedSection3;
 
+    private String key;
+
     private HashMap<String, String> package2Keys;
     private byte[] decodedHeaderBytes;
 
@@ -74,13 +76,15 @@ public class System2Header {
         }
     }
     private void decodeEncrypted(byte[] headerBytes) throws Exception{
+        int i=0;
         for (Map.Entry<String, String> entry: package2Keys.entrySet()){
-            AesCtrDecrypt decrypt = new AesCtrDecrypt(entry.getValue(), headerCtr, 0x100);
+            AesCtrClassic ctrClassic = new AesCtrClassic(entry.getValue(), headerCtr);
 
-            decodedHeaderBytes = decrypt.decryptNext(headerBytes);
+            decodedHeaderBytes = ctrClassic.decryptNext(headerBytes);
             byte[] magicBytes = Arrays.copyOfRange(decodedHeaderBytes, 0x50, 0x54);
             magic = new String(magicBytes, StandardCharsets.US_ASCII);
             if (magic.equals("PK21")) {
+                key = entry.getValue();
                 log.debug("Header key used "+entry.getKey() + " = " + entry.getValue());
                 return;
             }
@@ -111,6 +115,31 @@ public class System2Header {
         sha256overEncryptedSection2 = Arrays.copyOfRange(decodedHeaderBytes, 0xc0, 0xe0);
         sha256overEncryptedSection3 = Arrays.copyOfRange(decodedHeaderBytes, 0xe0, 0x100);
     }
+
+    public byte[] getHeaderCtr() { return headerCtr; }
+    public byte[] getSection0Ctr() { return section0Ctr; }
+    public byte[] getSection1Ctr() { return section1Ctr; }
+    public byte[] getSection2Ctr() { return section2Ctr; }
+    public byte[] getSection3Ctr() { return section3Ctr; }
+    public String getMagic() { return magic; }
+    public int getBaseOffset() { return baseOffset; }
+    public byte[] getZeroOrReserved() { return zeroOrReserved; }
+    public byte getPackage2Version() { return package2Version; }
+    public byte getBootloaderVersion() { return bootloaderVersion; }
+    public byte[] getPadding() { return padding; }
+    public int getSection0size() { return section0size; }
+    public int getSection1size() { return section1size; }
+    public int getSection2size() { return section2size; }
+    public int getSection3size() { return section3size; }
+    public int getSection0offset() { return section0offset; }
+    public int getSection1offset() { return section1offset; }
+    public int getSection2offset() { return section2offset; }
+    public int getSection3offset() { return section3offset; }
+    public byte[] getSha256overEncryptedSection0() { return sha256overEncryptedSection0; }
+    public byte[] getSha256overEncryptedSection1() { return sha256overEncryptedSection1; }
+    public byte[] getSha256overEncryptedSection2() { return sha256overEncryptedSection2; }
+    public byte[] getSha256overEncryptedSection3() { return sha256overEncryptedSection3; }
+    public String getKey() { return key; }
 
     public void printDebug(){
         log.debug("== System2 Header ==\n" +
