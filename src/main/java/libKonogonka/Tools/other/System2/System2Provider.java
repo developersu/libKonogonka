@@ -21,14 +21,17 @@ package libKonogonka.Tools.other.System2;
 import libKonogonka.KeyChainHolder;
 import libKonogonka.RainbowDump;
 import libKonogonka.ctraes.AesCtrClassic;
+import libKonogonka.ctraes.AesCtrStream;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.io.BufferedInputStream;
-import java.io.BufferedOutputStream;
-import java.io.File;
+import javax.crypto.CipherInputStream;
+import java.io.*;
+import java.math.BigInteger;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.Arrays;
+
 
 public class System2Provider {
     private final static Logger log = LogManager.getLogger(System2Provider.class);
@@ -45,8 +48,6 @@ public class System2Provider {
         this.keyChainHolder = keyChainHolder;
 
         readHeaderCtr();
-
-
     }
 
     private void readHeaderCtr() throws Exception{
@@ -59,22 +60,22 @@ public class System2Provider {
             this.header = new System2Header(headerBytes, keyChainHolder.getRawKeySet());
         }
     }
-
     public boolean exportKernel(String saveTo) throws Exception{
-        AesCtrClassic aesCtrClassic = new AesCtrClassic(header.getKey(), header.getSection0Ctr()); // TODO: DELETE
-
         File location = new File(saveTo);
         location.mkdirs();
 
-        try (BufferedInputStream stream = new BufferedInputStream(Files.newInputStream(Paths.get(pathToFile)));
-                BufferedOutputStream extractedFileBOS = new BufferedOutputStream(
-                Files.newOutputStream(Paths.get(saveTo+File.separator+"Kernel.bin")))){
+        InputStream fis = Files.newInputStream(Paths.get(pathToFile));
+        // Encrypted section comes next
+        long toSkip = 0x200;
+        if (toSkip != fis.skip(toSkip))
+            throw new Exception("Unable to skip offset: "+toSkip);
+
+        try (CipherInputStream stream = AesCtrStream.getStream(header.getKey(), header.getSection0Ctr(), fis);
+             BufferedOutputStream extractedFileBOS = new BufferedOutputStream(
+                     Files.newOutputStream(Paths.get(saveTo+File.separator+"Kernel.bin")))){
 
             long kernelSize = header.getSection0size();
 
-            long toSkip = 0x200;
-            if (toSkip != stream.skip(toSkip))
-                throw new Exception("Unable to skip offset: "+toSkip);
             int blockSize = 0x200;
             if (kernelSize < 0x200)
                 blockSize = (int) kernelSize;
@@ -86,14 +87,7 @@ public class System2Provider {
             while (true) {
                 if ((actuallyRead = stream.read(block)) != blockSize)
                     throw new Exception("Read failure. Block Size: "+blockSize+", actuallyRead: "+actuallyRead);
-                byte[] decrypted = aesCtrClassic.decryptNext(block);
-                if (i > 0 && i <= 0x201){
-                    RainbowDump.hexDumpUTF8(decrypted);
-                }
-                if (i == 0){
-                    RainbowDump.hexDumpUTF8(decrypted);
-                }
-                extractedFileBOS.write(decrypted);
+                extractedFileBOS.write(block);
                 i += blockSize;
                 if ((i + blockSize) > kernelSize) {
                     blockSize = (int) (kernelSize - i);
@@ -108,6 +102,61 @@ public class System2Provider {
             return false;
         }
         return true;
+    }
+    public boolean exportIni1(String saveTo) throws Exception{
+        File location = new File(saveTo);
+        location.mkdirs();
+        InputStream fis = Files.newInputStream(Paths.get(pathToFile));
+        // Encrypted section comes next
+        long toSkip = 0x200 + header.getSection0offset();
+        if (toSkip != fis.skip(toSkip))
+            throw new Exception("Unable to skip offset: "+toSkip);
+
+        try (CipherInputStream stream = AesCtrStream.getStream(header.getKey(), calcIni1Ctr(), fis);
+             BufferedOutputStream extractedFileBOS = new BufferedOutputStream(
+                     Files.newOutputStream(Paths.get(saveTo+File.separator+"INI1.bin")))){
+
+            long iniSize = header.getSection0size()-header.getSection0offset();
+
+            int blockSize = 0x200;
+            if (iniSize < 0x200)
+                blockSize = (int) iniSize;
+
+            long i = 0;
+            byte[] block = new byte[blockSize];
+
+            boolean skipMode = true;
+            final byte[] zeroes = new byte[blockSize];
+
+            int actuallyRead;
+            while (true) {
+                if ((actuallyRead = stream.read(block)) != blockSize)
+                    throw new Exception("Read failure. Block Size: "+blockSize+", actuallyRead: "+actuallyRead);
+                if (skipMode && Arrays.equals(block, zeroes))
+                    ;
+                else {
+                    skipMode = false;
+                    extractedFileBOS.write(block);
+                }
+                i += blockSize;
+                if ((i + blockSize) > iniSize) {
+                    blockSize = (int) (iniSize - i);
+                    if (blockSize == 0)
+                        break;
+                    block = new byte[blockSize];
+                }
+            }
+        }
+        catch (Exception e){
+            log.error("File export failure", e);
+            return false;
+        }
+        return true;
+    }
+    private byte[] calcIni1Ctr(){
+        BigInteger ctr = new BigInteger(header.getSection0Ctr());
+        BigInteger updateTo = BigInteger.valueOf(header.getSection0offset() / 0x10L);
+        return ctr.add(updateTo).toByteArray();
     }
 
     public System2Header getHeader() {

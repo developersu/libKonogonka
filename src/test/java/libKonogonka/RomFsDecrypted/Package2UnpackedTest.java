@@ -40,7 +40,7 @@ public class Package2UnpackedTest {
     private static final String xci_header_keyFileLocation = "./FilesForTests/xci_header_key.txt";
     private static KeyChainHolder keyChainHolder;
 
-    private static final String fileLocation = "/home/loper/Projects/libKonogonka/FilesForTests/6*cc.nca_extracted/ROOT/nx/package2";
+    private static final String fileLocation = "/home/loper/Projects/libKonogonka/FilesForTests/6b7abe7efa17ad065b18e62d1c87a5cc.nca_extracted/ROOT/nx/package2";
 
     @DisplayName("Package2 unpacked test")
     @Test
@@ -97,7 +97,11 @@ public class Package2UnpackedTest {
         System2Provider provider = new System2Provider(fileLocation, keyChainHolder);
         provider.getHeader().printDebug();
 
-        boolean exported = provider.exportKernel("/tmp");
+        boolean exported = provider.exportKernel("/home/loper/Projects/libKonogonka/FilesForTests/own/");
         System.out.println("Exported = "+exported);
+
+        exported = provider.exportIni1("/home/loper/Projects/libKonogonka/FilesForTests/own/");
+        System.out.println("Exported INI1 = "+exported);
+
     }
 }
