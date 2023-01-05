@@ -19,25 +19,39 @@
 package libKonogonka.ctraes;
 
 import libKonogonka.Converter;
+import org.bouncycastle.jce.provider.BouncyCastleProvider;
+
+import javax.crypto.Cipher;
+import javax.crypto.spec.IvParameterSpec;
+import javax.crypto.spec.SecretKeySpec;
+import java.security.Security;
 
 /**
  * Simplify decryption of the CTR for NCA's AesCtr sections
  */
-public class AesCtrDecryptSimple {
+public class AesCtrDecryptForMediaBlocks {
+
+    private static boolean BCinitialized = false;
+    private Cipher cipher;
+    private final SecretKeySpec key;
 
     private long realMediaOffset;
-    private byte[] IVarray;
-    private AesCtrForMediaBlocks aesCtr;
+    private byte[] ivArray;
 
-    private final byte[] initialKey;
     private final byte[] initialSectionCTR;
     private final long initialRealMediaOffset;
 
-    public AesCtrDecryptSimple(byte[] key, byte[] sectionCTR, long realMediaOffset) throws Exception{
-        this.initialKey = key;
+    public AesCtrDecryptForMediaBlocks(byte[] key, byte[] sectionCTR, long realMediaOffset) throws Exception{
+        if ( ! BCinitialized)
+            initBCProvider();
+        this.key = new SecretKeySpec(key, "AES");
         this.initialSectionCTR = sectionCTR;
         this.initialRealMediaOffset = realMediaOffset;
         reset();
+    }
+    private void initBCProvider(){
+        Security.addProvider(new BouncyCastleProvider());
+        BCinitialized = true;
     }
 
     public void skipNext(){
@@ -50,7 +64,7 @@ public class AesCtrDecryptSimple {
 
     public byte[] decryptNext(byte[] encryptedBlock) throws Exception{
         updateIV();
-        byte[] decryptedBlock = aesCtr.decrypt(encryptedBlock, IVarray);
+        byte[] decryptedBlock = decrypt(encryptedBlock);
         realMediaOffset += 0x200;
         return decryptedBlock;
     }
@@ -58,17 +72,22 @@ public class AesCtrDecryptSimple {
     private void updateIV(){
         long offset = realMediaOffset >> 4;
         for (int i = 0; i < 0x8; i++){
-            IVarray[0x10-i-1] = (byte)(offset & 0xff);         // Note: issues could be here
+            ivArray[0x10-i-1] = (byte)(offset & 0xff);         // Note: issues could be here
             offset >>= 8;
         }
+    }
+    private byte[] decrypt(byte[] encryptedData) throws Exception{
+        IvParameterSpec iv = new IvParameterSpec(ivArray);
+        cipher.init(Cipher.DECRYPT_MODE, key, iv);
+        return cipher.doFinal(encryptedData);
     }
 
     public void reset() throws Exception{
         realMediaOffset = initialRealMediaOffset;
-        aesCtr = new AesCtrForMediaBlocks(initialKey);
+        cipher = Cipher.getInstance("AES/CTR/NoPadding", "BC");
         // IV for CTR == 16 bytes
-        IVarray = new byte[0x10];
+        ivArray = new byte[0x10];
         // Populate first 4 bytes taken from Header's section Block CTR (aka SecureValue)
-        System.arraycopy(Converter.flip(initialSectionCTR), 0x0, IVarray, 0x0, 0x8);
+        System.arraycopy(Converter.flip(initialSectionCTR), 0x0, ivArray, 0x0, 0x8);
     }
 }

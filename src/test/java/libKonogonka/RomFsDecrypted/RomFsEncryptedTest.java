@@ -24,7 +24,7 @@ import libKonogonka.RainbowDump;
 import libKonogonka.Tools.NCA.NCAProvider;
 import libKonogonka.Tools.NCA.NCASectionTableBlock.NcaFsHeader;
 import libKonogonka.Tools.RomFs.FileSystemEntry;
-import libKonogonka.ctraes.AesCtrDecryptSimple;
+import libKonogonka.ctraes.AesCtrDecryptForMediaBlocks;
 import org.junit.jupiter.api.*;
 
 import java.io.*;
@@ -90,7 +90,7 @@ public class RomFsEncryptedTest {
         }
     }
 
-    private AesCtrDecryptSimple decryptSimple;
+    private AesCtrDecryptForMediaBlocks decryptSimple;
     long ACBISoffsetPosition;
     long ACBISmediaStartOffset;
     long ACBISmediaEndOffset;
@@ -111,7 +111,7 @@ public class RomFsEncryptedTest {
         ACBISmediaStartOffset = ncaProvider.getTableEntry1().getMediaStartOffset();
         ACBISmediaEndOffset = ncaProvider.getTableEntry1().getMediaEndOffset();
 
-        decryptSimple = new AesCtrDecryptSimple(
+        decryptSimple = new AesCtrDecryptForMediaBlocks(
                 ncaProvider.getDecryptedKey2(),
                 ncaProvider.getSectionBlock1().getSectionCTR(),
                 ncaProvider.getTableEntry1().getMediaStartOffset()*0x200);
@@ -212,11 +212,4 @@ public class RomFsEncryptedTest {
 
         extractedFileBOS.close();
     }*/
-    @Disabled
-    @Order(6)
-    @DisplayName("RomFsEncryptedProvider: PFS test")
-    @Test
-    void pfsValidation(){
-        //1 PFS and cryptotype != 0
-    }
 }

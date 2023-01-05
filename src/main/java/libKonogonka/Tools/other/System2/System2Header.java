@@ -20,7 +20,7 @@ package libKonogonka.Tools.other.System2;
 
 import libKonogonka.Converter;
 import libKonogonka.RainbowDump;
-import libKonogonka.ctraes.AesCtrClassic;
+import libKonogonka.ctraesclassic.AesCtrDecryptClassic;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
@@ -33,6 +33,7 @@ public class System2Header {
     private final static Logger log = LogManager.getLogger(System2Header.class);
 
     private final byte[] headerCtr;
+    private final long packageSize;
     private byte[] section0Ctr;
     private byte[] section1Ctr;
     private byte[] section2Ctr;
@@ -63,6 +64,7 @@ public class System2Header {
 
     public System2Header(byte[] headerBytes, HashMap<String, String> keys) throws Exception{
         this.headerCtr = Arrays.copyOfRange(headerBytes, 0, 0x10);
+        this.packageSize = Converter.getLEint(headerCtr, 0) ^ Converter.getLEint(headerCtr, 0x8) ^ Converter.getLEint(headerCtr, 0xC);
         collectKeys(keys);
         decodeEncrypted(headerBytes);
         buildHeader();
@@ -76,9 +78,8 @@ public class System2Header {
         }
     }
     private void decodeEncrypted(byte[] headerBytes) throws Exception{
-        int i=0;
         for (Map.Entry<String, String> entry: package2Keys.entrySet()){
-            AesCtrClassic ctrClassic = new AesCtrClassic(entry.getValue(), headerCtr);
+            AesCtrDecryptClassic ctrClassic = new AesCtrDecryptClassic(entry.getValue(), headerCtr);
 
             decodedHeaderBytes = ctrClassic.decryptNext(headerBytes);
             byte[] magicBytes = Arrays.copyOfRange(decodedHeaderBytes, 0x50, 0x54);
@@ -117,6 +118,7 @@ public class System2Header {
     }
 
     public byte[] getHeaderCtr() { return headerCtr; }
+    public long getPackageSize() { return packageSize; }
     public byte[] getSection0Ctr() { return section0Ctr; }
     public byte[] getSection1Ctr() { return section1Ctr; }
     public byte[] getSection2Ctr() { return section2Ctr; }
@@ -144,6 +146,7 @@ public class System2Header {
     public void printDebug(){
         log.debug("== System2 Header ==\n" +
             "Header CTR          : " + Converter.byteArrToHexStringAsLE(headerCtr) + "\n" +
+            "  Package size      : " + RainbowDump.formatDecHexString(packageSize) + "\n" +
             "Section 0 CTR       : " + Converter.byteArrToHexStringAsLE(section0Ctr) + "\n" +
             "Section 1 CTR       : " + Converter.byteArrToHexStringAsLE(section1Ctr) + "\n" +
             "Section 2 CTR       : " + Converter.byteArrToHexStringAsLE(section2Ctr) + "\n" +

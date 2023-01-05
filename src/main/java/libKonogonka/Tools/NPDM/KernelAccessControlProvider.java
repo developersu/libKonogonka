@@ -77,67 +77,59 @@ for (byte i = 0; i < 16; i++){
 public class KernelAccessControlProvider {
     private final static Logger log = LogManager.getLogger(KernelAccessControlProvider.class);
 
-    private static final int    KERNELFLAGS = 3,
-                                SYSCALLMASK = 4,
-                                MAPIOORNORMALRANGE = 6,
-                                MAPNORMALPAGE_RW = 7,
-                                INTERRUPTPAIR = 11,
-                                APPLICATIONTYPE = 13,
-                                KERNELRELEASEVERSION = 14,
-                                HANDLETABLESIZE = 15,
-                                DEBUGFLAGS = 16;
-
+    private static final int KERNELFLAGS = 3,
+                             SYSCALLMASK = 4,
+                             MAPIOORNORMALRANGE = 6,
+                             MAPNORMALPAGE_RW = 7,
+                             INTERRUPTPAIR = 11,
+                             APPLICATIONTYPE = 13,
+                             KERNELRELEASEVERSION = 14,
+                             HANDLETABLESIZE = 15,
+                             DEBUGFLAGS = 16;
     // RAW data
     private final LinkedList<Integer> rawData;
     // Kernel flags
     private boolean kernelFlagsAvailable;
-    private int     kernelFlagCpuIdHi,
-                    kernelFlagCpuIdLo,
-                    kernelFlagThreadPrioHi,
-                    kernelFlagThreadPrioLo;
+    private int kernelFlagCpuIdHi;
+    private int kernelFlagCpuIdLo;
+    private int kernelFlagThreadPrioHi;
+    private int kernelFlagThreadPrioLo;
     // Syscall Masks as index | mask  - order AS IS. [0] = bit5; [1] = bit6
     private final LinkedHashMap<Byte, byte[]> syscallMasks; // Index, Mask
     // MapIoOrNormalRange
     private final LinkedHashMap<byte[], Boolean> mapIoOrNormalRange; // alt page+num, RO flag
     // MapNormalPage (RW)
     private byte[] mapNormalPage;   // TODO: clarify is possible to have multiple
-    // InterruptPair
+
     private final LinkedHashMap<Integer, byte[][]> interruptPairs;   // Number; irq0, irq2
-    // Application type
+
     private int applicationType;
-    // KernelReleaseVersion
+
     private boolean isKernelRelVersionAvailable;
-    private int kernelRelVersionMajor,
-                kernelRelVersionMinor;
-    // Handle Table Size
+    private int kernelRelVersionMajor;
+    private int kernelRelVersionMinor;
+
     private int handleTableSize;
     // Debug flags
-    private boolean debugFlagsAvailable,
-                    canBeDebugged,
-                    canDebugOthers;
+    private boolean debugFlagsAvailable;
+    private boolean canBeDebugged;
+    private boolean canDebugOthers;
 
     public KernelAccessControlProvider(byte[] bytes) throws Exception{
         if (bytes.length < 4)
             throw new Exception("ACID-> KernelAccessControlProvider: too small size of the Kernel Access Control");
 
-        rawData = new LinkedList<Integer>();
+        this.rawData = new LinkedList<>();
+        this.interruptPairs = new LinkedHashMap<>();
+        this.syscallMasks = new LinkedHashMap<>();
+        this.mapIoOrNormalRange = new LinkedHashMap<>();
 
-        interruptPairs = new LinkedHashMap<>();
-        syscallMasks = new LinkedHashMap<Byte, byte[]>();
-        mapIoOrNormalRange = new LinkedHashMap<byte[], Boolean>();
-
-        int position = 0;
         // Collect all blocks
-        for (int i = 0; i < bytes.length / 4; i++) {
+        for (int position = 0; position < bytes.length; position += 4) {
             int block = Converter.getLEint(bytes, position);
-            position += 4;
 
             rawData.add(block);
-
-            //RainbowHexDump.octDumpInt(block);
-
-            int type = getMinBitCnt(block);
-
+            int type = findBitsCount(block);
             switch (type){
                 case KERNELFLAGS:
                     kernelFlagsAvailable = true;
@@ -145,42 +137,39 @@ public class KernelAccessControlProvider {
                     kernelFlagCpuIdLo = block >> 16 & 0b11111111;
                     kernelFlagThreadPrioHi = block >> 10 & 0b111111;
                     kernelFlagThreadPrioLo = block >> 4 & 0b111111;
-                    //log.debug("KERNELFLAGS "+kernelFlagCpuIdHi+" "+kernelFlagCpuIdLo+" "+kernelFlagThreadPrioHi+" "+kernelFlagThreadPrioLo);
+                    log.trace("KERNELFLAGS "+kernelFlagCpuIdHi+" "+kernelFlagCpuIdLo+" "+kernelFlagThreadPrioHi+" "+kernelFlagThreadPrioLo);
                     break;
                 case SYSCALLMASK:
                     byte maskTableIndex = (byte) (block >> 29 & 0b111); // declared as byte; max value could be 7; min - 0;
                     byte[] mask = new byte[24];                         // Consider as bit.
-                    //log.debug("SYSCALLMASK ind: "+maskTableIndex);
+                    log.trace("SYSCALLMASK ind: "+maskTableIndex);
 
                     for (int k = 28; k >= 5; k--) {
                         mask[k-5] = (byte) (block >> k & 1);        // Only 1 or 0 possible
-                        //log.debug("  " + mask[k-5]);
+                        log.trace("["+(k-4)+"/24]\t" + mask[k-5]);
                     }
-                    //log.debug();
                     syscallMasks.put(maskTableIndex, mask);
                     break;
                 case MAPIOORNORMALRANGE:
                     byte[] altStPgNPgNum = new byte[24];
-                    //log.debug("MAPIOORNORMALRANGE Flag: "+((block >> 31 & 1) != 0));
+                    log.trace("MAPIOORNORMALRANGE Flag: "+((block >> 31 & 1) != 0));
 
                     for (int k = 30; k >= 7; k--){
                         altStPgNPgNum[k-7] = (byte) (block >> k & 1);        // Only 1 or 0 possible
-                        //log.debug("  " + altStPgNPgNum[k-7]);
+                        log.trace("  " + altStPgNPgNum[k-7]);
                     }
                     mapIoOrNormalRange.put(altStPgNPgNum, (block >> 31 & 1) != 0);
-                    //log.debug();
                     break;
                 case MAPNORMALPAGE_RW:
-                    //log.debug("MAPNORMALPAGE_RW\t");
+                    log.trace("MAPNORMALPAGE_RW\t");
                     mapNormalPage = new byte[24];
                     for (int k = 31; k >= 8; k--){
                         mapNormalPage[k-8] = (byte) (block >> k & 1);
-                        //log.debug("  " + mapNormalPage[k-8]);
+                        log.trace("  " + mapNormalPage[k-8]);
                     }
-                    //log.debug();
                     break;
                 case INTERRUPTPAIR:
-                    //log.debug("INTERRUPTPAIR");
+                    log.trace("INTERRUPTPAIR");
                     //RainbowHexDump.octDumpInt(block);
                     byte[][] pair = new byte[2][];
                     byte[] irq0 = new byte[10];
@@ -196,33 +185,35 @@ public class KernelAccessControlProvider {
                     break;
                 case APPLICATIONTYPE:
                     applicationType = block >> 14 & 0b111;
-                    //log.debug("APPLICATIONTYPE "+applicationType);
+                    log.trace("APPLICATIONTYPE "+applicationType);
                     break;
                 case KERNELRELEASEVERSION:
-                    //log.debug("KERNELRELEASEVERSION\t"+(block >> 19 & 0b111111111111)+"."+(block >> 15 & 0b1111)+".X");
+                    log.trace("KERNELRELEASEVERSION\t"+(block >> 19 & 0b111111111111)+"."+(block >> 15 & 0b1111)+".X");
                     isKernelRelVersionAvailable = true;
                     kernelRelVersionMajor = (block >> 19 & 0b111111111111);
                     kernelRelVersionMinor = (block >> 15 & 0b1111);
                     break;
                 case HANDLETABLESIZE:
                     handleTableSize = block >> 16 & 0b1111111111;
-                    //log.debug("HANDLETABLESIZE "+handleTableSize);
+                    log.trace("HANDLETABLESIZE "+handleTableSize);
                     break;
                 case DEBUGFLAGS:
                     debugFlagsAvailable = true;
                     canBeDebugged = (block >> 17 & 1) != 0;
                     canDebugOthers = (block >> 18 & 1) != 0;
-                    //log.debug("DEBUGFLAGS "+canBeDebugged+" "+canDebugOthers);
+                    log.trace("DEBUGFLAGS "+canBeDebugged+" "+canDebugOthers);
                     break;
                 default:
-                    log.error("UNKNOWN\t\t"+block+" "+type);
+                    log.warn("INVALID ind:0b"+Integer.toBinaryString(block));
             }
         }
     }
 
-    private int getMinBitCnt(int value){
+    private int findBitsCount(int value){
         int minBitCnt = 0;
-        while ((value & 1) != 0){
+        for (int i = 0; i < 32; i++){
+            if((value & 1) == 0)
+                break;
             value >>= 1;
             minBitCnt++;
         }

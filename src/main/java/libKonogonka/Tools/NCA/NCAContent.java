@@ -22,7 +22,7 @@ import libKonogonka.Tools.NCA.NCASectionTableBlock.NcaFsHeader;
 import libKonogonka.Tools.PFS0.PFS0Provider;
 import libKonogonka.Tools.RomFs.RomFsProvider;
 import libKonogonka.ctraes.AesCtrBufferedInputStream;
-import libKonogonka.ctraes.AesCtrDecryptSimple;
+import libKonogonka.ctraes.AesCtrDecryptForMediaBlocks;
 import libKonogonka.ctraes.InFileStreamProducer;
 import libKonogonka.exceptions.EmptySectionException;
 import org.apache.logging.log4j.LogManager;
@@ -119,7 +119,7 @@ public class NCAContent {
     public RomFsProvider getRomfs() { return romfs; }
 
     private InFileStreamProducer makeEncryptedProducer() throws Exception{
-        AesCtrDecryptSimple decryptor = new AesCtrDecryptSimple(decryptedKey, ncaFsHeader.getSectionCTR(),
+        AesCtrDecryptForMediaBlocks decryptor = new AesCtrDecryptForMediaBlocks(decryptedKey, ncaFsHeader.getSectionCTR(),
                 ncaHeaderTableEntry.getMediaStartOffset() * 0x200);
         return new InFileStreamProducer(file, ncaOffsetPosition, 0, decryptor,
                 ncaHeaderTableEntry.getMediaStartOffset(), ncaHeaderTableEntry.getMediaEndOffset());
@@ -146,7 +146,7 @@ public class NCAContent {
                 stream = new BufferedInputStream(Files.newInputStream(file.toPath()));
             }
             else if(ncaFsHeader.getCryptoType()==0x03) {
-                AesCtrDecryptSimple decryptor = new AesCtrDecryptSimple(decryptedKey,
+                AesCtrDecryptForMediaBlocks decryptor = new AesCtrDecryptForMediaBlocks(decryptedKey,
                         ncaFsHeader.getSectionCTR(),
                         mediaStartOffset * 0x200);
 

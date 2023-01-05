@@ -20,8 +20,11 @@ package libKonogonka.RomFsDecrypted;
 
 import libKonogonka.KeyChainHolder;
 import libKonogonka.Tools.other.System2.System2Provider;
-import libKonogonka.ctraes.AesCtrClassic;
+import libKonogonka.Tools.other.System2.ini1.Ini1Provider;
+import libKonogonka.Tools.other.System2.ini1.Kip1;
+import libKonogonka.ctraesclassic.AesCtrDecryptClassic;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -42,6 +45,7 @@ public class Package2UnpackedTest {
 
     private static final String fileLocation = "/home/loper/Projects/libKonogonka/FilesForTests/6b7abe7efa17ad065b18e62d1c87a5cc.nca_extracted/ROOT/nx/package2";
 
+    @Disabled
     @DisplayName("Package2 unpacked test")
     @Test
     void discover() throws Exception{
@@ -79,7 +83,7 @@ public class Package2UnpackedTest {
         byte[] headerCTR = Arrays.copyOfRange(header, 0, 0x10);
 
         for (Map.Entry<String, String> entry: package2_keys.entrySet()){
-            AesCtrClassic aesCtrClassic = new AesCtrClassic(entry.getValue(), headerCTR);
+            AesCtrDecryptClassic aesCtrClassic = new AesCtrDecryptClassic(entry.getValue(), headerCTR);
 
             byte[] decrypted = aesCtrClassic.decryptNext(header);
             //RainbowDump.hexDumpUTF8(decrypted);
@@ -89,6 +93,7 @@ public class Package2UnpackedTest {
                 System.out.println(entry.getKey()+" "+entry.getValue()+" "+magicString);
         }
     }
+    @Disabled
     @DisplayName("Package2 written test")
     @Test
     void implement() throws Exception{
@@ -96,11 +101,16 @@ public class Package2UnpackedTest {
         keyChainHolder = new KeyChainHolder(keysFileLocation, null);
         System2Provider provider = new System2Provider(fileLocation, keyChainHolder);
         provider.getHeader().printDebug();
+        provider.getKernelMap().printDebug();
+        Ini1Provider ini1Provider = provider.getIni1Provider();
+        ini1Provider.getIni1Header().printDebug();
+        for (Kip1 kip1 : ini1Provider.getKip1List())
+            kip1.printDebug();
 
         boolean exported = provider.exportKernel("/home/loper/Projects/libKonogonka/FilesForTests/own/");
         System.out.println("Exported = "+exported);
 
-        exported = provider.exportIni1("/home/loper/Projects/libKonogonka/FilesForTests/own/");
+        exported = ini1Provider.export("/home/loper/Projects/libKonogonka/FilesForTests/own/");
         System.out.println("Exported INI1 = "+exported);
 
     }

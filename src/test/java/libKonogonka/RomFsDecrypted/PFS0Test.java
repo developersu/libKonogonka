@@ -19,19 +19,14 @@
 package libKonogonka.RomFsDecrypted;
 
 import libKonogonka.KeyChainHolder;
-import libKonogonka.RainbowDump;
 import libKonogonka.TitleKeyChainHolder;
-import libKonogonka.Tools.NCA.NCAProvider;
 import libKonogonka.Tools.PFS0.PFS0Provider;
 import libKonogonka.Tools.PFS0.PFS0subFile;
-import libKonogonka.ctraes.AesCtrBufferedInputStream;
-import libKonogonka.ctraes.AesCtrDecryptSimple;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
 import java.io.*;
-import java.nio.file.Files;
 import java.util.HashMap;
 
 public class PFS0Test {

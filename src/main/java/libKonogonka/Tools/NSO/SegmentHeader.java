@@ -29,7 +29,7 @@ public class SegmentHeader {
         this(data, 0);
     }
 
-    SegmentHeader(byte[] data, int fromOffset){
+    public SegmentHeader(byte[] data, int fromOffset){
         this.segmentOffset = Converter.getLEint(data, fromOffset);
         this.memoryOffset = Converter.getLEint(data, fromOffset+4);
         this.sizeAsDecompressed = Converter.getLEint(data, fromOffset+8);
@@ -42,7 +42,9 @@ public class SegmentHeader {
     public int getMemoryOffset() {
         return memoryOffset;
     }
-
+    /**
+     * @return Size of compressed if used in KIP1
+     * */
     public int getSizeAsDecompressed() {
         return sizeAsDecompressed;
     }

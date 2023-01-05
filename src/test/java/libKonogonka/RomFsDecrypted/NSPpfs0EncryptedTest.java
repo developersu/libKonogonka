@@ -25,7 +25,7 @@ import libKonogonka.Tools.NCA.NCAProvider;
 import libKonogonka.Tools.PFS0.PFS0Provider;
 import libKonogonka.Tools.PFS0.PFS0subFile;
 import libKonogonka.ctraes.AesCtrBufferedInputStream;
-import libKonogonka.ctraes.AesCtrDecryptSimple;
+import libKonogonka.ctraes.AesCtrDecryptForMediaBlocks;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
@@ -101,7 +101,7 @@ public class NSPpfs0EncryptedTest {
         }
     }
 
-    private AesCtrDecryptSimple decryptSimple;
+    private AesCtrDecryptForMediaBlocks decryptSimple;
     long ACBISoffsetPosition;
     long ACBISmediaStartOffset;
     long ACBISmediaEndOffset;

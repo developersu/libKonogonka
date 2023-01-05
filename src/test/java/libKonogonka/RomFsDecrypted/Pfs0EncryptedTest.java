@@ -24,7 +24,7 @@ import libKonogonka.Tools.NCA.NCAProvider;
 import libKonogonka.Tools.PFS0.PFS0Provider;
 import libKonogonka.Tools.PFS0.PFS0subFile;
 import libKonogonka.ctraes.AesCtrBufferedInputStream;
-import libKonogonka.ctraes.AesCtrDecryptSimple;
+import libKonogonka.ctraes.AesCtrDecryptForMediaBlocks;
 import org.junit.jupiter.api.*;
 
 import java.io.*;
@@ -72,7 +72,7 @@ public class Pfs0EncryptedTest {
         }
     }
 
-    private AesCtrDecryptSimple decryptSimple;
+    private AesCtrDecryptForMediaBlocks decryptSimple;
     long ACBISoffsetPosition;
     long ACBISmediaStartOffset;
     long ACBISmediaEndOffset;
@@ -104,7 +104,7 @@ public class Pfs0EncryptedTest {
         ACBISmediaStartOffset = ncaProvider.getTableEntry0().getMediaStartOffset();
         ACBISmediaEndOffset = ncaProvider.getTableEntry0().getMediaEndOffset();
 
-        decryptSimple = new AesCtrDecryptSimple(
+        decryptSimple = new AesCtrDecryptForMediaBlocks(
                 ncaProvider.getDecryptedKey2(),
                 ncaProvider.getSectionBlock0().getSectionCTR(),
                 ncaProvider.getTableEntry0().getMediaStartOffset()*0x200);

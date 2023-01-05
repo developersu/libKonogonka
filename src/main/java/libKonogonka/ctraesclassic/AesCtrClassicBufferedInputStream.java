@@ -1,5 +1,5 @@
 /*
-    Copyright 2019-2022 Dmitry Isaenko
+    Copyright 2019-2023 Dmitry Isaenko
      
     This file is part of libKonogonka.
 
@@ -16,7 +16,7 @@
     You should have received a copy of the GNU General Public License
     along with libKonogonka.  If not, see <https://www.gnu.org/licenses/>.
  */
-package libKonogonka.ctraes;
+package libKonogonka.ctraesclassic;
 
 import libKonogonka.RainbowDump;
 import org.apache.logging.log4j.LogManager;
@@ -24,34 +24,32 @@ import org.apache.logging.log4j.Logger;
 
 import java.io.*;
 
-public class AesCtrBufferedInputStream extends BufferedInputStream {
-    private final static Logger log = LogManager.getLogger(AesCtrBufferedInputStream.class);
+public class AesCtrClassicBufferedInputStream extends BufferedInputStream {
+    private final static Logger log = LogManager.getLogger(AesCtrClassicBufferedInputStream.class);
 
-    private final AesCtrDecryptForMediaBlocks decryptor;
-    private final long mediaOffsetPositionStart;
-    private final long mediaOffsetPositionEnd;
+    private final AesCtrDecryptClassic decryptor;
+    private final long encryptedStartOffset;
+    private final long encryptedEndOffset;
     private final long fileSize;
-
-    public AesCtrBufferedInputStream(AesCtrDecryptForMediaBlocks decryptor,
-                                     long ncaOffsetPosition,
-                                     long mediaStartOffset,
-                                     long mediaEndOffset,
-                                     InputStream inputStream,
-                                     long fileSize){
-        super(inputStream);
-        this.decryptor = decryptor;
-        this.mediaOffsetPositionStart = ncaOffsetPosition + (mediaStartOffset * 0x200);
-        this.mediaOffsetPositionEnd = ncaOffsetPosition + (mediaEndOffset * 0x200);
-        this.fileSize = fileSize;
-
-        log.trace("\n  Offset Position             "+ncaOffsetPosition+
-                  "\n  MediaOffsetPositionStart    "+RainbowDump.formatDecHexString(mediaOffsetPositionStart)+
-                  "\n  MediaOffsetPositionEnd      "+RainbowDump.formatDecHexString(mediaOffsetPositionEnd));
-    }
 
     private byte[] decryptedBytes;
     private long pseudoPos;
     private int pointerInsideDecryptedSection;
+
+    public AesCtrClassicBufferedInputStream(AesCtrDecryptClassic decryptor,
+                                            long encryptedStartOffset,
+                                            long encryptedEndOffset,
+                                            InputStream inputStream,
+                                            long fileSize){
+        super(inputStream);
+        this.decryptor = decryptor;
+        this.encryptedStartOffset = encryptedStartOffset;
+        this.encryptedEndOffset = encryptedEndOffset;
+        this.fileSize = fileSize;
+
+        log.trace("  EncryptedStartOffset   : "+RainbowDump.formatDecHexString(encryptedStartOffset)+
+                "\n  EncryptedEndOffset     : "+RainbowDump.formatDecHexString(encryptedEndOffset));
+    }
 
     @Override
     public synchronized int read(byte[] b) throws IOException{
@@ -88,7 +86,7 @@ public class AesCtrBufferedInputStream extends BufferedInputStream {
                 return b.length;
             }
             log.trace("1. Pointer Inside + End Position Outside Encrypted Section ("+pseudoPos+"-"+(pseudoPos+b.length)+")");
-            int middleBlocksCount = (int) ((mediaOffsetPositionEnd - (pseudoPos+bytesFromFirstBlock)) / 0x200);
+            int middleBlocksCount = (int) ((encryptedEndOffset - (pseudoPos+bytesFromFirstBlock)) / 0x200);
             int bytesFromEnd = bytesToRead - bytesFromFirstBlock - middleBlocksCount * 0x200;
             //1
             System.arraycopy(decryptedBytes, pointerInsideDecryptedSection, b, 0, bytesFromFirstBlock);
@@ -103,10 +101,10 @@ public class AesCtrBufferedInputStream extends BufferedInputStream {
             pseudoPos += bytesToRead;
             pointerInsideDecryptedSection = 0;
             return b.length;
-        }  
+        }
         if (isEndPositionInsideEncryptedSection(bytesToRead)) {
             log.trace("2. End Position Inside Encrypted Section ("+pseudoPos+"-"+(pseudoPos+b.length)+")");
-            int bytesTillEncrypted = (int) (mediaOffsetPositionStart - pseudoPos);
+            int bytesTillEncrypted = (int) (encryptedStartOffset - pseudoPos);
             int fullEncryptedBlocks = (bytesToRead - bytesTillEncrypted) / 0x200;
             int incompleteEncryptedBytes = (bytesToRead - bytesTillEncrypted) % 0x200;
             System.arraycopy(readChunk(bytesTillEncrypted), 0, b, 0, bytesTillEncrypted);
@@ -135,15 +133,7 @@ public class AesCtrBufferedInputStream extends BufferedInputStream {
             throw new IOException(e);
         }
     }
-    private void resetAndSkip(long blockSum) throws IOException{
-        try{
-            decryptor.reset();
-            decryptor.skipNext(blockSum);                                                   // recalculate
-        }
-        catch (Exception e){
-            throw new IOException(e);
-        }
-    }
+
     private byte[] readChunk(int bytes) throws IOException{
         byte[] chunkBytes = new byte[bytes];
         long actuallyRead = super.read(chunkBytes);
@@ -154,10 +144,12 @@ public class AesCtrBufferedInputStream extends BufferedInputStream {
     }
 
     private boolean isPointerInsideEncryptedSection(){
-        return (pseudoPos-pointerInsideDecryptedSection >= mediaOffsetPositionStart) && (pseudoPos-pointerInsideDecryptedSection < mediaOffsetPositionEnd);
+        return (pseudoPos-pointerInsideDecryptedSection >= encryptedStartOffset) &&
+                (pseudoPos-pointerInsideDecryptedSection < encryptedEndOffset);
     }
     private boolean isEndPositionInsideEncryptedSection(long requestedBytesCount){
-        return ((pseudoPos-pointerInsideDecryptedSection + requestedBytesCount) >= mediaOffsetPositionStart) && ((pseudoPos-pointerInsideDecryptedSection + requestedBytesCount) < mediaOffsetPositionEnd);
+        return ((pseudoPos-pointerInsideDecryptedSection + requestedBytesCount) >= encryptedStartOffset) &&
+                ((pseudoPos-pointerInsideDecryptedSection + requestedBytesCount) < encryptedEndOffset);
     }
 
     @Override
@@ -172,7 +164,7 @@ public class AesCtrBufferedInputStream extends BufferedInputStream {
 
             if (isEndPositionInsideEncryptedSection(n)){ // If we need to move somewhere out of the encrypted section
                 log.trace("4.1. Pointer Inside + End Position Inside Encrypted Section ("+pseudoPos+"-"+(pseudoPos+n)+")");
-                long blocksToSkipCountingFromStart = (pseudoPos+n - mediaOffsetPositionStart) / 0x200;        // always positive
+                long blocksToSkipCountingFromStart = (pseudoPos+n - encryptedStartOffset) / 0x200;        // always positive
                 resetAndSkip(blocksToSkipCountingFromStart);
 
                 long leftovers = realCountOfBytesToSkip % 0x200;           // most likely will be 0;  TODO: a lot of tests
@@ -194,7 +186,7 @@ public class AesCtrBufferedInputStream extends BufferedInputStream {
         if (isEndPositionInsideEncryptedSection(n)) {  //pointer will be inside Encrypted Section, but now outside
             log.trace("5. End Position Inside Encrypted Section ("+pseudoPos+"-"+(pseudoPos+n)+")");
             //skip to start if the block we need
-            long bytesToSkipTillEncryptedBlock = mediaOffsetPositionStart - pseudoPos;
+            long bytesToSkipTillEncryptedBlock = encryptedStartOffset - pseudoPos;
             long blocksToSkipCountingFromStart = (n - bytesToSkipTillEncryptedBlock) / 0x200;        // always positive
             long bytesToSkipTillRequiredBlock = bytesToSkipTillEncryptedBlock + blocksToSkipCountingFromStart * 0x200;
             long leftovers = n - bytesToSkipTillRequiredBlock;           // most likely will be 0;
@@ -227,6 +219,13 @@ public class AesCtrBufferedInputStream extends BufferedInputStream {
             log.trace("Skip loop: skipped: "+skipped+"\tmustSkip "+mustSkip);
         }
     }
+    private void resetAndSkip(long blockSum) throws IOException{
+        try {
+            decryptor.resetAndSkip(blockSum);
+        }
+        catch (Exception e){ throw new IOException(e); }
+    }
+
     @Override
     public synchronized int read() throws IOException {
         byte[] b = new byte[1];

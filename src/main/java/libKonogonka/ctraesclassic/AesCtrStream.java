@@ -1,5 +1,5 @@
 /*
-    Copyright 2019-2022 Dmitry Isaenko
+    Copyright 2019-2023 Dmitry Isaenko
 
     This file is part of libKonogonka.
 
@@ -16,43 +16,38 @@
     You should have received a copy of the GNU General Public License
     along with libKonogonka.  If not, see <https://www.gnu.org/licenses/>.
 */
-package libKonogonka.ctraes;
+package libKonogonka.ctraesclassic;
 
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
 
 import javax.crypto.Cipher;
-import javax.crypto.CipherOutputStream;
+import javax.crypto.CipherInputStream;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
+import java.io.InputStream;
 import java.security.Security;
 
-public class AesCtrClassic {
-
+public class AesCtrStream {
     private static boolean BCinitialized = false;
 
-    private void initBCProvider(){
+    private static void initBCProvider(){
         Security.addProvider(new BouncyCastleProvider());
         BCinitialized = true;
     }
+    private AesCtrStream(){ }
 
-    private final Cipher cipher;
-
-    public AesCtrClassic(String keyString, byte[] IVarray) throws Exception{
+    public static CipherInputStream getStream(String keyString, byte[] IVarray, InputStream inputStream) throws Exception{
         if ( ! BCinitialized)
             initBCProvider();
         byte[] keyArray = hexStrToByteArray(keyString);
         SecretKeySpec key = new SecretKeySpec(keyArray, "AES");
-        cipher = Cipher.getInstance("AES/CTR/NoPadding", "BC");
+        Cipher cipher = Cipher.getInstance("AES/CTR/NoPadding", "BC");
         IvParameterSpec iv = new IvParameterSpec(IVarray.clone());
         cipher.init(Cipher.DECRYPT_MODE, key, iv);
-        //TODO: CipherOutputStream
+        return new CipherInputStream(inputStream, cipher);
     }
 
-    public byte[] decryptNext(byte[] encryptedData) {
-        return cipher.update(encryptedData);
-    }
-
-    private byte[] hexStrToByteArray(String s) {
+    private static byte[] hexStrToByteArray(String s) {
         int len = s.length();
         byte[] data = new byte[len / 2];
         for (int i = 0; i < len; i += 2) {

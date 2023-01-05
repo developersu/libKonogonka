@@ -28,7 +28,7 @@ public class InFileStreamProducer {
     private final File file;
     private final long initialOffset;
     private long subOffset;
-    private AesCtrDecryptSimple decryptor;
+    private AesCtrDecryptForMediaBlocks decryptor;
     private long mediaStartOffset;
     private long mediaEndOffset;
 
@@ -46,7 +46,7 @@ public class InFileStreamProducer {
             File file,
             long initialOffset,
             long subOffset,
-            AesCtrDecryptSimple decryptor,
+            AesCtrDecryptForMediaBlocks decryptor,
             long mediaStartOffset,
             long mediaEndOffset){
         this.encrypted = (decryptor != null);
