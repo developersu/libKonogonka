@@ -42,15 +42,18 @@ public class Kip1 {
     private final int threadAffinityMask;
     private final SegmentHeader roDataSegmentHeader;
     private final int mainThreadStackSize ;
-    private final SegmentHeader dataSegmentHeader;
+    private final SegmentHeader rwDataSegmentHeader;
     private final byte[] reserved2;
     private final SegmentHeader bssSegmentHeader;
     private final byte[] reserved3;
     private final KernelAccessControlProvider kernelCapabilityData;
 
-    public Kip1(byte[] kip1Bytes) throws Exception{
+    private final long startOffset;
+    private final long endOffset;
+
+    public Kip1(byte[] kip1Bytes, long kip1StartOffset) throws Exception{
         this.magic = new String(kip1Bytes, 0, 0x4);
-        this.name = new String(kip1Bytes, 0x4, 0xC);
+        this.name = new String(kip1Bytes, 0x4, 0xC).trim();
         this.programId = Arrays.copyOfRange(kip1Bytes, 0x10, 0x18);
         this.version = Converter.getLEint(kip1Bytes, 0x18);
         this.mainThreadPriority = kip1Bytes[0x1c];
@@ -61,11 +64,16 @@ public class Kip1 {
         this.threadAffinityMask = Converter.getLEint(kip1Bytes, 0x2c);
         this.roDataSegmentHeader = new SegmentHeader(kip1Bytes, 0x30);
         this.mainThreadStackSize = Converter.getLEint(kip1Bytes, 0x3c);
-        this.dataSegmentHeader = new SegmentHeader(kip1Bytes, 0x40);
+        this.rwDataSegmentHeader = new SegmentHeader(kip1Bytes, 0x40);
         this.reserved2 = Arrays.copyOfRange(kip1Bytes, 0x4c, 0x50);
         this.bssSegmentHeader = new SegmentHeader(kip1Bytes, 0x50);
         this.reserved3 = Arrays.copyOfRange(kip1Bytes, 0x5c, 0x80);
         this.kernelCapabilityData = new KernelAccessControlProvider(Arrays.copyOfRange(kip1Bytes, 0x80, 0x100));
+
+        this.startOffset = kip1StartOffset;
+        this.endOffset = 0x100 + kip1StartOffset + textSegmentHeader.getSizeAsDecompressed() + roDataSegmentHeader.getSizeAsDecompressed() +
+                rwDataSegmentHeader.getSizeAsDecompressed() + bssSegmentHeader.getSizeAsDecompressed();
+
     }
 
     public String getMagic() { return magic; }
@@ -80,11 +88,14 @@ public class Kip1 {
     public int getThreadAffinityMask() { return threadAffinityMask; }
     public SegmentHeader getRoDataSegmentHeader() { return roDataSegmentHeader; }
     public int getMainThreadStackSize() { return mainThreadStackSize; }
-    public SegmentHeader getDataSegmentHeader() { return dataSegmentHeader; }
+    public SegmentHeader getRwDataSegmentHeader() { return rwDataSegmentHeader; }
     public byte[] getReserved2() { return reserved2; }
     public SegmentHeader getBssSegmentHeader() { return bssSegmentHeader; }
     public byte[] getReserved3() { return reserved3; }
     public KernelAccessControlProvider getKernelCapabilityData() { return kernelCapabilityData; }
+
+    public long getStartOffset() { return startOffset; }
+    public long getEndOffset() { return endOffset; }
 
     public void printDebug(){
         StringBuilder mapIoOrNormalRange = new StringBuilder();
@@ -115,7 +126,7 @@ public class Kip1 {
             syscallMasks.append("\n");
         });
 
-        log.debug(" ..:: KIP1 ::..\n" +
+        log.debug(String.format("..:: KIP1 (0x%x-0x%x) ::..%n", startOffset, endOffset) +
                 "Magic                            : " + magic + "\n" +
                 "Name                             : " + name + "\n" +
                 "ProgramId                        : " + Converter.byteArrToHexStringAsLE(programId) + "\n" +
@@ -135,9 +146,9 @@ public class Kip1 {
                 "   Size                          : " + RainbowDump.formatDecHexString(roDataSegmentHeader.getSizeAsDecompressed()) + "\n" +
                 "Main thread stack size           : " + RainbowDump.formatDecHexString(mainThreadStackSize) + "\n" +
                 ".data segment header\n" +
-                "   Segment offset                : " + RainbowDump.formatDecHexString(dataSegmentHeader.getSegmentOffset()) + "\n" +
-                "   Memory offset                 : " + RainbowDump.formatDecHexString(dataSegmentHeader.getMemoryOffset()) + "\n" +
-                "   Size                          : " + RainbowDump.formatDecHexString(dataSegmentHeader.getSizeAsDecompressed()) + "\n" +
+                "   Segment offset                : " + RainbowDump.formatDecHexString(rwDataSegmentHeader.getSegmentOffset()) + "\n" +
+                "   Memory offset                 : " + RainbowDump.formatDecHexString(rwDataSegmentHeader.getMemoryOffset()) + "\n" +
+                "   Size                          : " + RainbowDump.formatDecHexString(rwDataSegmentHeader.getSizeAsDecompressed()) + "\n" +
                 "Reserved 2                       : " + Converter.byteArrToHexStringAsLE(reserved2) + "\n" +
                 ".bss segment header\n" +
                 "   Segment offset                : " + RainbowDump.formatDecHexString(bssSegmentHeader.getSegmentOffset()) + "\n" +

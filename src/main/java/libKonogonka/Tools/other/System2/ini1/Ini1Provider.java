@@ -60,7 +60,7 @@ public class Ini1Provider {
         AesCtrDecryptClassic decryptor = new AesCtrDecryptClassic(system2Header.getKey(), system2Header.getSection0Ctr());
         stream = new AesCtrClassicBufferedInputStream(decryptor,
                 0x200,
-                Files.size(filePath),
+                Files.size(filePath), // size of system2
                 Files.newInputStream(filePath),
                 Files.size(filePath));
 
@@ -78,24 +78,27 @@ public class Ini1Provider {
     private void collectKips() throws Exception{
         kip1List = new ArrayList<>();
         long skipTillNextKip1 = 0;
+        long kip1StartOffset = 0;
         for (int i = 0; i < ini1Header.getKipNumber(); i++){
             if (skipTillNextKip1 != stream.skip(skipTillNextKip1))
                 throw new Exception("Unable to skip bytes till next KIP1 header");
             byte[] kip1bytes = new byte[0x100];
             if (0x100 != stream.read(kip1bytes))
                 throw new Exception("Unable to read KIP1 data ");
-            Kip1 kip1 = new Kip1(kip1bytes);
+            Kip1 kip1 = new Kip1(kip1bytes, kip1StartOffset);
             kip1List.add(kip1);
             skipTillNextKip1 = kip1.getTextSegmentHeader().getSizeAsDecompressed() +
                     kip1.getRoDataSegmentHeader().getSizeAsDecompressed() +
-                    kip1.getDataSegmentHeader().getSizeAsDecompressed();
+                    kip1.getRwDataSegmentHeader().getSizeAsDecompressed() +
+                    kip1.getBssSegmentHeader().getSizeAsDecompressed();
+            kip1StartOffset = kip1.getEndOffset();
         }
     }
 
     public Ini1Header getIni1Header() { return ini1Header; }
     public List<Kip1> getKip1List() { return kip1List; }
 
-    public boolean export(String saveTo) throws Exception{
+    public boolean exportIni1(String saveTo) throws Exception{
         makeStream();
         File location = new File(saveTo);
         location.mkdirs();
@@ -120,6 +123,47 @@ public class Ini1Provider {
                 i += blockSize;
                 if ((i + blockSize) > iniSize) {
                     blockSize = (int) (iniSize - i);
+                    if (blockSize == 0)
+                        break;
+                    block = new byte[blockSize];
+                }
+            }
+        }
+        catch (Exception e){
+            log.error("File export failure", e);
+            return false;
+        }
+        return true;
+    }
+
+    public boolean exportKip1(String saveTo, Kip1 kip1) throws Exception{
+        makeStream();
+        long startOffset = 0x10 + kip1.getStartOffset();
+        if (startOffset != stream.skip(startOffset))
+            throw new Exception("Can't seek to start position of KIP1: "+startOffset);
+        File location = new File(saveTo);
+        location.mkdirs();
+
+        try (BufferedOutputStream extractedFileBOS = new BufferedOutputStream(
+                Files.newOutputStream(Paths.get(saveTo+File.separator+kip1.getName()+".kip1")))){
+
+            long size = kip1.getEndOffset()-kip1.getStartOffset();
+
+            int blockSize = 0x200;
+            if (size < 0x200)
+                blockSize = (int) size;
+
+            long i = 0;
+            byte[] block = new byte[blockSize];
+
+            int actuallyRead;
+            while (true) {
+                if ((actuallyRead = stream.read(block)) != blockSize)
+                    throw new Exception("Read failure. Block Size: "+blockSize+", actuallyRead: "+actuallyRead);
+                extractedFileBOS.write(block);
+                i += blockSize;
+                if ((i + blockSize) > size) {
+                    blockSize = (int) (size - i);
                     if (blockSize == 0)
                         break;
                     block = new byte[blockSize];

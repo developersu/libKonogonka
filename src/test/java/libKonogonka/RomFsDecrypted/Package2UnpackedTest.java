@@ -24,7 +24,6 @@ import libKonogonka.Tools.other.System2.ini1.Ini1Provider;
 import libKonogonka.Tools.other.System2.ini1.Kip1;
 import libKonogonka.ctraesclassic.AesCtrDecryptClassic;
 import org.junit.jupiter.api.Assertions;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -45,7 +44,6 @@ public class Package2UnpackedTest {
 
     private static final String fileLocation = "/home/loper/Projects/libKonogonka/FilesForTests/6b7abe7efa17ad065b18e62d1c87a5cc.nca_extracted/ROOT/nx/package2";
 
-    @Disabled
     @DisplayName("Package2 unpacked test")
     @Test
     void discover() throws Exception{
@@ -93,7 +91,6 @@ public class Package2UnpackedTest {
                 System.out.println(entry.getKey()+" "+entry.getValue()+" "+magicString);
         }
     }
-    @Disabled
     @DisplayName("Package2 written test")
     @Test
     void implement() throws Exception{
@@ -110,8 +107,12 @@ public class Package2UnpackedTest {
         boolean exported = provider.exportKernel("/home/loper/Projects/libKonogonka/FilesForTests/own/");
         System.out.println("Exported = "+exported);
 
-        exported = ini1Provider.export("/home/loper/Projects/libKonogonka/FilesForTests/own/");
+        exported = ini1Provider.exportIni1("/home/loper/Projects/libKonogonka/FilesForTests/own/");
         System.out.println("Exported INI1 = "+exported);
 
+        for (Kip1 kip1 : ini1Provider.getKip1List()) {
+            exported = ini1Provider.exportKip1("/home/loper/Projects/libKonogonka/FilesForTests/own/KIP1s", kip1);
+            System.out.println("Exported KIP1s "+ kip1.getName() +" = " + exported + String.format(" Size 0x%x", Files.size(Paths.get("/home/loper/Projects/libKonogonka/FilesForTests/own/KIP1s/"+kip1.getName()+".kip1"))));
+        }
     }
 }
