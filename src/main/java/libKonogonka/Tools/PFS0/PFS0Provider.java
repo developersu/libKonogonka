@@ -19,6 +19,7 @@
 package libKonogonka.Tools.PFS0;
 
 import libKonogonka.RainbowDump;
+import libKonogonka.Tools.ExportAble;
 import libKonogonka.Tools.ISuperProvider;
 import libKonogonka.Tools.NCA.NCASectionTableBlock.SuperBlockPFS0;
 import libKonogonka.ctraes.InFileStreamProducer;
@@ -30,14 +31,13 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.LinkedList;
 
-public class PFS0Provider implements ISuperProvider {
+public class PFS0Provider extends ExportAble implements ISuperProvider {
     private final static Logger log = LogManager.getLogger(PFS0Provider.class);
 
     private final long rawBlockDataStart;
 
     private long offsetPositionInFile;
     private final InFileStreamProducer producer;
-    private BufferedInputStream stream;
     private SuperBlockPFS0 superBlockPFS0;
 
     private long mediaStartOffset;
@@ -108,47 +108,16 @@ public class PFS0Provider implements ISuperProvider {
     }
     @Override
     public boolean exportContent(String saveToLocation, int subFileNumber){
-        PFS0subFile subFile = header.getPfs0subFiles()[subFileNumber];
-        File location = new File(saveToLocation);
-        location.mkdirs();
-
-        try (BufferedOutputStream extractedFileBOS = new BufferedOutputStream(
-                Files.newOutputStream(Paths.get(saveToLocation+File.separator+subFile.getName())))){
-
+        try {
+            PFS0subFile subFile = header.getPfs0subFiles()[subFileNumber];
             this.stream = producer.produce();
-
-            long subFileSize = subFile.getSize();
-
             long toSkip = subFile.getOffset() + mediaStartOffset * 0x200 + rawBlockDataStart;
-            if (toSkip != stream.skip(toSkip))
-                throw new Exception("Unable to skip offset: "+toSkip);
-
-            int blockSize = 0x200;
-            if (subFileSize < 0x200)
-                blockSize = (int) subFileSize;
-
-            long i = 0;
-            byte[] block = new byte[blockSize];
-
-            int actuallyRead;
-            while (true) {
-                if ((actuallyRead = stream.read(block)) != blockSize)
-                    throw new Exception("Read failure. Block Size: "+blockSize+", actuallyRead: "+actuallyRead);
-                extractedFileBOS.write(block);
-                i += blockSize;
-                if ((i + blockSize) > subFileSize) {
-                    blockSize = (int) (subFileSize - i);
-                    if (blockSize == 0)
-                        break;
-                    block = new byte[blockSize];
-                }
-            }
+            return export(saveToLocation, subFile.getName(), toSkip, subFile.getSize());
         }
         catch (Exception e){
             log.error("File export failure", e);
             return false;
         }
-        return true;
     }
 
     @Override

@@ -18,6 +18,7 @@
  */
 package libKonogonka.Tools.other.System2.ini1;
 
+import libKonogonka.Tools.ExportAble;
 import libKonogonka.Tools.other.System2.KernelMap;
 import libKonogonka.Tools.other.System2.System2Header;
 import libKonogonka.ctraesclassic.AesCtrClassicBufferedInputStream;
@@ -25,24 +26,18 @@ import libKonogonka.ctraesclassic.AesCtrDecryptClassic;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
-import java.io.BufferedOutputStream;
-import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.List;
 
-public class Ini1Provider {
-    private final static Logger log = LogManager.getLogger(Ini1Provider.class);
-
+public class Ini1Provider extends ExportAble {
     private final System2Header system2Header;
     private final String pathToFile;
     private final KernelMap kernelMap;
     private Ini1Header ini1Header;
     private List<Kip1> kip1List;
-
-    private AesCtrClassicBufferedInputStream stream;
 
     public Ini1Provider(System2Header system2Header, String pathToFile, KernelMap kernelMap) throws Exception{
         this.system2Header = system2Header;
@@ -100,80 +95,14 @@ public class Ini1Provider {
 
     public boolean exportIni1(String saveTo) throws Exception{
         makeStream();
-        File location = new File(saveTo);
-        location.mkdirs();
-
-        try (BufferedOutputStream extractedFileBOS = new BufferedOutputStream(
-                Files.newOutputStream(Paths.get(saveTo+File.separator+"INI1.bin")))){
-
-            long iniSize = ini1Header.getSize();
-
-            int blockSize = 0x200;
-            if (iniSize < 0x200)
-                blockSize = (int) iniSize;
-
-            long i = 0;
-            byte[] block = new byte[blockSize];
-
-            int actuallyRead;
-            while (true) {
-                if ((actuallyRead = stream.read(block)) != blockSize)
-                    throw new Exception("Read failure. Block Size: "+blockSize+", actuallyRead: "+actuallyRead);
-                extractedFileBOS.write(block);
-                i += blockSize;
-                if ((i + blockSize) > iniSize) {
-                    blockSize = (int) (iniSize - i);
-                    if (blockSize == 0)
-                        break;
-                    block = new byte[blockSize];
-                }
-            }
-        }
-        catch (Exception e){
-            log.error("File export failure", e);
-            return false;
-        }
-        return true;
+        return export(saveTo, "INI1.bin", 0, ini1Header.getSize());
     }
 
     public boolean exportKip1(String saveTo, Kip1 kip1) throws Exception{
         makeStream();
-        long startOffset = 0x10 + kip1.getStartOffset();
-        if (startOffset != stream.skip(startOffset))
-            throw new Exception("Can't seek to start position of KIP1: "+startOffset);
-        File location = new File(saveTo);
-        location.mkdirs();
-
-        try (BufferedOutputStream extractedFileBOS = new BufferedOutputStream(
-                Files.newOutputStream(Paths.get(saveTo+File.separator+kip1.getName()+".kip1")))){
-
-            long size = kip1.getEndOffset()-kip1.getStartOffset();
-
-            int blockSize = 0x200;
-            if (size < 0x200)
-                blockSize = (int) size;
-
-            long i = 0;
-            byte[] block = new byte[blockSize];
-
-            int actuallyRead;
-            while (true) {
-                if ((actuallyRead = stream.read(block)) != blockSize)
-                    throw new Exception("Read failure. Block Size: "+blockSize+", actuallyRead: "+actuallyRead);
-                extractedFileBOS.write(block);
-                i += blockSize;
-                if ((i + blockSize) > size) {
-                    blockSize = (int) (size - i);
-                    if (blockSize == 0)
-                        break;
-                    block = new byte[blockSize];
-                }
-            }
-        }
-        catch (Exception e){
-            log.error("File export failure", e);
-            return false;
-        }
-        return true;
+        return export(saveTo,
+                kip1.getName()+".kip1",
+                0x10 + kip1.getStartOffset(),
+                kip1.getEndOffset()-kip1.getStartOffset());
     }
 }

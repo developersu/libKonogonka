@@ -18,7 +18,7 @@
  */
 package libKonogonka.Tools.RomFs;
 
-import libKonogonka.Tools.PFS0.PFS0subFile;
+import libKonogonka.Tools.ExportAble;
 import libKonogonka.Tools.RomFs.view.DirectoryMetaTablePlainView;
 import libKonogonka.Tools.RomFs.view.FileMetaTablePlainView;
 import libKonogonka.ctraes.InFileStreamProducer;
@@ -26,9 +26,8 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.*;
-import java.nio.file.Files;
 
-public class RomFsProvider{
+public class RomFsProvider extends ExportAble {
     private final static Logger log = LogManager.getLogger(RomFsProvider.class);
 
     private final InFileStreamProducer producer;
@@ -99,36 +98,9 @@ public class RomFsProvider{
     }
 
     private void exportSingleFile(FileSystemEntry entry, String saveToLocation) throws Exception {
-        File contentFile = new File(saveToLocation + entry.getName());
-        try(BufferedOutputStream extractedFileBOS = new BufferedOutputStream(Files.newOutputStream(contentFile.toPath()));
-            BufferedInputStream stream = producer.produce()) {
-            long skipBytes = entry.getOffset() + mediaStartOffset * 0x200 + level6Header.getFileDataOffset() + level6Offset;
-
-            if (skipBytes != stream.skip(skipBytes))
-                throw new Exception("Can't skip");
-
-            int blockSize = 0x200;
-            if (entry.getSize() < 0x200)
-                blockSize = (int) entry.getSize();
-
-            long i = 0;
-            byte[] block = new byte[blockSize];
-
-            int actuallyRead;
-
-            while (true) {
-                if ((actuallyRead = stream.read(block)) != blockSize)
-                    throw new Exception("Read failure. Block Size: "+blockSize+", actuallyRead: "+actuallyRead);
-                extractedFileBOS.write(block);
-                i += blockSize;
-                if ((i + blockSize) >= entry.getSize()) {
-                    blockSize = (int) (entry.getSize() - i);
-                    if (blockSize == 0)
-                        break;
-                    block = new byte[blockSize];
-                }
-            }
-        }
+        stream = producer.produce();
+        long skipBytes = entry.getOffset() + mediaStartOffset * 0x200 + level6Header.getFileDataOffset() + level6Offset;
+        export(saveToLocation, entry.getName(), skipBytes, entry.getSize());
     }
 
     public InFileStreamProducer getStreamProducer(FileSystemEntry entry) throws Exception{

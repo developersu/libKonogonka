@@ -203,6 +203,8 @@ public class KernelAccessControlProvider {
                     canDebugOthers = (block >> 18 & 1) != 0;
                     log.trace("DEBUGFLAGS "+canBeDebugged+" "+canDebugOthers);
                     break;
+                case 0x20:
+                    break;
                 default:
                     log.warn("INVALID ind:0b"+Integer.toBinaryString(block));
             }

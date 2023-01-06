@@ -103,7 +103,6 @@ public class Package2UnpackedTest {
         ini1Provider.getIni1Header().printDebug();
         for (Kip1 kip1 : ini1Provider.getKip1List())
             kip1.printDebug();
-
         boolean exported = provider.exportKernel("/home/loper/Projects/libKonogonka/FilesForTests/own/");
         System.out.println("Exported = "+exported);
 
@@ -114,5 +113,11 @@ public class Package2UnpackedTest {
             exported = ini1Provider.exportKip1("/home/loper/Projects/libKonogonka/FilesForTests/own/KIP1s", kip1);
             System.out.println("Exported KIP1s "+ kip1.getName() +" = " + exported + String.format(" Size 0x%x", Files.size(Paths.get("/home/loper/Projects/libKonogonka/FilesForTests/own/KIP1s/"+kip1.getName()+".kip1"))));
         }
+    }
+    @DisplayName("KIP1 read reference")
+    @Test
+    void checkReference() throws Exception{
+        Kip1 kip1 = new Kip1("/home/loper/Projects/libKonogonka/FilesForTests/");
+        kip1.printDebug();
     }
 }

@@ -18,6 +18,7 @@
 */
 package libKonogonka.Tools.XCI;
 
+import libKonogonka.Tools.ExportAble;
 import libKonogonka.Tools.ISuperProvider;
 import libKonogonka.ctraes.InFileStreamProducer;
 import org.apache.logging.log4j.LogManager;
@@ -34,7 +35,7 @@ import static libKonogonka.Converter.*;
 /**
  * HFS0
  * */
-public class HFS0Provider implements ISuperProvider {
+public class HFS0Provider extends ExportAble implements ISuperProvider {
     private final static Logger log = LogManager.getLogger(HFS0Provider.class);
 
     private final String magic;
@@ -140,41 +141,8 @@ public class HFS0Provider implements ISuperProvider {
     @Override
     public boolean exportContent(String saveToLocation, int subFileNumber) throws Exception {
         HFS0File subFile = hfs0Files[subFileNumber];
-        File location = new File(saveToLocation);
-        location.mkdirs();
-
-        try (BufferedOutputStream extractedFileBOS = new BufferedOutputStream(
-                Files.newOutputStream(Paths.get(saveToLocation+File.separator+subFile.getName())));
-                BufferedInputStream stream = getStreamProducer(subFileNumber).produce()){
-
-            long subFileSize = subFile.getSize();
-
-            int blockSize = 0x200;
-            if (subFileSize < 0x200)
-                blockSize = (int) subFileSize;
-
-            long i = 0;
-            byte[] block = new byte[blockSize];
-
-            int actuallyRead;
-            while (true) {
-                if ((actuallyRead = stream.read(block)) != blockSize)
-                    throw new Exception("Read failure. Block Size: "+blockSize+", actuallyRead: "+actuallyRead);
-                extractedFileBOS.write(block);
-                i += blockSize;
-                if ((i + blockSize) > subFileSize) {
-                    blockSize = (int) (subFileSize - i);
-                    if (blockSize == 0)
-                        break;
-                    block = new byte[blockSize];
-                }
-            }
-        }
-        catch (Exception e){
-            log.error("File export failure", e);
-            return false;
-        }
-        return true;
+        stream = getStreamProducer(subFileNumber).produce();
+        return export(saveToLocation, subFile.getName(), 0, subFile.getSize());
     }
     @Override
     public InFileStreamProducer getStreamProducer(String subFileName) throws FileNotFoundException{

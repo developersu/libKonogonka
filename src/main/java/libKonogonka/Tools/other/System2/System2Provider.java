@@ -19,21 +19,21 @@
 package libKonogonka.Tools.other.System2;
 
 import libKonogonka.KeyChainHolder;
+import libKonogonka.Tools.ExportAble;
 import libKonogonka.Tools.other.System2.ini1.Ini1Provider;
+import libKonogonka.ctraesclassic.AesCtrClassicBufferedInputStream;
+import libKonogonka.ctraesclassic.AesCtrDecryptClassic;
 import libKonogonka.ctraesclassic.AesCtrStream;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
 
 import javax.crypto.CipherInputStream;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 
 
-public class System2Provider {
-    private final static Logger log = LogManager.getLogger(System2Provider.class);
-
+public class System2Provider extends ExportAble {
     private byte[] rsa2048signature;
     private System2Header header;
     private KernelMap kernelMap;
@@ -46,20 +46,20 @@ public class System2Provider {
         this.pathToFile = pathToFile;
         this.keyChainHolder = keyChainHolder;
 
-        try (BufferedInputStream stream = new BufferedInputStream(Files.newInputStream(Paths.get(pathToFile)))) {
-            readSignatures(stream);
-            readHeader(stream);
-            findIni1KernelMap();
-        }
+        this.stream = new BufferedInputStream(Files.newInputStream(Paths.get(pathToFile)));
+        readSignatures();
+        readHeader();
+        findIni1KernelMap();
+        this.stream.close();
     }
 
-    private void readSignatures(BufferedInputStream stream) throws Exception{
+    private void readSignatures() throws Exception{
         rsa2048signature = new byte[0x100];
         if (0x100 != stream.read(rsa2048signature))
             throw new Exception("Unable to read System2 RSA-2048 signature bytes");
     }
 
-    private void readHeader(BufferedInputStream stream) throws Exception{
+    private void readHeader() throws Exception{
         byte[] headerBytes = new byte[0x100];
         if (0x100 != stream.read(headerBytes))
             throw new Exception("Unable to read System2 header bytes");
@@ -74,11 +74,11 @@ public class System2Provider {
                 throw new Exception("Unable to skip offset: " + toSkip);
 
             ByteBuffer byteBuffer = ByteBuffer.allocate(0x1000);
-            try (CipherInputStream stream = AesCtrStream.getStream(header.getKey(), header.getSection0Ctr(), fis);) {
+            try (CipherInputStream cipherInputStream = AesCtrStream.getStream(header.getKey(), header.getSection0Ctr(), fis);) {
                 for (int j = 0; j < 8; j++) {
                     byte[] block = new byte[0x200];
                     int actuallyRead;
-                    if ((actuallyRead = stream.read(block)) != 0x200)
+                    if ((actuallyRead = cipherInputStream.read(block)) != 0x200)
                         throw new Exception("Read failure " + actuallyRead);
                     byteBuffer.put(block);
                 }
@@ -95,47 +95,15 @@ public class System2Provider {
     }
 
     public boolean exportKernel(String saveTo) throws Exception{
-        File location = new File(saveTo);
-        location.mkdirs();
+        Path filePath = Paths.get(pathToFile);
+        AesCtrDecryptClassic decryptor = new AesCtrDecryptClassic(header.getKey(), header.getSection0Ctr());
+        stream = new AesCtrClassicBufferedInputStream(decryptor,
+                0x200,
+                Files.size(filePath), // size of system2
+                Files.newInputStream(filePath),
+                Files.size(filePath));
 
-        InputStream fis = Files.newInputStream(Paths.get(pathToFile));
-        // Encrypted section comes next
-        long toSkip = 0x200;
-        if (toSkip != fis.skip(toSkip))
-            throw new Exception("Unable to skip offset: "+toSkip);
-
-        try (CipherInputStream stream = AesCtrStream.getStream(header.getKey(), header.getSection0Ctr(), fis);
-             BufferedOutputStream extractedFileBOS = new BufferedOutputStream(
-                     Files.newOutputStream(Paths.get(saveTo+File.separator+"Kernel.bin")))){
-
-            long kernelSize = header.getSection0size();
-
-            int blockSize = 0x200;
-            if (kernelSize < 0x200)
-                blockSize = (int) kernelSize;
-
-            long i = 0;
-            byte[] block = new byte[blockSize];
-
-            int actuallyRead;
-            while (true) {
-                if ((actuallyRead = stream.read(block)) != blockSize)
-                    throw new Exception("Read failure. Block Size: "+blockSize+", actuallyRead: "+actuallyRead);
-                extractedFileBOS.write(block);
-                i += blockSize;
-                if ((i + blockSize) > kernelSize) {
-                    blockSize = (int) (kernelSize - i);
-                    if (blockSize == 0)
-                        break;
-                    block = new byte[blockSize];
-                }
-            }
-        }
-        catch (Exception e){
-            log.error("File export failure", e);
-            return false;
-        }
-        return true;
+        return export(saveTo, "Kernel.bin", 0x200, header.getSection0size());
     }
 
     public byte[] getRsa2048signature() { return rsa2048signature; }

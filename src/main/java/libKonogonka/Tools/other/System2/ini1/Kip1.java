@@ -25,55 +25,70 @@ import libKonogonka.Tools.NSO.SegmentHeader;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import java.io.*;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 import java.util.Arrays;
 
 public class Kip1 {
     private final static Logger log = LogManager.getLogger(Kip1.class);
 
-    private final String magic;
-    private final String name;
-    private final byte[] programId;
-    private final int version;
-    private final byte mainThreadPriority;
-    private final byte mainThreadCoreNumber;
-    private final byte reserved1;
-    private final byte flags; // bit0=TextCompress, bit1=RoCompress, bit2=DataCompress, bit3=Is64BitInstruction, bit4=ProcessAddressSpace64Bit, bit5=[2.0.0+] UseSecureMemory
-    private final SegmentHeader textSegmentHeader;
-    private final int threadAffinityMask;
-    private final SegmentHeader roDataSegmentHeader;
-    private final int mainThreadStackSize ;
-    private final SegmentHeader rwDataSegmentHeader;
-    private final byte[] reserved2;
-    private final SegmentHeader bssSegmentHeader;
-    private final byte[] reserved3;
-    private final KernelAccessControlProvider kernelCapabilityData;
+    private String magic;
+    private String name;
+    private byte[] programId;
+    private int version;
+    private byte mainThreadPriority;
+    private byte mainThreadCoreNumber;
+    private byte reserved1;
+    private byte flags;
+    private SegmentHeader textSegmentHeader;
+    private int threadAffinityMask;
+    private SegmentHeader roDataSegmentHeader;
+    private int mainThreadStackSize ;
+    private SegmentHeader rwDataSegmentHeader;
+    private byte[] reserved2;
+    private SegmentHeader bssSegmentHeader;
+    private byte[] reserved3;
+    private KernelAccessControlProvider kernelCapabilityData;
 
-    private final long startOffset;
-    private final long endOffset;
+    private long startOffset;
+    private long endOffset;
 
-    public Kip1(byte[] kip1Bytes, long kip1StartOffset) throws Exception{
-        this.magic = new String(kip1Bytes, 0, 0x4);
-        this.name = new String(kip1Bytes, 0x4, 0xC).trim();
-        this.programId = Arrays.copyOfRange(kip1Bytes, 0x10, 0x18);
-        this.version = Converter.getLEint(kip1Bytes, 0x18);
-        this.mainThreadPriority = kip1Bytes[0x1c];
-        this.mainThreadCoreNumber = kip1Bytes[0x1d];
-        this.reserved1 = kip1Bytes[0x1e];
-        this.flags = kip1Bytes[0x1f];
-        this.textSegmentHeader = new SegmentHeader(kip1Bytes, 0x20);
-        this.threadAffinityMask = Converter.getLEint(kip1Bytes, 0x2c);
-        this.roDataSegmentHeader = new SegmentHeader(kip1Bytes, 0x30);
-        this.mainThreadStackSize = Converter.getLEint(kip1Bytes, 0x3c);
-        this.rwDataSegmentHeader = new SegmentHeader(kip1Bytes, 0x40);
-        this.reserved2 = Arrays.copyOfRange(kip1Bytes, 0x4c, 0x50);
-        this.bssSegmentHeader = new SegmentHeader(kip1Bytes, 0x50);
-        this.reserved3 = Arrays.copyOfRange(kip1Bytes, 0x5c, 0x80);
-        this.kernelCapabilityData = new KernelAccessControlProvider(Arrays.copyOfRange(kip1Bytes, 0x80, 0x100));
+    public Kip1(String fileLocation) throws Exception{
+        try (BufferedInputStream stream = new BufferedInputStream(Files.newInputStream(Paths.get(fileLocation)));) {
+            byte[] kip1HeaderBytes = new byte[0x100];
+            if (0x100 != stream.read(kip1HeaderBytes))
+                throw new Exception("Unable to read KIP1 file header");
+            makeHeader(kip1HeaderBytes, 0);
+        }
+    }
+    
+    public Kip1(byte[] kip1HeaderBytes, long kip1StartOffset) throws Exception{
+        makeHeader(kip1HeaderBytes, kip1StartOffset);
+    }
+
+    private void makeHeader(byte[] kip1HeaderBytes, long kip1StartOffset) throws Exception{
+        this.magic = new String(kip1HeaderBytes, 0, 0x4);
+        this.name = new String(kip1HeaderBytes, 0x4, 0xC).trim();
+        this.programId = Arrays.copyOfRange(kip1HeaderBytes, 0x10, 0x18);
+        this.version = Converter.getLEint(kip1HeaderBytes, 0x18);
+        this.mainThreadPriority = kip1HeaderBytes[0x1c];
+        this.mainThreadCoreNumber = kip1HeaderBytes[0x1d];
+        this.reserved1 = kip1HeaderBytes[0x1e];
+        this.flags = kip1HeaderBytes[0x1f];
+        this.textSegmentHeader = new SegmentHeader(kip1HeaderBytes, 0x20);
+        this.threadAffinityMask = Converter.getLEint(kip1HeaderBytes, 0x2c);
+        this.roDataSegmentHeader = new SegmentHeader(kip1HeaderBytes, 0x30);
+        this.mainThreadStackSize = Converter.getLEint(kip1HeaderBytes, 0x3c);
+        this.rwDataSegmentHeader = new SegmentHeader(kip1HeaderBytes, 0x40);
+        this.reserved2 = Arrays.copyOfRange(kip1HeaderBytes, 0x4c, 0x50);
+        this.bssSegmentHeader = new SegmentHeader(kip1HeaderBytes, 0x50);
+        this.reserved3 = Arrays.copyOfRange(kip1HeaderBytes, 0x5c, 0x80);
+        this.kernelCapabilityData = new KernelAccessControlProvider(Arrays.copyOfRange(kip1HeaderBytes, 0x80, 0x100));
 
         this.startOffset = kip1StartOffset;
         this.endOffset = 0x100 + kip1StartOffset + textSegmentHeader.getSizeAsDecompressed() + roDataSegmentHeader.getSizeAsDecompressed() +
                 rwDataSegmentHeader.getSizeAsDecompressed() + bssSegmentHeader.getSizeAsDecompressed();
-
     }
 
     public String getMagic() { return magic; }
@@ -134,7 +149,13 @@ public class Kip1 {
                 "Main thread priority             : " + String.format("0x%x", mainThreadPriority) + "\n" +
                 "Main thread core number          : " + String.format("0x%x", mainThreadCoreNumber) + "\n" +
                 "Reserved 1                       : " + String.format("0x%x", reserved1) + "\n" +
-                "Flags                            : " + flags + "\n" +
+                "Flags                            : " + Converter.intToBinaryString(flags) + "\n" +
+                "   0| .text compress             : " + ((flags & 1) == 1 ? "YES" : "NO") + "\n" +
+                "   1| .ro compress               : " + ((flags >> 1 & 1) == 1 ? "YES" : "NO") + "\n" +
+                "   2| .rw compress               : " + ((flags >> 2 & 1) == 1 ? "YES" : "NO") + "\n" +
+                "   3| Is 64-bit instruction      : " + ((flags >> 3 & 1) == 1 ? "YES" : "NO") + "\n" +
+                "   4| Process addr. space 64-bit : " + ((flags >> 4 & 1) == 1 ? "YES" : "NO") + "\n" +
+                "   5| Use secure memory          : " + ((flags >> 5 & 1) == 1 ? "YES" : "NO") + "\n" +
                 ".text segment header\n" +
                 "   Segment offset                : " + RainbowDump.formatDecHexString(textSegmentHeader.getSegmentOffset()) + "\n" +
                 "   Memory offset                 : " + RainbowDump.formatDecHexString(textSegmentHeader.getMemoryOffset()) + "\n" +
@@ -145,7 +166,7 @@ public class Kip1 {
                 "   Memory offset                 : " + RainbowDump.formatDecHexString(roDataSegmentHeader.getMemoryOffset()) + "\n" +
                 "   Size                          : " + RainbowDump.formatDecHexString(roDataSegmentHeader.getSizeAsDecompressed()) + "\n" +
                 "Main thread stack size           : " + RainbowDump.formatDecHexString(mainThreadStackSize) + "\n" +
-                ".data segment header\n" +
+                ".rw segment header\n" +
                 "   Segment offset                : " + RainbowDump.formatDecHexString(rwDataSegmentHeader.getSegmentOffset()) + "\n" +
                 "   Memory offset                 : " + RainbowDump.formatDecHexString(rwDataSegmentHeader.getMemoryOffset()) + "\n" +
                 "   Size                          : " + RainbowDump.formatDecHexString(rwDataSegmentHeader.getSizeAsDecompressed()) + "\n" +
