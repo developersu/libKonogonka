@@ -21,10 +21,7 @@ package libKonogonka.Tools.other.System2.ini1;
 import libKonogonka.Tools.ExportAble;
 import libKonogonka.Tools.other.System2.KernelMap;
 import libKonogonka.Tools.other.System2.System2Header;
-import libKonogonka.ctraesclassic.AesCtrClassicBufferedInputStream;
-import libKonogonka.ctraesclassic.AesCtrDecryptClassic;
-import org.apache.logging.log4j.LogManager;
-import org.apache.logging.log4j.Logger;
+import libKonogonka.ctraesclassic.InFileStreamClassicProducer;
 
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -33,34 +30,22 @@ import java.util.ArrayList;
 import java.util.List;
 
 public class Ini1Provider extends ExportAble {
-    private final System2Header system2Header;
-    private final String pathToFile;
-    private final KernelMap kernelMap;
     private Ini1Header ini1Header;
-    private List<Kip1> kip1List;
+    private List<KIP1Provider> kip1List;
+
+    private final InFileStreamClassicProducer producer;
 
     public Ini1Provider(System2Header system2Header, String pathToFile, KernelMap kernelMap) throws Exception{
-        this.system2Header = system2Header;
-        this.pathToFile = pathToFile;
-        this.kernelMap = kernelMap;
-
-        makeStream();
-        makeHeader();
-        collectKips();
-    }
-
-    private void makeStream() throws Exception{
         Path filePath = Paths.get(pathToFile);
-        long toSkip = 0x200 + kernelMap.getIni1Offset();
-        AesCtrDecryptClassic decryptor = new AesCtrDecryptClassic(system2Header.getKey(), system2Header.getSection0Ctr());
-        stream = new AesCtrClassicBufferedInputStream(decryptor,
+        this.producer = new InFileStreamClassicProducer(filePath,
+                0x200 + kernelMap.getIni1Offset(),
                 0x200,
                 Files.size(filePath), // size of system2
-                Files.newInputStream(filePath),
-                Files.size(filePath));
-
-        if (toSkip != stream.skip(toSkip))
-            throw new Exception("Unable to skip offset: "+toSkip);
+                system2Header.getKey(),
+                system2Header.getSection0Ctr());
+        stream = producer.produce();
+        makeHeader();
+        collectKips();
     }
 
     private void makeHeader() throws Exception{
@@ -80,29 +65,22 @@ public class Ini1Provider extends ExportAble {
             byte[] kip1bytes = new byte[0x100];
             if (0x100 != stream.read(kip1bytes))
                 throw new Exception("Unable to read KIP1 data ");
-            Kip1 kip1 = new Kip1(kip1bytes, kip1StartOffset);
+            KIP1Provider kip1 = new KIP1Provider(kip1bytes, kip1StartOffset, producer.getSuccessor(0x10, true));
             kip1List.add(kip1);
-            skipTillNextKip1 = kip1.getTextSegmentHeader().getSizeAsDecompressed() +
-                    kip1.getRoDataSegmentHeader().getSizeAsDecompressed() +
-                    kip1.getRwDataSegmentHeader().getSizeAsDecompressed() +
-                    kip1.getBssSegmentHeader().getSizeAsDecompressed();
+            KIP1Header kip1Header = kip1.getHeader();
+            skipTillNextKip1 = kip1Header.getTextSegmentHeader().getSize() +
+                    kip1Header.getRoDataSegmentHeader().getSize() +
+                    kip1Header.getRwDataSegmentHeader().getSize() +
+                    kip1Header.getBssSegmentHeader().getSize();
             kip1StartOffset = kip1.getEndOffset();
         }
     }
 
     public Ini1Header getIni1Header() { return ini1Header; }
-    public List<Kip1> getKip1List() { return kip1List; }
+    public List<KIP1Provider> getKip1List() { return kip1List; }
 
-    public boolean exportIni1(String saveTo) throws Exception{
-        makeStream();
+    public boolean export(String saveTo) throws Exception{
+        stream = producer.produce();
         return export(saveTo, "INI1.bin", 0, ini1Header.getSize());
-    }
-
-    public boolean exportKip1(String saveTo, Kip1 kip1) throws Exception{
-        makeStream();
-        return export(saveTo,
-                kip1.getName()+".kip1",
-                0x10 + kip1.getStartOffset(),
-                kip1.getEndOffset()-kip1.getStartOffset());
     }
 }

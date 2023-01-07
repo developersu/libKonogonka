@@ -21,7 +21,7 @@ package libKonogonka.RomFsDecrypted;
 import libKonogonka.KeyChainHolder;
 import libKonogonka.Tools.other.System2.System2Provider;
 import libKonogonka.Tools.other.System2.ini1.Ini1Provider;
-import libKonogonka.Tools.other.System2.ini1.Kip1;
+import libKonogonka.Tools.other.System2.ini1.KIP1Provider;
 import libKonogonka.ctraesclassic.AesCtrDecryptClassic;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
@@ -101,23 +101,24 @@ public class Package2UnpackedTest {
         provider.getKernelMap().printDebug();
         Ini1Provider ini1Provider = provider.getIni1Provider();
         ini1Provider.getIni1Header().printDebug();
-        for (Kip1 kip1 : ini1Provider.getKip1List())
-            kip1.printDebug();
+        for (KIP1Provider kip1Provider : ini1Provider.getKip1List())
+            kip1Provider.printDebug();
         boolean exported = provider.exportKernel("/home/loper/Projects/libKonogonka/FilesForTests/own/");
         System.out.println("Exported = "+exported);
 
-        exported = ini1Provider.exportIni1("/home/loper/Projects/libKonogonka/FilesForTests/own/");
+        exported = ini1Provider.export("/home/loper/Projects/libKonogonka/FilesForTests/own/");
         System.out.println("Exported INI1 = "+exported);
 
-        for (Kip1 kip1 : ini1Provider.getKip1List()) {
-            exported = ini1Provider.exportKip1("/home/loper/Projects/libKonogonka/FilesForTests/own/KIP1s", kip1);
-            System.out.println("Exported KIP1s "+ kip1.getName() +" = " + exported + String.format(" Size 0x%x", Files.size(Paths.get("/home/loper/Projects/libKonogonka/FilesForTests/own/KIP1s/"+kip1.getName()+".kip1"))));
+        for (KIP1Provider kip1Provider : ini1Provider.getKip1List()) {
+            exported = kip1Provider.export("/home/loper/Projects/libKonogonka/FilesForTests/own/KIP1s");
+            System.out.println("Exported KIP1s "+ kip1Provider.getHeader().getName() +" = " + exported +
+                    String.format(" Size 0x%x", Files.size(Paths.get("/home/loper/Projects/libKonogonka/FilesForTests/own/KIP1s/"+ kip1Provider.getHeader().getName()+".kip1"))));
         }
     }
     @DisplayName("KIP1 read reference")
     @Test
     void checkReference() throws Exception{
-        Kip1 kip1 = new Kip1("/home/loper/Projects/libKonogonka/FilesForTests/");
-        kip1.printDebug();
+        KIP1Provider kip1Provider = new KIP1Provider("/home/loper/Projects/libKonogonka/FilesForTests/FS.kip1-fat.dec");
+        kip1Provider.printDebug();
     }
 }

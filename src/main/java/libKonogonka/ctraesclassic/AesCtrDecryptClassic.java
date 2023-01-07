@@ -59,14 +59,25 @@ public class AesCtrDecryptClassic {
      * @param blocks - how many blocks from encrypted section start should be skipped. Block size = 0x200
      * */
     public void resetAndSkip(long blocks) throws Exception{
-        cipher = Cipher.getInstance("AES/CTR/NoPadding", "BC");
-        IvParameterSpec iv = new IvParameterSpec(calculateCtr(blocks * 0x200));
-        cipher.init(Cipher.DECRYPT_MODE, key, iv);
+        reset(calculateCtr(blocks * 0x200));
     }
     private byte[] calculateCtr(long offset){
         BigInteger ctr = new BigInteger(ivArray);
         BigInteger updateTo = BigInteger.valueOf(offset / 0x10L);
         return ctr.add(updateTo).toByteArray();
+    }
+
+    /**
+     * Initializes cipher again using initial IV
+     * */
+    public void reset() throws Exception{
+        reset(ivArray.clone());
+    }
+
+    private void reset(byte[] updatedIvArray) throws Exception{
+        cipher = Cipher.getInstance("AES/CTR/NoPadding", "BC");
+        IvParameterSpec iv = new IvParameterSpec(updatedIvArray);
+        cipher.init(Cipher.DECRYPT_MODE, key, iv);
     }
 
     private byte[] hexStrToByteArray(String s) {

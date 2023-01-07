@@ -43,9 +43,10 @@ public class SegmentHeader {
         return memoryOffset;
     }
     /**
-     * @return Size of compressed if used in KIP1
+     * SegmentHeader used in both NSO0 and KIP1 structures
+     * @return Size as decompressed if used in NSO0; size of compressed if used in KIP1.
      * */
-    public int getSizeAsDecompressed() {
+    public int getSize() {
         return sizeAsDecompressed;
     }
 }

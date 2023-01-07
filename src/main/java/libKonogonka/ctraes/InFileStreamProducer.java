@@ -18,11 +18,13 @@
  */
 package libKonogonka.ctraes;
 
+import libKonogonka.IProducer;
+
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.nio.file.Files;
 
-public class InFileStreamProducer {
+public class InFileStreamProducer implements IProducer {
     private boolean encrypted;
 
     private final File file;
@@ -57,7 +59,7 @@ public class InFileStreamProducer {
         this.mediaStartOffset = mediaStartOffset;
         this.mediaEndOffset = mediaEndOffset;
     }
-
+    @Override
     public BufferedInputStream produce() throws Exception{
         if (encrypted)
             return produceAesCtr();
@@ -80,12 +82,12 @@ public class InFileStreamProducer {
         skipBytesTillBeginning(stream, subOffset);
         return stream;
     }
-
+    @Override
     public InFileStreamProducer getSuccessor(long subOffset){
         this.subOffset = subOffset;
         return new InFileStreamProducer(file, initialOffset, subOffset, decryptor, mediaStartOffset, mediaEndOffset);
     }
-
+    @Override
     public boolean isEncrypted() {
         return encrypted;
     }
@@ -98,7 +100,7 @@ public class InFileStreamProducer {
             mustSkip = size - skipped;
         }
     }
-
+    @Override
     public File getFile(){ return file; }
     @Override
     public String toString(){

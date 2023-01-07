@@ -98,7 +98,7 @@ class NSO0Unpacker {
 
     private byte[] decompressSection(SegmentHeader segmentHeader, int compressedSectionSize) throws Exception{
         try (BufferedInputStream stream = producer.produce()) {
-            int sectionDecompressedSize = segmentHeader.getSizeAsDecompressed();
+            int sectionDecompressedSize = segmentHeader.getSize();
 
             byte[] compressed = new byte[compressedSectionSize];
             if (segmentHeader.getSegmentOffset() != stream.skip(segmentHeader.getSegmentOffset()))
@@ -121,7 +121,7 @@ class NSO0Unpacker {
 
     private byte[] duplicateSection(SegmentHeader segmentHeader) throws Exception{
         try (BufferedInputStream stream = producer.produce()) {
-            int size = segmentHeader.getSizeAsDecompressed();
+            int size = segmentHeader.getSize();
 
             byte[] sectionContent = new byte[size];
             if (segmentHeader.getSegmentOffset() != stream.skip(segmentHeader.getSegmentOffset()))
@@ -183,20 +183,20 @@ class NSO0Unpacker {
                     .putInt(nso0Header.getFlags() & 0b111000)
                     .putInt(textFileOffsetNew)
                     .putInt(nso0Header.getTextSegmentHeader().getMemoryOffset())
-                    .putInt(nso0Header.getTextSegmentHeader().getSizeAsDecompressed())
+                    .putInt(nso0Header.getTextSegmentHeader().getSize())
                     .putInt(0x100)
                     .putInt(rodataFileOffsetNew)
                     .putInt(nso0Header.getRodataSegmentHeader().getMemoryOffset())
-                    .putInt(nso0Header.getRodataSegmentHeader().getSizeAsDecompressed())
+                    .putInt(nso0Header.getRodataSegmentHeader().getSize())
                     .putInt(0)
                     .putInt(dataFileOffsetNew)
                     .putInt(nso0Header.getDataSegmentHeader().getMemoryOffset())
-                    .putInt(nso0Header.getDataSegmentHeader().getSizeAsDecompressed())
+                    .putInt(nso0Header.getDataSegmentHeader().getSize())
                     .putInt(nso0Header.getBssSize())
                     .put(nso0Header.getModuleId())
-                    .putInt(nso0Header.getTextSegmentHeader().getSizeAsDecompressed())
-                    .putInt(nso0Header.getRodataSegmentHeader().getSizeAsDecompressed())
-                    .putInt(nso0Header.getDataSegmentHeader().getSizeAsDecompressed())
+                    .putInt(nso0Header.getTextSegmentHeader().getSize())
+                    .putInt(nso0Header.getRodataSegmentHeader().getSize())
+                    .putInt(nso0Header.getDataSegmentHeader().getSize())
                     .put(nso0Header.getBottomReserved())
                     .putInt(nso0Header.get_api_infoRelative().getOffset())
                     .putInt(nso0Header.get_api_infoRelative().getSize())

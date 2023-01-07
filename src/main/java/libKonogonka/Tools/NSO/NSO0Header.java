@@ -133,19 +133,19 @@ public class NSO0Header {
                 "SegmentHeader for .text\n" +
                 "    |-  File Offset - - - - - - - - - - - - - -  "+ RainbowDump.formatDecHexString(textSegmentHeader.getSegmentOffset()) + "\n" +
                 "    |-  Memory Offset - - - - - - - - - - - - -  "+ RainbowDump.formatDecHexString(textSegmentHeader.getMemoryOffset()) + "\n" +
-                "    |-  Size As Decompressed  - - - - - - - - -  "+ RainbowDump.formatDecHexString(textSegmentHeader.getSizeAsDecompressed()) + "\n" +
+                "    |-  Size As Decompressed  - - - - - - - - -  "+ RainbowDump.formatDecHexString(textSegmentHeader.getSize()) + "\n" +
                 "ModuleNameOffset (calculated by sizeof(header))  " + RainbowDump.formatDecHexString(moduleNameOffset) + "\n" +
                 "                                     +++\n"+
                 "SegmentHeader for .rodata\n" +
                 "    |-  File Offset - - - - - - - - - - - - - -  " + RainbowDump.formatDecHexString(rodataSegmentHeader.getSegmentOffset()) + "\n" +
                 "    |-  Memory Offset - - - - - - - - - - - - -  " + RainbowDump.formatDecHexString(rodataSegmentHeader.getMemoryOffset()) + "\n" +
-                "    |-  Size As Decompressed  - - - - - - - - -  " + RainbowDump.formatDecHexString(rodataSegmentHeader.getSizeAsDecompressed()) + "\n" +
+                "    |-  Size As Decompressed  - - - - - - - - -  " + RainbowDump.formatDecHexString(rodataSegmentHeader.getSize()) + "\n" +
                 "ModuleNameSize                                   " + RainbowDump.formatDecHexString(moduleNameSize) + "\n" +
                 "                                     +++\n"+
                 "SegmentHeader for .data\n" +
                 "    |-  File Offset - - - - - - - - - - - - - -  " + RainbowDump.formatDecHexString(dataSegmentHeader.getSegmentOffset()) + "\n" +
                 "    |-  Memory Offset - - - - - - - - - - - - -  " + RainbowDump.formatDecHexString(dataSegmentHeader.getMemoryOffset()) + "\n" +
-                "    |-  Size As Decompressed  - - - - - - - - -  " + RainbowDump.formatDecHexString(dataSegmentHeader.getSizeAsDecompressed()) + "\n" +
+                "    |-  Size As Decompressed  - - - - - - - - -  " + RainbowDump.formatDecHexString(dataSegmentHeader.getSize()) + "\n" +
                 "  .bss Size                                      " + RainbowDump.formatDecHexString(bssSize) + "\n" + // Block Started by Symbol
                 "Module ID (aka Build ID)                         " + Converter.byteArrToHexStringAsLE(moduleId) + "\n" +
                 "  .text Size (compressed)                        " + RainbowDump.formatDecHexString(textCompressedSize) + "\n" +
