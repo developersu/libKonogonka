@@ -21,18 +21,18 @@ package libKonogonka.Tools.NSO;
 import libKonogonka.Converter;
 
 public class SegmentHeader {
-    private final int segmentOffset;
-    private final int memoryOffset;
-    private final int sizeAsDecompressed;
+    private final int segmentOffset; // useless constant for KIP1
+    private final int memoryOffset; // In case of KIP1 it's decompressed size
+    private final int size; // as decompressed for NSO0; as compressed for KIP1
 
-    SegmentHeader(byte[] data){
+    public SegmentHeader(byte[] data){
         this(data, 0);
     }
 
     public SegmentHeader(byte[] data, int fromOffset){
         this.segmentOffset = Converter.getLEint(data, fromOffset);
         this.memoryOffset = Converter.getLEint(data, fromOffset+4);
-        this.sizeAsDecompressed = Converter.getLEint(data, fromOffset+8);
+        this.size = Converter.getLEint(data, fromOffset+8);
     }
 
     public int getSegmentOffset() {
@@ -47,6 +47,6 @@ public class SegmentHeader {
      * @return Size as decompressed if used in NSO0; size of compressed if used in KIP1.
      * */
     public int getSize() {
-        return sizeAsDecompressed;
+        return size;
     }
 }

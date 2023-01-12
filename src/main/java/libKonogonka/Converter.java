@@ -60,6 +60,22 @@ public class Converter {
         return String.format("%32s", Integer.toBinaryString( value )).replace(' ', '0');
     }
 
+    public static String byteToBinaryString(byte value){
+        String str = String.format("%8s", Integer.toBinaryString( value )).replace(' ', '0');
+        int decrease = 0;
+        if (str.length() > 8)
+            decrease = str.length()-8;
+        return str.substring(decrease);
+    }
+
+    public static String shortToBinaryString(short value){
+        String str = String.format("%16s", Integer.toBinaryString( value )).replace(' ', '0');
+        int decrease = 0;
+        if (str.length() > 16)
+            decrease = str.length()-16;
+        return str.substring(decrease);
+    }
+
     public static String longToOctString(long value){
         return String.format("%64s", Long.toBinaryString( value )).replace(' ', '0');
     }

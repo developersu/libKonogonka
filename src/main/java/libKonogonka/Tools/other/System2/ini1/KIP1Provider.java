@@ -24,7 +24,8 @@ import libKonogonka.ctraesclassic.InFileStreamClassicProducer;
 import java.nio.file.Paths;
 
 public class KIP1Provider extends ExportAble {
-
+    public static final int HEADER_SIZE = 0x100;
+    
     private KIP1Header header;
     private final InFileStreamClassicProducer producer;
 
@@ -34,8 +35,8 @@ public class KIP1Provider extends ExportAble {
     public KIP1Provider(String fileLocation) throws Exception{
         this.producer = new InFileStreamClassicProducer(Paths.get(fileLocation));
         this.stream = producer.produce();
-        byte[] kip1HeaderBytes = new byte[0x100];
-        if (0x100 != stream.read(kip1HeaderBytes))
+        byte[] kip1HeaderBytes = new byte[HEADER_SIZE];
+        if (HEADER_SIZE != stream.read(kip1HeaderBytes))
             throw new Exception("Unable to read KIP1 file header");
 
         makeHeader(kip1HeaderBytes);
@@ -54,7 +55,7 @@ public class KIP1Provider extends ExportAble {
     }
     private void calculateOffsets(long kip1StartOffset){
         this.startOffset = kip1StartOffset;
-        this.endOffset = 0x100 + kip1StartOffset +
+        this.endOffset = HEADER_SIZE + kip1StartOffset +
                 header.getTextSegmentHeader().getSize() + header.getRoDataSegmentHeader().getSize() +
                 header.getRwDataSegmentHeader().getSize() + header.getBssSegmentHeader().getSize();
     }
@@ -69,11 +70,11 @@ public class KIP1Provider extends ExportAble {
         return export(saveTo, header.getName()+".kip1", startOffset, endOffset - startOffset);
     }
     public boolean exportAsDecompressed(String saveToLocation) throws Exception{
-        return Kip1Unpacker.unpack(header, producer, saveToLocation);
+        return Kip1Unpacker.unpack(header, producer.getSuccessor(startOffset, true), saveToLocation);
     }
 
     public KIP1Raw getAsDecompressed() throws Exception{
-        return Kip1Unpacker.getNSO0Raw(header, producer);
+        return Kip1Unpacker.getKIP1Raw(header, producer.getSuccessor(startOffset, true));
     }
 
     public void printDebug(){

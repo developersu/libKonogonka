@@ -88,6 +88,7 @@ public class KernelAccessControlProvider {
                              DEBUGFLAGS = 16;
     // RAW data
     private final LinkedList<Integer> rawData;
+    private byte[] raw;
     // Kernel flags
     private boolean kernelFlagsAvailable;
     private int kernelFlagCpuIdHi;
@@ -120,6 +121,7 @@ public class KernelAccessControlProvider {
             throw new Exception("ACID-> KernelAccessControlProvider: too small size of the Kernel Access Control");
 
         this.rawData = new LinkedList<>();
+        this.raw = bytes;
         this.interruptPairs = new LinkedHashMap<>();
         this.syscallMasks = new LinkedHashMap<>();
         this.mapIoOrNormalRange = new LinkedHashMap<>();
@@ -222,6 +224,8 @@ public class KernelAccessControlProvider {
         return minBitCnt;
     }
     public LinkedList<Integer> getRawData() { return rawData; }
+    public byte[] getRaw() { return raw; }
+
     public boolean isKernelFlagsAvailable() { return kernelFlagsAvailable; }
     public int getKernelFlagCpuIdHi() { return kernelFlagCpuIdHi; }
     public int getKernelFlagCpuIdLo() { return kernelFlagCpuIdLo; }

@@ -6,8 +6,7 @@ import java.io.File;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 
-public class ExportAble {
-
+public abstract class ExportAble {
     protected BufferedInputStream stream;
 
     protected boolean export(String saveTo, String fileName, long skip, long size) throws Exception{

@@ -115,10 +115,20 @@ public class Package2UnpackedTest {
                     String.format(" Size 0x%x", Files.size(Paths.get("/home/loper/Projects/libKonogonka/FilesForTests/own/KIP1s/"+ kip1Provider.getHeader().getName()+".kip1"))));
         }
     }
-    @DisplayName("KIP1 read reference")
+
+    @DisplayName("KIP1 unpack test")
     @Test
-    void checkReference() throws Exception{
-        KIP1Provider kip1Provider = new KIP1Provider("/home/loper/Projects/libKonogonka/FilesForTests/FS.kip1-fat.dec");
-        kip1Provider.printDebug();
+    void unpackKip1() throws Exception{
+        keyChainHolder = new KeyChainHolder(keysFileLocation, null);
+        System2Provider provider = new System2Provider(fileLocation, keyChainHolder);
+        Ini1Provider ini1Provider = provider.getIni1Provider();
+        for (KIP1Provider kip1Provider : ini1Provider.getKip1List())
+            if (kip1Provider.getHeader().getName().startsWith("FS"))
+                kip1Provider.printDebug();
+
+        for (KIP1Provider kip1Provider : ini1Provider.getKip1List()) {
+            if (kip1Provider.getHeader().getName().startsWith("FS"))
+                kip1Provider.exportAsDecompressed("/tmp");
+        }
     }
 }

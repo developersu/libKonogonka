@@ -129,7 +129,7 @@ public class KIP1Header {
                 "Main thread priority             : " + String.format("0x%x", mainThreadPriority) + "\n" +
                 "Main thread core number          : " + String.format("0x%x", mainThreadCoreNumber) + "\n" +
                 "Reserved 1                       : " + String.format("0x%x", reserved1) + "\n" +
-                "Flags                            : " + Converter.intToBinaryString(flags) + "\n" +
+                "Flags                            : " + Converter.byteToBinaryString(flags) + "\n" +
                 "   0| .text compress             : " + ((flags & 1) == 1 ? "YES" : "NO") + "\n" +
                 "   1| .ro compress               : " + ((flags >> 1 & 1) == 1 ? "YES" : "NO") + "\n" +
                 "   2| .rw compress               : " + ((flags >> 2 & 1) == 1 ? "YES" : "NO") + "\n" +

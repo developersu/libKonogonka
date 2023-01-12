@@ -19,6 +19,7 @@
 package libKonogonka.Tools.other.System2.ini1;
 
 import libKonogonka.Tools.NSO.SegmentHeader;
+import libKonogonka.blz.BlzDecompress;
 import libKonogonka.ctraesclassic.InFileStreamClassicProducer;
 
 import java.io.BufferedInputStream;
@@ -27,6 +28,8 @@ import java.io.RandomAccessFile;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
+
+import static libKonogonka.Tools.other.System2.ini1.KIP1Provider.HEADER_SIZE;
 
 public class Kip1Unpacker {
     private static final String DECOMPRESSED_FILE_POSTFIX = "_decompressed";
@@ -58,7 +61,7 @@ public class Kip1Unpacker {
         return true;
     }
 
-    static KIP1Raw getNSO0Raw(KIP1Header kip1Header, InFileStreamClassicProducer producer) throws Exception{
+    static KIP1Raw getKIP1Raw(KIP1Header kip1Header, InFileStreamClassicProducer producer) throws Exception{
         Kip1Unpacker instance = new Kip1Unpacker(kip1Header, producer);
 
         return new KIP1Raw(instance.header,
@@ -69,68 +72,117 @@ public class Kip1Unpacker {
 
     private void decompressSections() throws Exception{
         decompressTextSection();
-        decompressRodataSection();
-        decompressDataSection();
+        decompressRoDataSection();
+        decompressRwDataSection();
     }
     private void decompressTextSection() throws Exception{
-
         if (kip1Header.isTextCompressFlag())
-            _textDecompressedSection = decompressSection(kip1Header.getTextSegmentHeader(), kip1Header.getTextSegmentHeader().getSize());
+            _textDecompressedSection = decompressSection(kip1Header.getTextSegmentHeader(), HEADER_SIZE);
         else
-            _textDecompressedSection = duplicateSection(kip1Header.getTextSegmentHeader());
+            _textDecompressedSection = duplicateSection(kip1Header.getTextSegmentHeader(), HEADER_SIZE);
     }
-    private void decompressRodataSection() throws Exception{
+    private void decompressRoDataSection() throws Exception{
+        int offset = HEADER_SIZE + kip1Header.getTextSegmentHeader().getSize();
         if (kip1Header.isRoDataCompressFlag())
-            _roDataDecompressedSection = decompressSection(kip1Header.getRoDataSegmentHeader(), kip1Header.getRoDataSegmentHeader().getSize());
+            _roDataDecompressedSection = decompressSection(kip1Header.getRoDataSegmentHeader(), offset);
         else
-            _roDataDecompressedSection = duplicateSection(kip1Header.getRoDataSegmentHeader());
+            _roDataDecompressedSection = duplicateSection(kip1Header.getRoDataSegmentHeader(), offset);
     }
-    private void decompressDataSection() throws Exception{
+    private void decompressRwDataSection() throws Exception{
+        int offset = HEADER_SIZE + kip1Header.getTextSegmentHeader().getSize() + kip1Header.getRoDataSegmentHeader().getSize();
         if (kip1Header.isRwDataCompressFlag())
-            _rwDataDecompressedSection = decompressSection(kip1Header.getRwDataSegmentHeader(), kip1Header.getRwDataSegmentHeader().getSize());
+            _rwDataDecompressedSection = decompressSection(kip1Header.getRwDataSegmentHeader(), offset);
         else
-            _rwDataDecompressedSection = duplicateSection(kip1Header.getRwDataSegmentHeader());
+            _rwDataDecompressedSection = duplicateSection(kip1Header.getRwDataSegmentHeader(), offset);
     }
 
-    private byte[] decompressSection(SegmentHeader segmentHeader, int compressedSectionSize) throws Exception{
-        // TODO
-        return new byte[1];
-    }
-
-    private byte[] duplicateSection(SegmentHeader segmentHeader) throws Exception{
+    private byte[] decompressSection(SegmentHeader segmentHeader, int offset) throws Exception{
         try (BufferedInputStream stream = producer.produce()) {
-            int size = segmentHeader.getSize();
+            int sectionDecompressedSize = segmentHeader.getMemoryOffset();
+            byte[] compressed = new byte[segmentHeader.getSize()];
+            if (offset != stream.skip(offset))
+                throw new Exception("Failed to skip " + offset + " bytes till section");
 
-            byte[] sectionContent = new byte[size];
-            if (segmentHeader.getSegmentOffset() != stream.skip(segmentHeader.getSegmentOffset()))
-                throw new Exception("Failed to skip " + segmentHeader.getSegmentOffset() + " bytes till section");
-
-            if (size != stream.read(sectionContent))
+            if (segmentHeader.getSize() != stream.read(compressed))
                 throw new Exception("Failed to read entire section");
 
-            return sectionContent;
+            BlzDecompress decompressor = new BlzDecompress();
+            byte[] restored = new byte[sectionDecompressedSize];
+            int decompressedLength = decompressor.decompress(compressed, restored);
+
+            if (decompressedLength != sectionDecompressedSize)
+                throw new Exception("Decompression failure. Expected vs. actual decompressed sizes mismatch: " +
+                        decompressedLength + " / " + sectionDecompressedSize);
+            return restored;
         }
     }
 
-    private void makeHeader() throws Exception{
+    private byte[] duplicateSection(SegmentHeader segmentHeader, int offset) throws Exception{
+        int size = segmentHeader.getSize();
+        byte[] content = new byte[size];
+
         try (BufferedInputStream stream = producer.produce()) {
-            byte[] headerBytes = new byte[0x100];
+            if (offset != stream.skip(offset))
+                throw new Exception("Failed to skip header bytes");
 
-            if (0x100 != stream.read(headerBytes))
-                throw new Exception("Unable to read initial 0x100 bytes needed for export.");
-            //TODO
-            //textFileOffsetNew = kip1Header.getTextSegmentHeader().getMemoryOffset()+0x100;
-            //roDataFileOffsetNew = kip1Header.getRoDataSegmentHeader().getMemoryOffset()+0x100;
-            //rwDataFileOffsetNew = kip1Header.getRwDataSegmentHeader().getMemoryOffset()+0x100;
+            int blockSize = Math.min(size, 0x200);
 
-            ByteBuffer resultingHeader = ByteBuffer.allocate(0x100).order(ByteOrder.LITTLE_ENDIAN);
-            resultingHeader.put("KIP1".getBytes(StandardCharsets.US_ASCII));
-                    //.putInt(kip1Header.getVersion())
-                    //.put(kip1Header.getUpperReserved())
+            long i = 0;
+            byte[] block = new byte[blockSize];
 
-
-            header = resultingHeader.array();
+            int actuallyRead;
+            while (true) {
+                if ((actuallyRead = stream.read(block)) != blockSize)
+                    throw new Exception("Read failure. Block Size: " + blockSize + ", actuallyRead: " + actuallyRead);
+                System.arraycopy(block, 0, content, (int) i, blockSize);
+                i += blockSize;
+                if ((i + blockSize) > size) {
+                    blockSize = (int) (size - i);
+                    if (blockSize == 0)
+                        break;
+                    block = new byte[blockSize];
+                }
+            }
         }
+        return content;
+    }
+
+    private void makeHeader(){
+        textFileOffsetNew = kip1Header.getTextSegmentHeader().getMemoryOffset();
+        roDataFileOffsetNew = kip1Header.getRoDataSegmentHeader().getMemoryOffset();
+        rwDataFileOffsetNew = kip1Header.getRwDataSegmentHeader().getMemoryOffset();
+        byte flags = kip1Header.getFlags();
+        flags &= ~0b111; //mark .text .ro .rw as 'not compress'
+
+        ByteBuffer resultingHeader = ByteBuffer.allocate(HEADER_SIZE).order(ByteOrder.LITTLE_ENDIAN);
+        resultingHeader.put("KIP1".getBytes(StandardCharsets.US_ASCII))
+                .put(kip1Header.getName().getBytes(StandardCharsets.US_ASCII));
+        resultingHeader.position(0x10);
+        resultingHeader.put(kip1Header.getProgramId())
+                .putInt(kip1Header.getVersion())
+                .put(kip1Header.getMainThreadPriority())
+                .put(kip1Header.getMainThreadCoreNumber())
+                .put(kip1Header.getReserved1())
+                .put(flags)
+                .putInt(kip1Header.getTextSegmentHeader().getSegmentOffset())
+                .putInt(textFileOffsetNew)
+                .putInt(textFileOffsetNew)
+                .putInt(kip1Header.getThreadAffinityMask())
+                .putInt(kip1Header.getRoDataSegmentHeader().getSegmentOffset())
+                .putInt(roDataFileOffsetNew)
+                .putInt(roDataFileOffsetNew)
+                .putInt(kip1Header.getMainThreadStackSize())
+                .putInt(kip1Header.getRwDataSegmentHeader().getSegmentOffset())
+                .putInt(rwDataFileOffsetNew)
+                .putInt(rwDataFileOffsetNew)
+                .put(kip1Header.getReserved2())
+                .putInt(kip1Header.getBssSegmentHeader().getSegmentOffset())
+                .putInt(kip1Header.getBssSegmentHeader().getMemoryOffset())
+                .putInt(kip1Header.getBssSegmentHeader().getSize())
+                .put(kip1Header.getReserved3())
+                .put(kip1Header.getKernelCapabilityData().getRaw());
+
+        header = resultingHeader.array();
     }
 
     private void writeFile(String saveToLocation) throws Exception{
@@ -140,11 +192,11 @@ public class Kip1Unpacker {
         try (RandomAccessFile raf = new RandomAccessFile(
                 saveToLocation+File.separator+kip1Header.getName()+DECOMPRESSED_FILE_POSTFIX+".kip1", "rw")){
             raf.write(header);
-            raf.seek(textFileOffsetNew);
+            raf.seek(HEADER_SIZE);
             raf.write(_textDecompressedSection);
-            raf.seek(roDataFileOffsetNew);
+            raf.seek(HEADER_SIZE + textFileOffsetNew);
             raf.write(_roDataDecompressedSection);
-            raf.seek(roDataFileOffsetNew);
+            raf.seek(HEADER_SIZE + textFileOffsetNew + roDataFileOffsetNew);
             raf.write(_rwDataDecompressedSection);
         }
     }
