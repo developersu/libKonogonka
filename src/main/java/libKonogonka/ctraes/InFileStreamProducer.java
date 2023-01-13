@@ -84,7 +84,6 @@ public class InFileStreamProducer implements IProducer {
     }
     @Override
     public InFileStreamProducer getSuccessor(long subOffset){
-        this.subOffset = subOffset;
         return new InFileStreamProducer(file, initialOffset, subOffset, decryptor, mediaStartOffset, mediaEndOffset);
     }
     @Override
