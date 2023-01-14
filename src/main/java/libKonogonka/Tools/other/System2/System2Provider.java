@@ -21,11 +21,9 @@ package libKonogonka.Tools.other.System2;
 import libKonogonka.KeyChainHolder;
 import libKonogonka.Tools.ExportAble;
 import libKonogonka.Tools.other.System2.ini1.Ini1Provider;
-import libKonogonka.ctraesclassic.AesCtrClassicBufferedInputStream;
-import libKonogonka.ctraesclassic.AesCtrDecryptClassic;
-import libKonogonka.ctraesclassic.AesCtrStream;
+import libKonogonka.ctraes.InFileStreamProducer;
+import libKonogonka.ctraesclassic.InFileStreamClassicProducer;
 
-import javax.crypto.CipherInputStream;
 import java.io.*;
 import java.nio.ByteBuffer;
 import java.nio.file.Files;
@@ -39,16 +37,30 @@ public class System2Provider extends ExportAble {
     private KernelMap kernelMap;
     private Ini1Provider ini1Provider;
 
-    private final String pathToFile;
     private final KeyChainHolder keyChainHolder;
+    private InFileStreamClassicProducer producer;
 
     public System2Provider(String pathToFile, KeyChainHolder keyChainHolder) throws Exception{
-        this.pathToFile = pathToFile;
         this.keyChainHolder = keyChainHolder;
 
-        this.stream = new BufferedInputStream(Files.newInputStream(Paths.get(pathToFile)));
+        Path filePath = Paths.get(pathToFile);
+        this.stream = new BufferedInputStream(Files.newInputStream(filePath));
         readSignatures();
         readHeader();
+        this.stream.close();
+        createProducerOfFile(filePath);
+        findIni1KernelMap();
+        this.stream.close();
+    }
+
+    public System2Provider(InFileStreamProducer producer, KeyChainHolder keyChainHolder) throws Exception{
+        this.keyChainHolder = keyChainHolder;
+
+        this.stream = producer.produce();
+        readSignatures();
+        readHeader();
+        this.stream.close();
+        createProducerOfStream(producer);
         findIni1KernelMap();
         this.stream.close();
     }
@@ -66,43 +78,52 @@ public class System2Provider extends ExportAble {
         this.header = new System2Header(headerBytes, keyChainHolder.getRawKeySet());
     }
 
+    private void createProducerOfFile(Path filePath) throws Exception{
+        this.producer = new InFileStreamClassicProducer(filePath,
+                0,
+                0x200,
+                header.getPackageSize(),
+                header.getKey(),
+                header.getSection0Ctr());
+        this.stream = producer.produce();
+    }
+
+    private void createProducerOfStream(InFileStreamProducer parentProducer) throws Exception{
+        producer = new InFileStreamClassicProducer(parentProducer,
+                0,
+                0x200,
+                header.getPackageSize(),
+                header.getKey(),
+                header.getSection0Ctr(),
+                header.getPackageSize());
+        this.stream = producer.produce();
+    }
+
     private void findIni1KernelMap() throws Exception{
-        try (InputStream fis = Files.newInputStream(Paths.get(pathToFile))){
-            // Encrypted section comes next
-            long toSkip = 0x200;
-            if (toSkip != fis.skip(toSkip))
-                throw new Exception("Unable to skip offset: " + toSkip);
+        if (0x200 != stream.skip(0x200))
+            throw new Exception("Unable to skip offset of 0x200");
 
-            ByteBuffer byteBuffer = ByteBuffer.allocate(0x1000);
-            try (CipherInputStream cipherInputStream = AesCtrStream.getStream(header.getKey(), header.getSection0Ctr(), fis);) {
-                for (int j = 0; j < 8; j++) {
-                    byte[] block = new byte[0x200];
-                    int actuallyRead;
-                    if ((actuallyRead = cipherInputStream.read(block)) != 0x200)
-                        throw new Exception("Read failure " + actuallyRead);
-                    byteBuffer.put(block);
-                }
-            }
+        ByteBuffer byteBuffer = ByteBuffer.allocate(0x1000);
 
-            byte[] searchField = byteBuffer.array();
-            for (int i = 0; i < 1024; i += 4) {
-                kernelMap = new KernelMap(searchField, i);
-                if (kernelMap.isValid(header.getSection0size()))
-                    return;
-            }
-            throw new Exception("Kernel map not found");
+        for (int j = 0; j < 8; j++) {
+            byte[] block = new byte[0x200];
+            int actuallyRead;
+            if ((actuallyRead = stream.read(block)) != 0x200)
+                throw new Exception("Read failure " + actuallyRead);
+            byteBuffer.put(block);
         }
+
+        byte[] searchField = byteBuffer.array();
+        for (int i = 0; i < 1024; i += 4) {
+            kernelMap = new KernelMap(searchField, i);
+            if (kernelMap.isValid(header.getSection0size()))
+                return;
+        }
+        throw new Exception("Kernel map not found");
     }
 
     public boolean exportKernel(String saveTo) throws Exception{
-        Path filePath = Paths.get(pathToFile);
-        AesCtrDecryptClassic decryptor = new AesCtrDecryptClassic(header.getKey(), header.getSection0Ctr());
-        stream = new AesCtrClassicBufferedInputStream(decryptor,
-                0x200,
-                Files.size(filePath), // size of system2
-                Files.newInputStream(filePath),
-                Files.size(filePath));
-
+        stream = producer.produce();
         return export(saveTo, "Kernel.bin", 0x200, header.getSection0size());
     }
 
@@ -111,7 +132,8 @@ public class System2Provider extends ExportAble {
     public KernelMap getKernelMap() { return kernelMap; }
     public Ini1Provider getIni1Provider() throws Exception{
         if (ini1Provider == null)
-            ini1Provider = new Ini1Provider(header, pathToFile, kernelMap);
+            ini1Provider = new Ini1Provider(
+                    producer.getSuccessor(0x200 + kernelMap.getIni1Offset(), true));
         return ini1Provider;
     }
 }

@@ -19,21 +19,36 @@
 package libKonogonka.ctraesclassic;
 
 import libKonogonka.IProducer;
+import libKonogonka.RainbowDump;
+import libKonogonka.ctraes.InFileStreamProducer;
 
 import java.io.BufferedInputStream;
 import java.io.File;
+import java.io.FilterInputStream;
+import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.nio.file.Paths;
 
 public class InFileStreamClassicProducer implements IProducer {
     private boolean encrypted;
 
-    private final Path filePath;
+    private Path filePath;
+    private InFileStreamProducer parentProducer;
     private long offset;
     private long encryptedStartOffset;
     private long encryptedEndOffset;
     private AesCtrDecryptClassic decryptor;
+    private final long fileSize;
 
+/** Reference AES-CTR stream producer.
+ * @param filePath Path to file-container
+ * @param offset Offset to skip (since file beginning).
+ * @param encryptedStartOffset Offset since file beginning where encrypted section starts
+ * @param encryptedEndOffset Offset since file beginning where encrypted section ends
+ * @param key AES-CTR Key
+ * @param iv CTR / IV (counter)
+ */
     public InFileStreamClassicProducer(Path filePath,
                                        long offset,
                                        long encryptedStartOffset,
@@ -46,43 +61,94 @@ public class InFileStreamClassicProducer implements IProducer {
         this.encryptedStartOffset = encryptedStartOffset;
         this.encryptedEndOffset = encryptedEndOffset;
         this.decryptor = new AesCtrDecryptClassic(key, iv);
+        this.fileSize = Files.size(filePath);
     }
-    public InFileStreamClassicProducer(Path filePath,
+    private InFileStreamClassicProducer(Path filePath,
                                        long offset,
                                        long encryptedStartOffset,
                                        long encryptedEndOffset, //Files.size(filePath)
-                                       AesCtrDecryptClassic decryptor){
+                                       AesCtrDecryptClassic decryptor) throws Exception{
         this.encrypted = true;
         this.filePath = filePath;
         this.offset = offset;
         this.encryptedStartOffset = encryptedStartOffset;
         this.encryptedEndOffset = encryptedEndOffset;
         this.decryptor = decryptor;
+        this.fileSize = Files.size(filePath);
     }
-
-    public InFileStreamClassicProducer(Path filePath){
+    /** Stream producer for non-encrypted files.
+     * @param filePath Path to file-container
+     * */
+    public InFileStreamClassicProducer(Path filePath) throws Exception{
         this.filePath = filePath;
+        this.fileSize = Files.size(filePath);
     }
-    public InFileStreamClassicProducer(Path filePath, long offset){
+    /** Stream producer for non-encrypted files.
+     * @param filePath Path to file-container
+     * @param offset Offset to skip (since file beginning).
+     * */
+    public InFileStreamClassicProducer(Path filePath, long offset) throws Exception{
         this.filePath = filePath;
         this.offset = offset;
+        this.fileSize = Files.size(filePath);
+    }
+    /** Reference AES-CTR stream producer that utilizes InFileStreamProducer instead of file.
+     * @param parentProducer Producer of the stream
+     * @param offset Offset to skip at parent stream
+     * @param encryptedStartOffset Offset since parent stream start at stream where encrypted section starts
+     * @param encryptedEndOffset Offset since parent stream start at stream where encrypted section ends
+     * @param key AES-CTR Key
+     * @param iv CTR / IV (counter)
+     */
+    public InFileStreamClassicProducer(InFileStreamProducer parentProducer,
+                                       long offset,
+                                       long encryptedStartOffset,
+                                       long encryptedEndOffset,
+                                       String key,
+                                       byte[] iv,
+                                       long fileSize) throws Exception{
+        this.parentProducer = parentProducer;
+        this.encrypted = true;
+        this.offset = offset;
+        this.encryptedStartOffset = encryptedStartOffset;
+        this.encryptedEndOffset = encryptedEndOffset;
+        this.decryptor = new AesCtrDecryptClassic(key, iv);
+        this.fileSize = fileSize;
+    }
+    private InFileStreamClassicProducer(InFileStreamProducer parentProducer,
+                                       long offset,
+                                       long encryptedStartOffset,
+                                       long encryptedEndOffset,
+                                       AesCtrDecryptClassic decryptor,
+                                       long fileSize){
+        this.parentProducer = parentProducer;
+        this.encrypted = true;
+        this.offset = offset;
+        this.encryptedStartOffset = encryptedStartOffset;
+        this.encryptedEndOffset = encryptedEndOffset;
+        this.decryptor = decryptor;
+        this.fileSize = fileSize;
     }
 
     @Override
     public BufferedInputStream produce() throws Exception{
         if (encrypted)
             return produceAesCtr();
-        else
-            return produceNotEncrypted();
+        return produceNotEncrypted();
     }
 
     private BufferedInputStream produceAesCtr() throws Exception{
         decryptor.reset();
-        AesCtrClassicBufferedInputStream stream = new AesCtrClassicBufferedInputStream(decryptor,
-                encryptedStartOffset,
-                encryptedEndOffset,
-                Files.newInputStream(filePath),
-                Files.size(filePath));
+
+        InputStream is;
+
+        if (filePath == null)
+            is = parentProducer.produce();
+        else
+            is = Files.newInputStream(filePath);
+
+        AesCtrClassicBufferedInputStream stream = new AesCtrClassicBufferedInputStream(
+                decryptor, encryptedStartOffset, encryptedEndOffset, is, fileSize);
 
         if (offset != stream.skip(offset))
             throw new Exception("Unable to skip offset: "+offset);
@@ -91,18 +157,29 @@ public class InFileStreamClassicProducer implements IProducer {
     }
 
     private BufferedInputStream produceNotEncrypted() throws Exception{
-        BufferedInputStream stream = new BufferedInputStream(Files.newInputStream(filePath));
+        BufferedInputStream stream;
+
+        if (filePath == null)
+            stream = new BufferedInputStream(parentProducer.produce());
+        else
+            stream = new BufferedInputStream(Files.newInputStream(filePath));
+
         if (offset != stream.skip(offset))
             throw new Exception("Unable to skip offset: "+offset);
+
         return stream;
     }
     @Override
-    public InFileStreamClassicProducer getSuccessor(long offset){
-        if (encrypted)
-            return new InFileStreamClassicProducer(filePath, offset, encryptedStartOffset, encryptedEndOffset, decryptor);
-        return new InFileStreamClassicProducer(filePath, offset);
+    public InFileStreamClassicProducer getSuccessor(long offset) throws Exception{
+        if (! encrypted)
+            return new InFileStreamClassicProducer(filePath, offset);
+
+        if (filePath == null)
+            return new InFileStreamClassicProducer(parentProducer, offset, encryptedStartOffset, encryptedEndOffset, decryptor, fileSize);
+        return new InFileStreamClassicProducer(filePath, offset, encryptedStartOffset, encryptedEndOffset, decryptor);
     }
-    public InFileStreamClassicProducer getSuccessor(long offset, boolean incrementExisting){
+
+    public InFileStreamClassicProducer getSuccessor(long offset, boolean incrementExisting) throws Exception{
         if (incrementExisting)
             return getSuccessor(this.offset + offset);
         return getSuccessor(offset);
@@ -113,9 +190,15 @@ public class InFileStreamClassicProducer implements IProducer {
         return encrypted;
     }
     @Override
-    public File getFile(){ return filePath.toFile(); }
+    public File getFile(){
+        if (filePath == null)
+            return parentProducer.getFile();
+        return filePath.toFile();
+    }
     @Override
     public String toString(){
+        if (filePath == null)
+            return parentProducer.getFile().getAbsolutePath();
         return filePath.toString();
     }
 }

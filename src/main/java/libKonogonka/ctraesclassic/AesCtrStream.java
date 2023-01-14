@@ -27,6 +27,7 @@ import javax.crypto.spec.SecretKeySpec;
 import java.io.InputStream;
 import java.security.Security;
 
+@Deprecated
 public class AesCtrStream {
     private static boolean BCinitialized = false;
 

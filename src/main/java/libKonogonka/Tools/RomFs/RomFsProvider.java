@@ -79,7 +79,7 @@ public class RomFsProvider extends ExportAble {
                 exportSingleFile(entry, saveToLocation);
         }
         catch (Exception e){
-            log.error("File export failure", e);
+            log.error(getFile().getName()+" export failure ", e);
             return false;
         }
         return true;
@@ -98,9 +98,14 @@ public class RomFsProvider extends ExportAble {
     }
 
     private void exportSingleFile(FileSystemEntry entry, String saveToLocation) throws Exception {
-        stream = producer.produce();
-        long skipBytes = entry.getOffset() + mediaStartOffset * 0x200 + level6Header.getFileDataOffset() + level6Offset;
-        export(saveToLocation, entry.getName(), skipBytes, entry.getSize());
+        try {
+            stream = producer.produce();
+            long skipBytes = entry.getOffset() + mediaStartOffset * 0x200 + level6Header.getFileDataOffset() + level6Offset;
+            export(saveToLocation, entry.getName(), skipBytes, entry.getSize());
+        }
+        catch (Exception e){
+            throw new Exception(entry.getName()+": "+e.getLocalizedMessage(), e);
+        }
     }
 
     public InFileStreamProducer getStreamProducer(FileSystemEntry entry) throws Exception{

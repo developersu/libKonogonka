@@ -18,10 +18,15 @@
  */
 package libKonogonka.RomFsDecrypted;
 
+import libKonogonka.Converter;
 import libKonogonka.KeyChainHolder;
+import libKonogonka.Tools.NCA.NCAProvider;
+import libKonogonka.Tools.RomFs.FileSystemEntry;
+import libKonogonka.Tools.RomFs.RomFsProvider;
 import libKonogonka.Tools.other.System2.System2Provider;
 import libKonogonka.Tools.other.System2.ini1.Ini1Provider;
 import libKonogonka.Tools.other.System2.ini1.KIP1Provider;
+import libKonogonka.ctraes.InFileStreamProducer;
 import libKonogonka.ctraesclassic.AesCtrDecryptClassic;
 import org.junit.jupiter.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
@@ -32,9 +37,8 @@ import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.HashMap;
-import java.util.Map;
+import java.util.*;
+import java.util.stream.Collectors;
 
 public class Package2UnpackedTest {
 
@@ -43,6 +47,8 @@ public class Package2UnpackedTest {
     private static KeyChainHolder keyChainHolder;
 
     private static final String fileLocation = "/home/loper/Projects/libKonogonka/FilesForTests/6b7abe7efa17ad065b18e62d1c87a5cc.nca_extracted/ROOT/nx/package2";
+
+    final String pathToFirmware = "/home/loper/Загрузки/patchesPlayground/nintendo-switch-global-firmwares/Firmware 14.1.0";
 
     @DisplayName("Package2 unpacked test")
     @Test
@@ -118,17 +124,130 @@ public class Package2UnpackedTest {
 
     @DisplayName("KIP1 unpack test")
     @Test
-    void unpackKip1() throws Exception{
+    void unpackKip1FromNca() throws Exception{
         keyChainHolder = new KeyChainHolder(keysFileLocation, null);
+        // ------------------------------------------------------------------------------------------------------------
+        File firmware = new File(pathToFirmware);
+
+        if (! firmware.exists())
+            throw new Exception("Firmware directory does not exist " + pathToFirmware);
+
+        String[] fileNamesArray = firmware.list((File directory, String file) -> ( ! file.endsWith(".cnmt.nca") && file.endsWith(".nca")));
+        List<String> ncaFilesList = Arrays.asList(Objects.requireNonNull(fileNamesArray));
+        if (ncaFilesList.size() == 0)
+            throw new Exception("No NCA files found in firmware folder");
+
+        List<NCAProvider> ncaProviders = new ArrayList<>();
+
+        for (String ncaFileName : fileNamesArray){
+            File nca = new File(firmware.getAbsolutePath()+File.separator+ncaFileName);
+            NCAProvider provider = new NCAProvider(nca, keyChainHolder.getRawKeySet());
+            ncaProviders.add(provider);
+        }
+        // ------------------------------------------------------------------------------------------------------------
+
+        NCAProvider system2FatNcaProvider = null;
+        NCAProvider system2ExFatNcaProvider = null;
+        for (NCAProvider ncaProvider : ncaProviders) {
+            String titleId = Converter.byteArrToHexStringAsLE(ncaProvider.getTitleId());
+            if (titleId.equals("0100000000000819"))
+                system2FatNcaProvider = ncaProvider;
+            if (titleId.equals("010000000000081b"))
+                system2ExFatNcaProvider = ncaProvider;
+        }
+        System.out.println("FAT   " + (system2FatNcaProvider == null ? "NOT FOUND": "FOUND"));
+        System.out.println("ExFAT " + (system2ExFatNcaProvider == null ? "NOT FOUND": "FOUND"));
+
+
+        RomFsProvider romFsExFatProvider = null;
+        FileSystemEntry exFatPackage2Content = null;
+        InFileStreamProducer producerExFat = null;
+        if (system2ExFatNcaProvider != null){
+            romFsExFatProvider = system2ExFatNcaProvider.getNCAContentProvider(0).getRomfs();
+            exFatPackage2Content = romFsExFatProvider.getRootEntry().getContent()
+                    .stream()
+                    .filter(e -> e.getName().equals("nx"))
+                    .collect(Collectors.toList())
+                    .get(0)
+                    .getContent()
+                    .stream()
+                    .filter(e -> e.getName().equals("package2"))
+                    .collect(Collectors.toList())
+                    .get(0);
+            producerExFat = romFsExFatProvider.getStreamProducer(exFatPackage2Content);
+
+            system2ExFatNcaProvider.getNCAContentProvider(0).getRomfs().getRootEntry().printTreeForDebug();
+            romFsExFatProvider.exportContent("/tmp/exported_ExFat", exFatPackage2Content);
+
+            System2Provider provider = new System2Provider(producerExFat, keyChainHolder);
+            provider.getKernelMap().printDebug();
+            Ini1Provider ini1Provider = provider.getIni1Provider();
+            KIP1Provider fsProvider = null;
+
+            for (KIP1Provider kip1Provider : ini1Provider.getKip1List())
+                if (kip1Provider.getHeader().getName().startsWith("FS"))
+                    fsProvider = kip1Provider;
+
+            if (fsProvider != null) {
+                fsProvider.printDebug();
+                fsProvider.exportAsDecompressed("/tmp/FAT_kip1");
+            }
+            else
+                System.out.println("FS KIP1 NOT FOUND");
+        }
+
+        RomFsProvider romFsFatProvider = null;
+        FileSystemEntry fatPackage2Content = null;
+        InFileStreamProducer producerFat;
+        if (system2FatNcaProvider != null){
+            romFsFatProvider = system2FatNcaProvider.getNCAContentProvider(0).getRomfs();
+
+            fatPackage2Content = romFsFatProvider.getRootEntry().getContent()
+                    .stream()
+                    .filter(e -> e.getName().equals("nx"))
+                    .collect(Collectors.toList())
+                    .get(0)
+                    .getContent()
+                    .stream()
+                    .filter(e -> e.getName().equals("package2"))
+                    .collect(Collectors.toList())
+                    .get(0);
+            producerFat = romFsFatProvider.getStreamProducer(fatPackage2Content);
+            System2Provider provider = new System2Provider(producerFat, keyChainHolder);
+            provider.getKernelMap().printDebug();
+            Ini1Provider ini1Provider = provider.getIni1Provider();
+            KIP1Provider fsProvider = null;
+
+            for (KIP1Provider kip1Provider : ini1Provider.getKip1List())
+                if (kip1Provider.getHeader().getName().startsWith("FS"))
+                    fsProvider = kip1Provider;
+
+            if (fsProvider != null) {
+                fsProvider.printDebug();
+                fsProvider.exportAsDecompressed("/tmp/FAT_kip1");
+            }
+            else
+                System.out.println("FS KIP1 NOT FOUND");
+        }
+    }
+
+    @DisplayName("KIP1 unpack test")
+    @Test
+    void unpackKip1() throws Exception{
         System2Provider provider = new System2Provider(fileLocation, keyChainHolder);
+        provider.getKernelMap().printDebug();
         Ini1Provider ini1Provider = provider.getIni1Provider();
+        KIP1Provider fsProvider = null;
+
         for (KIP1Provider kip1Provider : ini1Provider.getKip1List())
             if (kip1Provider.getHeader().getName().startsWith("FS"))
-                kip1Provider.printDebug();
+                fsProvider = kip1Provider;
 
-        for (KIP1Provider kip1Provider : ini1Provider.getKip1List()) {
-            if (kip1Provider.getHeader().getName().startsWith("FS"))
-                kip1Provider.exportAsDecompressed("/tmp");
+        if (fsProvider != null) {
+            fsProvider.printDebug();
+            fsProvider.exportAsDecompressed("/tmp");
         }
+        else
+            System.out.println("FS KIP1 NOT FOUND");
     }
 }

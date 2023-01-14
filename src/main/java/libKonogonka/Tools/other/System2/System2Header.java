@@ -115,6 +115,9 @@ public class System2Header {
         sha256overEncryptedSection1 = Arrays.copyOfRange(decodedHeaderBytes, 0xa0, 0xc0);
         sha256overEncryptedSection2 = Arrays.copyOfRange(decodedHeaderBytes, 0xc0, 0xe0);
         sha256overEncryptedSection3 = Arrays.copyOfRange(decodedHeaderBytes, 0xe0, 0x100);
+
+        if (packageSize != 0x200 + section0size)
+            log.error("'Package size' doesn't match 'Header Size' + 'Section 0 size'!");
     }
 
     public byte[] getHeaderCtr() { return headerCtr; }

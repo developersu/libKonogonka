@@ -22,6 +22,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.util.HashMap;
+// NOTE: Probably it would be better to make it singleton which creates along with 'library initialization'
 
 public class KeyChainHolder {
 
@@ -72,31 +73,11 @@ public class KeyChainHolder {
         return tempKeySet;
     }
 
-    public String getXci_header_key() {
-        return xci_header_key;
-    }
-
-    public String getHeader_key() {
-        return rawKeySet.get("header_key");
-    }
-
-    public HashMap<String, String> getRawKeySet() {
-        return rawKeySet;
-    }
-
-    public HashMap<String, String> getKey_area_key_application() {
-        return key_area_key_application;
-    }
-
-    public HashMap<String, String> getKey_area_key_ocean() {
-        return key_area_key_ocean;
-    }
-
-    public HashMap<String, String> getKey_area_key_system() {
-        return key_area_key_system;
-    }
-
-    public HashMap<String, String> getTitlekek() {
-        return titlekek;
-    }
+    public String getXci_header_key() { return xci_header_key; }
+    public String getHeader_key() { return rawKeySet.get("header_key"); }
+    public HashMap<String, String> getRawKeySet() { return rawKeySet; }
+    public HashMap<String, String> getKey_area_key_application() { return key_area_key_application; }
+    public HashMap<String, String> getKey_area_key_ocean() { return key_area_key_ocean; }
+    public HashMap<String, String> getKey_area_key_system() { return key_area_key_system; }
+    public HashMap<String, String> getTitlekek() { return titlekek; }
 }

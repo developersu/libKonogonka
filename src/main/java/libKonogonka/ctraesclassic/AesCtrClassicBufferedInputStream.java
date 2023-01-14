@@ -138,8 +138,7 @@ public class AesCtrClassicBufferedInputStream extends BufferedInputStream {
         byte[] chunkBytes = new byte[bytes];
         long actuallyRead = super.read(chunkBytes);
         if (actuallyRead != bytes)
-            throw new IOException("Can't read. Need block of "+ bytes +" while only " +
-                    actuallyRead + " bytes.");
+            throw new IOException("Can't read. "+ bytes +"/" + actuallyRead);
         return chunkBytes;
     }
 

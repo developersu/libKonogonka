@@ -19,7 +19,6 @@
 package libKonogonka.Tools.other.System2.ini1;
 
 import libKonogonka.Tools.ExportAble;
-import libKonogonka.Tools.other.System2.KernelMap;
 import libKonogonka.Tools.other.System2.System2Header;
 import libKonogonka.ctraesclassic.InFileStreamClassicProducer;
 
@@ -35,17 +34,26 @@ public class Ini1Provider extends ExportAble {
 
     private final InFileStreamClassicProducer producer;
 
-    public Ini1Provider(System2Header system2Header, String pathToFile, KernelMap kernelMap) throws Exception{
+    public Ini1Provider(InFileStreamClassicProducer producer) throws Exception{
+        this.producer = producer;
+        this.stream = producer.produce();
+        makeHeader();
+        collectKips();
+        this.stream.close();
+    }
+
+    public Ini1Provider(System2Header system2Header, String pathToFile, int kernelMapIni1Offset) throws Exception{
         Path filePath = Paths.get(pathToFile);
         this.producer = new InFileStreamClassicProducer(filePath,
-                0x200 + kernelMap.getIni1Offset(),
+                0x200 + kernelMapIni1Offset,
                 0x200,
                 Files.size(filePath), // size of system2
                 system2Header.getKey(),
                 system2Header.getSection0Ctr());
-        stream = producer.produce();
+        this.stream = producer.produce();
         makeHeader();
         collectKips();
+        this.stream.close();
     }
 
     private void makeHeader() throws Exception{
