@@ -34,4 +34,4 @@ See .drone.yml
 
 ### Install on local host (local maven repo)
 
-`# mvn instal`
+`# mvn install`

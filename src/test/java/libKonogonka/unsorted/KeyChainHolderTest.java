@@ -16,7 +16,7 @@
     You should have received a copy of the GNU General Public License
     along with libKonogonka.  If not, see <https://www.gnu.org/licenses/>.
  */
-package libKonogonka.RomFsDecrypted;
+package libKonogonka.unsorted;
 
 import libKonogonka.KeyChainHolder;
 import org.junit.jupiter.api.Disabled;

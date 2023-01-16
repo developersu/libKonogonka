@@ -22,6 +22,7 @@ import libKonogonka.Tools.ExportAble;
 import libKonogonka.Tools.other.System2.System2Header;
 import libKonogonka.ctraesclassic.InFileStreamClassicProducer;
 
+import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
@@ -33,6 +34,14 @@ public class Ini1Provider extends ExportAble {
     private List<KIP1Provider> kip1List;
 
     private final InFileStreamClassicProducer producer;
+
+    public Ini1Provider(Path fileLocation) throws Exception{
+        this.producer = new InFileStreamClassicProducer(fileLocation);
+        this.stream = producer.produce();
+        makeHeader();
+        collectKips();
+        this.stream.close();
+    }
 
     public Ini1Provider(InFileStreamClassicProducer producer) throws Exception{
         this.producer = producer;
@@ -68,8 +77,7 @@ public class Ini1Provider extends ExportAble {
         long skipTillNextKip1 = 0;
         long kip1StartOffset = 0;
         for (int i = 0; i < ini1Header.getKipNumber(); i++){
-            if (skipTillNextKip1 != stream.skip(skipTillNextKip1))
-                throw new Exception("Unable to skip bytes till next KIP1 header");
+            skipLoop(skipTillNextKip1);
             byte[] kip1bytes = new byte[0x100];
             if (0x100 != stream.read(kip1bytes))
                 throw new Exception("Unable to read KIP1 data ");
@@ -81,6 +89,14 @@ public class Ini1Provider extends ExportAble {
                     kip1Header.getRwDataSegmentHeader().getSize() +
                     kip1Header.getBssSegmentHeader().getSize();
             kip1StartOffset = kip1.getEndOffset();
+        }
+    }
+    private void skipLoop(long size) throws IOException {
+        long mustSkip = size;
+        long skipped = 0;
+        while (mustSkip > 0){
+            skipped += stream.skip(mustSkip);
+            mustSkip = size - skipped;
         }
     }
 

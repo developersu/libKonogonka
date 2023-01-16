@@ -16,30 +16,31 @@
     You should have received a copy of the GNU General Public License
     along with libKonogonka.  If not, see <https://www.gnu.org/licenses/>.
  */
-package libKonogonka.RomFsDecrypted;
+package libKonogonka.unsorted;
 
 import libKonogonka.KeyChainHolder;
-import libKonogonka.Tools.NCA.NCAProvider;
-import libKonogonka.Tools.NSO.NSO0Provider;
+import libKonogonka.TitleKeyChainHolder;
 import libKonogonka.Tools.PFS0.PFS0Provider;
+import libKonogonka.Tools.PFS0.PFS0subFile;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
-import java.io.BufferedReader;
-import java.io.File;
-import java.io.FileReader;
+import java.io.*;
+import java.util.HashMap;
 
-public class ExportNso0FromNcaTest {
+public class PFS0Test {
     private static final String keysFileLocation = "./FilesForTests/prod.keys";
+    private static final String titleFileLocation = "./FilesForTests/simple_nsp.title_key";
     private static final String xci_header_keyFileLocation = "./FilesForTests/xci_header_key.txt";
-    private static final String ncaFileLocation = "./FilesForTests/nso_container.nca";
-    private static final String exportDecompressedNsoTo = "/tmp";
+    private static final String nspFileLocation = "./FilesForTests/sample.nsp";
+    private static KeyChainHolder keyChainHolder;
+    private static PFS0Provider pfs0Provider;
 
     @Disabled
-    @DisplayName("Exports decompressed NSO0 example")
+    @DisplayName("NSP validation")
     @Test
-    void nso0Test() throws Exception{
+    void pfs0test() throws Exception {
         BufferedReader br = new BufferedReader(new FileReader(xci_header_keyFileLocation));
         String keyValue = br.readLine();
         br.close();
@@ -48,22 +49,19 @@ public class ExportNso0FromNcaTest {
             throw new Exception("Unable to retrieve xci_header_key");
 
         keyValue = keyValue.trim();
-        KeyChainHolder keyChainHolder = new KeyChainHolder(keysFileLocation, keyValue);
+        keyChainHolder = new KeyChainHolder(keysFileLocation, keyValue);
 
-        NCAProvider ncaProvider = new NCAProvider(new File(ncaFileLocation), keyChainHolder.getRawKeySet());
+        TitleKeyChainHolder titleKeyChainHolder = new TitleKeyChainHolder(titleFileLocation);
 
-        PFS0Provider pfs0Provider = ncaProvider.getNCAContentProvider(0).getPfs0();
+        HashMap<String, String> finalKeysSet = keyChainHolder.getRawKeySet();
+        finalKeysSet.putAll(titleKeyChainHolder.getKeySet());
+
+        File nspFile = new File(nspFileLocation);
+
+        pfs0Provider = new PFS0Provider(nspFile);
         pfs0Provider.printDebug();
-
-        NSO0Provider nso0Provider = new NSO0Provider(pfs0Provider.getStreamProducer(0));
-        nso0Provider.printDebug();
-        nso0Provider.exportAsDecompressedNSO0(exportDecompressedNsoTo);
-
-        System.out.println("__--++ SDK VERSION ++--__\n"
-                + ncaProvider.getSdkVersion()[3]
-                +"."+ ncaProvider.getSdkVersion()[2]
-                +"."+ ncaProvider.getSdkVersion()[1]
-                +"."+ ncaProvider.getSdkVersion()[0]);
-
+        for (PFS0subFile subFile : pfs0Provider.getHeader().getPfs0subFiles()) {
+            pfs0Provider.exportContent("/tmp/NSP_PFS0_NON-ENCRYPTED_TEST", subFile.getName());
+        }
     }
 }
