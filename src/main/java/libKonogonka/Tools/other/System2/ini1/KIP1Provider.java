@@ -31,6 +31,7 @@ public class KIP1Provider extends ExportAble {
 
     private long startOffset;
     private long endOffset;
+    private long size;
 
     public KIP1Provider(String fileLocation) throws Exception{
         this.producer = new InFileStreamClassicProducer(Paths.get(fileLocation));
@@ -58,17 +59,24 @@ public class KIP1Provider extends ExportAble {
         this.endOffset = HEADER_SIZE + kip1StartOffset +
                 header.getTextSegmentHeader().getSize() + header.getRoDataSegmentHeader().getSize() +
                 header.getRwDataSegmentHeader().getSize() + header.getBssSegmentHeader().getSize();
+        size = endOffset - startOffset;
     }
 
     public KIP1Header getHeader() { return header; }
 
     public long getStartOffset() { return startOffset; }
     public long getEndOffset() { return endOffset; }
+    public long getSize(){ return size; }
 
     public boolean export(String saveTo) throws Exception{
         stream = producer.produce();
-        return export(saveTo, header.getName()+".kip1", startOffset, endOffset - startOffset);
+        return export(saveTo, header.getName()+".kip1", startOffset, size);
     }
+
+    public InFileStreamClassicProducer getStreamProducer() throws Exception{
+        return producer.getSuccessor(startOffset, true);
+    }
+
     public boolean exportAsDecompressed(String saveToLocation) throws Exception{
         return Kip1Unpacker.unpack(header, producer.getSuccessor(startOffset, true), saveToLocation);
     }

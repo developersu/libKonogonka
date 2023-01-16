@@ -47,12 +47,20 @@ public class Converter {
         return ByteBuffer.wrap(holder).order(ByteOrder.LITTLE_ENDIAN).getLong();
     }
 
-    public static String byteArrToHexStringAsLE(byte[] bArr){
-        if (bArr == null)
+    public static String byteArrToHexStringAsLE(byte[] array){
+        return byteArrToHexStringAsLE(array, false);
+    }
+    public static String byteArrToHexStringAsLE(byte[] array, boolean upperCase){
+        if (upperCase)
+            return byteArrToHexStringAsLE(array, "%02X");
+        return byteArrToHexStringAsLE(array, "%02x");
+    }
+    private static String byteArrToHexStringAsLE(byte[] array, String format){
+        if (array == null)
             return "";
         StringBuilder sb = new StringBuilder();
-        for (byte b: bArr)
-            sb.append(String.format("%02x", b));
+        for (byte b: array)
+            sb.append(String.format(format, b));
         return sb.toString();
     }
 
