@@ -38,7 +38,7 @@ public class AesCtrBufferedInputStream extends BufferedInputStream {
                                      long mediaEndOffset,
                                      InputStream inputStream,
                                      long fileSize){
-        super(inputStream);
+        super(inputStream, 0x200);
         this.decryptor = decryptor;
         this.mediaOffsetPositionStart = ncaOffsetPosition + (mediaStartOffset * 0x200);
         this.mediaOffsetPositionEnd = ncaOffsetPosition + (mediaEndOffset * 0x200);
@@ -150,15 +150,17 @@ public class AesCtrBufferedInputStream extends BufferedInputStream {
         byte[] chunkBytes = new byte[bytes];
         long actuallyRead = super.read(chunkBytes, 0, bytes);
         if (actuallyRead != bytes)
-            throw new IOException("Can't read: " + actuallyRead + "/"+ bytes);
+            throw new IOException("Can't read. " + actuallyRead + "/"+ bytes);
         return chunkBytes;
     }
 
     private boolean isPointerInsideEncryptedSection(){
-        return (pseudoPos-pointerInsideDecryptedSection >= mediaOffsetPositionStart) && (pseudoPos-pointerInsideDecryptedSection < mediaOffsetPositionEnd);
+        return (pseudoPos-pointerInsideDecryptedSection >= mediaOffsetPositionStart) &&
+                (pseudoPos-pointerInsideDecryptedSection < mediaOffsetPositionEnd);
     }
     private boolean isEndPositionInsideEncryptedSection(long requestedBytesCount){
-        return ((pseudoPos-pointerInsideDecryptedSection + requestedBytesCount) >= mediaOffsetPositionStart) && ((pseudoPos-pointerInsideDecryptedSection + requestedBytesCount) < mediaOffsetPositionEnd);
+        return ((pseudoPos-pointerInsideDecryptedSection + requestedBytesCount) >= mediaOffsetPositionStart) &&
+                ((pseudoPos-pointerInsideDecryptedSection + requestedBytesCount) < mediaOffsetPositionEnd);
     }
 
     @Override

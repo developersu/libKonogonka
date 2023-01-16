@@ -29,7 +29,7 @@ public abstract class ExportAble {
             int actuallyRead;
             while (true) {
                 if ((actuallyRead = stream.read(block)) != blockSize)
-                    throw new Exception("Read failure. Block Size: "+blockSize+", actuallyRead: "+actuallyRead);
+                    throw new Exception("Read failure. "+blockSize+"/"+actuallyRead);
                 extractedFileBOS.write(block);
                 i += blockSize;
                 if ((i + blockSize) > size) {

@@ -19,16 +19,13 @@
 package libKonogonka.ctraesclassic;
 
 import libKonogonka.IProducer;
-import libKonogonka.RainbowDump;
 import libKonogonka.ctraes.InFileStreamProducer;
 
 import java.io.BufferedInputStream;
 import java.io.File;
-import java.io.FilterInputStream;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.nio.file.Paths;
 
 public class InFileStreamClassicProducer implements IProducer {
     private boolean encrypted;

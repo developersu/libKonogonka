@@ -41,7 +41,7 @@ public class AesCtrClassicBufferedInputStream extends BufferedInputStream {
                                             long encryptedEndOffset,
                                             InputStream inputStream,
                                             long fileSize){
-        super(inputStream);
+        super(inputStream, 0x200);
         this.decryptor = decryptor;
         this.encryptedStartOffset = encryptedStartOffset;
         this.encryptedEndOffset = encryptedEndOffset;

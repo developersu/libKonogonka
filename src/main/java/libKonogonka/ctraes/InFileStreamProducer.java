@@ -29,7 +29,7 @@ public class InFileStreamProducer implements IProducer {
 
     private final File file;
     private final long initialOffset;
-    private long subOffset;
+    private final long subOffset;
     private AesCtrDecryptForMediaBlocks decryptor;
     private long mediaStartOffset;
     private long mediaEndOffset;
@@ -73,7 +73,7 @@ public class InFileStreamProducer implements IProducer {
                 mediaStartOffset,
                 mediaEndOffset,
                 Files.newInputStream(file.toPath()),
-                Files.size(file.toPath()));
+                Files.size(file.toPath()));     // Files.size(file.toPath())-initialOffset); ?
         skipBytesTillBeginning(stream, subOffset);
         return stream;
     }

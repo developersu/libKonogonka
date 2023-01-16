@@ -18,21 +18,23 @@
  */
 package libKonogonka.Tools.other.System2.ini1;
 
+import java.nio.ByteBuffer;
+
 public class KIP1Raw {
     private KIP1Header headerObject;
     private final byte[] header;
     private final byte[] _textDecompressedSection;
-    private final byte[] _rodataDecompressedSection;
-    private final byte[] _dataDecompressedSection;
+    private final byte[] _roDataDecompressedSection;
+    private final byte[] _rwDataDecompressedSection;
 
     KIP1Raw(byte[] header,
             byte[] _textDecompressedSection,
-            byte[] _rodataDecompressedSection,
-            byte[] _dataDecompressedSection){
+            byte[] _roDataDecompressedSection,
+            byte[] _rwDataDecompressedSection){
         this.header = header;
         this._textDecompressedSection = _textDecompressedSection;
-        this. _rodataDecompressedSection = _rodataDecompressedSection;
-        this._dataDecompressedSection = _dataDecompressedSection;
+        this._roDataDecompressedSection = _roDataDecompressedSection;
+        this._rwDataDecompressedSection = _rwDataDecompressedSection;
         try {
             this.headerObject = new KIP1Header(header);
         }
@@ -42,6 +44,17 @@ public class KIP1Raw {
     public KIP1Header getHeader() { return headerObject; }
     public byte[] getHeaderRaw() {return header;}
     public byte[] getTextRaw() {return _textDecompressedSection;}
-    public byte[] getRodataRaw() {return _rodataDecompressedSection;}
-    public byte[] getDataRaw() {return _dataDecompressedSection;}
+    public byte[] getRoDataRaw() {return _roDataDecompressedSection;}
+    public byte[] getRwDataRaw() {return _rwDataDecompressedSection;}
+    public byte[] getRaw(){
+        ByteBuffer entireKip1 = ByteBuffer.allocate(header.length +
+                _textDecompressedSection.length +
+                _roDataDecompressedSection.length +
+                _rwDataDecompressedSection.length);
+        entireKip1.put(header)
+                .put(_textDecompressedSection)
+                .put(_roDataDecompressedSection)
+                .put(_rwDataDecompressedSection);
+        return entireKip1.array();
+    }
 }
