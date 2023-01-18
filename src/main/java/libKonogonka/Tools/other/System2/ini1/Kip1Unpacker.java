@@ -112,7 +112,7 @@ public class Kip1Unpacker {
 
             if (decompressedLength != sectionDecompressedSize)
                 throw new Exception("Decompression failure. Expected vs. actual decompressed sizes mismatch: " +
-                        decompressedLength + " / " + sectionDecompressedSize);
+                        sectionDecompressedSize + " / " + decompressedLength);
             return restored;
         }
     }

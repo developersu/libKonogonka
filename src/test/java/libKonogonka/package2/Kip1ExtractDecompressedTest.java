@@ -18,17 +18,18 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.zip.CRC32;
 
-/* ..::::::::::::::::::::: # 4 :::::::::::::::::::::..
-* This test validates KIP1 CRC32 equality and sizes match between reference values and
-* 1. KIP1 extracted from INI1.bin file
-* 2. KIP1 extracted from NCA file via streams
+/* ..::::::::::::::::::::: # 5 :::::::::::::::::::::..
+* This test validates decompressed KIP1 CRC32 equality and sizes match between reference values and
+* 1. Decompressed KIP1 extracted from INI1.bin file
+* 2. Decompressed KIP1 extracted from NCA file via streams
 *  */
 
-public class Kip1ExtractTest {
+public class Kip1ExtractDecompressedTest {
     final String KEYS_FILE_LOCATION = "FilesForTests"+File.separator+"prod.keys";
     final String XCI_HEADER_KEYS_FILE_LOCATION = "FilesForTests"+File.separator+"xci_header_key.txt";
 
@@ -36,8 +37,8 @@ public class Kip1ExtractTest {
 
     private static KeyChainHolder keyChainHolder;
 
-    final String referenceFat = "FilesForTests"+File.separator+"reference_for_system2"+File.separator+"FAT";
-    final String referenceExFat = "FilesForTests"+File.separator+"reference_for_system2"+File.separator+"ExFAT";
+    final String referenceFat = "FilesForTests"+File.separator+"reference_for_system2"+File.separator+"FAT"+File.separator+"decompressed";
+    final String referenceExFat = "FilesForTests"+File.separator+"reference_for_system2"+File.separator+"ExFAT"+File.separator+"decompressed";
     final String exportFat = System.getProperty("java.io.tmpdir")+File.separator+"Exported_FAT"+File.separator+getClass().getSimpleName();
     final String exportExFat = System.getProperty("java.io.tmpdir")+File.separator+"Exported_ExFAT"+File.separator+getClass().getSimpleName();
 
@@ -110,35 +111,60 @@ public class Kip1ExtractTest {
                 .collect(Collectors.toList())
                 .get(0);
 
-        Path referenceFilePath = Paths.get(referenceFilesFolder+File.separator+"ini1_extracted"+File.separator+"FS.kip1");
-        Path myFilePath = Paths.get(exportIntoFolder+File.separator+"FS.kip1");
+        HashMap<String, Long> referencePathCrc32 = new HashMap<>();
 
-        System.out.println();
-        System.out.println("Reference : " + referenceFilePath);
-        System.out.println("Own       : " + myFilePath);
-        long referenceCrc32 = calculateReferenceCRC32(referenceFilePath);
-
+        Files.list(Paths.get(referenceFilesFolder))
+                .filter(file -> file.toString().endsWith(".dec"))
+                .forEach(path -> referencePathCrc32.put(
+                        path.getFileName().toString().replaceAll("\\..*$", ""),
+                        calculateReferenceCRC32(path)));
+        System.out.println("Files");
         romFsProvider.exportContent(exportIntoFolder, package2FileSystemEntry);
         System2Provider kernelProviderFile = new System2Provider(exportIntoFolder+File.separator+"package2", keyChainHolder);
         kernelProviderFile.getIni1Provider().export(exportIntoFolder);
         Ini1Provider ini1Provider = new Ini1Provider(Paths.get(exportIntoFolder+File.separator+"INI1.bin"));
-        for (KIP1Provider kip1Provider : ini1Provider.getKip1List())
-            kip1Provider.export(exportIntoFolder);
-        validateChecksums(myFilePath, referenceCrc32);
-        validateSizes(referenceFilePath, myFilePath);
+        for (KIP1Provider kip1Provider : ini1Provider.getKip1List()) {
+            String kip1Name = kip1Provider.getHeader().getName();
+            kip1Provider.exportAsDecompressed(exportIntoFolder);
+            Path referenceFilePath = Paths.get(referenceFilesFolder+File.separator+kip1Name+".dec");
+            Path myFilePath = Paths.get(exportIntoFolder+File.separator+kip1Name+"_decompressed.kip1");
+
+            System.out.println(
+                "\nReference : " + referenceFilePath+
+                "\nOwn       : " + myFilePath);
+
+            validateChecksums(myFilePath, referencePathCrc32.get(kip1Name));
+            validateSizes(referenceFilePath, myFilePath);
+        }
+        System.out.println("Stream");
 
         InFileStreamProducer producer = romFsProvider.getStreamProducer(package2FileSystemEntry);
         System2Provider providerStream = new System2Provider(producer, keyChainHolder);
-        for (KIP1Provider kip1Provider : providerStream.getIni1Provider().getKip1List())
-            kip1Provider.export(exportIntoFolder);
-        validateChecksums(myFilePath, referenceCrc32);
-        validateSizes(referenceFilePath, myFilePath);
+        for (KIP1Provider kip1Provider : providerStream.getIni1Provider().getKip1List()){
+            String kip1Name = kip1Provider.getHeader().getName();
+            kip1Provider.exportAsDecompressed(exportIntoFolder);
+            Path referenceFilePath = Paths.get(referenceFilesFolder+File.separator+kip1Name+".dec");
+            Path myFilePath = Paths.get(exportIntoFolder+File.separator+kip1Name+"_decompressed.kip1");
+
+            System.out.println(
+                    "\nReference : " + referenceFilePath+
+                    "\nOwn       : " + myFilePath);
+
+            validateChecksums(myFilePath, referencePathCrc32.get(kip1Name));
+            validateSizes(referenceFilePath, myFilePath);
+        }
+        System.out.println("---");
     }
-    long calculateReferenceCRC32(Path refPackage2Path) throws Exception{
-        byte[] refPackage2Bytes = Files.readAllBytes(refPackage2Path);
-        CRC32 crc32 = new CRC32();
-        crc32.update(refPackage2Bytes, 0, refPackage2Bytes.length);
-        return crc32.getValue();
+    long calculateReferenceCRC32(Path refPackage2Path){
+        try {
+            byte[] refPackage2Bytes = Files.readAllBytes(refPackage2Path);
+            CRC32 crc32 = new CRC32();
+            crc32.update(refPackage2Bytes, 0, refPackage2Bytes.length);
+            return crc32.getValue();
+        }
+        catch (Exception e) {
+            return -1;
+        }
     }
 
     void validateChecksums(Path myPackage2Path, long refPackage2Crc32) throws Exception{

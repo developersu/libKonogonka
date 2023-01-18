@@ -1,5 +1,5 @@
 /*
-    Copyright 2019-2022 Dmitry Isaenko
+    Copyright 2019-2023 Dmitry Isaenko
      
     This file is part of libKonogonka.
 
@@ -32,6 +32,10 @@ public class AesCtrBufferedInputStream extends BufferedInputStream {
     private final long mediaOffsetPositionEnd;
     private final long fileSize;
 
+    private byte[] decryptedBytes;
+    private long pseudoPos;
+    private int pointerInsideDecryptedSection;
+
     public AesCtrBufferedInputStream(AesCtrDecryptForMediaBlocks decryptor,
                                      long ncaOffsetPosition,
                                      long mediaStartOffset,
@@ -48,10 +52,6 @@ public class AesCtrBufferedInputStream extends BufferedInputStream {
                   "\n  MediaOffsetPositionStart    "+RainbowDump.formatDecHexString(mediaOffsetPositionStart)+
                   "\n  MediaOffsetPositionEnd      "+RainbowDump.formatDecHexString(mediaOffsetPositionEnd));
     }
-
-    private byte[] decryptedBytes;
-    private long pseudoPos;
-    private int pointerInsideDecryptedSection;
 
     @Override
     public int read(byte[] b, int off, int len) throws IOException {
@@ -233,7 +233,7 @@ public class AesCtrBufferedInputStream extends BufferedInputStream {
     @Override
     public synchronized int read() throws IOException {
         byte[] b = new byte[1];
-        if (read(b) != -1)
+        if (read(b, 0, 1) != -1)
             return b[0];
         return -1;
     }

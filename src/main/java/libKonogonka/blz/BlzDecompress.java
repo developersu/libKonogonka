@@ -38,21 +38,25 @@ public class BlzDecompress {
         else if (additionalLength < 0)
             throw new Exception("File not supported. Please file a bug "+additionalLength);
 
-        int compressedOffset = compressedAndHeaderSize - headerSize;
-        int finalOffset = compressedAndHeaderSize + additionalLength;
+        int delta = compressed.length - compressedAndHeaderSize;
+        int compressedOffset = compressedAndHeaderSize - headerSize + delta;
+        int finalOffset = compressedAndHeaderSize + additionalLength + delta;
+        int resultingSize = finalOffset;
         /*
         System.out.printf(
-                "Additional length         : 0x%-8x %d %n" +
-                "Header size               : 0x%-8x %d %n" +
-                "Compressed+Header size    : 0x%-8x %d %n" +
-                "Compressed offset         : 0x%-8x %d %n" +
-                "Final offset              : 0x%-8x %d %n",
+                "Additional length            : %-21d 0x%-8x %n" +
+                "Additional length            : %-21d 0x%-8x %n" +
+                "Delta                        : %-21d %n" +
+                "Compressed+Header size       : %-21d 0x%-8x           Incorrect: %-8d 0x%-8x %n" +
+                "Compressed offset            : %-21d 0x%-8x           Incorrect: %-8d 0x%-8x %n" +
+                "Resulting Size,Final offset  : %-21d 0x%-8x           Incorrect: %-8d 0x%-8x %n%n",
                 additionalLength, additionalLength,
                 headerSize, headerSize,
-                compressedAndHeaderSize, compressedAndHeaderSize,
-                compressedOffset, compressedOffset,
-                finalOffset, finalOffset);
-        */
+                delta,
+                compressed.length, compressed.length, compressedAndHeaderSize, compressedAndHeaderSize,
+                compressedOffset, compressedOffset, compressedAndHeaderSize - headerSize, compressedAndHeaderSize - headerSize,
+                finalOffset, finalOffset, compressedAndHeaderSize + additionalLength, compressedAndHeaderSize + additionalLength);
+        //*/
         decompress_loop:
         while (true){
             byte control = compressed[--compressedOffset];
@@ -79,11 +83,13 @@ public class BlzDecompress {
                         decompressed[finalOffset + j] = decompressed[finalOffset + j + segmentPosition];
                 }
                 control <<= 1;
-                if (finalOffset == 0)
+                if (finalOffset == delta)
                     break decompress_loop;
             }
         }
+        if (delta != 0)
+            System.arraycopy(compressed, 0, decompressed, 0, delta);
 
-        return additionalLength+compressedAndHeaderSize;
+        return resultingSize;
     }
 }
