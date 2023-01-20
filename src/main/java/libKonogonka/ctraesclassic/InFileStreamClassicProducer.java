@@ -96,6 +96,7 @@ public class InFileStreamClassicProducer implements IProducer {
      * @param encryptedEndOffset Offset since parent stream start at stream where encrypted section ends
      * @param key AES-CTR Key
      * @param iv CTR / IV (counter)
+     * @param fileSize File Size
      */
     public InFileStreamClassicProducer(InFileStreamProducer parentProducer,
                                        long offset,
