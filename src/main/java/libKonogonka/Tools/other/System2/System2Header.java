@@ -20,7 +20,7 @@ package libKonogonka.Tools.other.System2;
 
 import libKonogonka.Converter;
 import libKonogonka.RainbowDump;
-import libKonogonka.ctraesclassic.AesCtrDecryptClassic;
+import libKonogonka.aesctr.AesCtrDecryptClassic;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 

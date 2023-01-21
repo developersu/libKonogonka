@@ -16,7 +16,7 @@
     You should have received a copy of the GNU General Public License
     along with libKonogonka.  If not, see <https://www.gnu.org/licenses/>.
  */
-package libKonogonka.ctraes;
+package libKonogonka.aesctr;
 
 import libKonogonka.IProducer;
 

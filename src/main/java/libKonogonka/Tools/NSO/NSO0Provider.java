@@ -18,7 +18,7 @@
  */
 package libKonogonka.Tools.NSO;
 
-import libKonogonka.ctraes.InFileStreamProducer;
+import libKonogonka.aesctr.InFileStreamProducer;
 
 import java.io.BufferedInputStream;
 import java.io.File;

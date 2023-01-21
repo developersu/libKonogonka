@@ -20,14 +20,12 @@ package libKonogonka.Tools.XCI;
 
 import libKonogonka.Tools.ExportAble;
 import libKonogonka.Tools.ISuperProvider;
-import libKonogonka.ctraes.InFileStreamProducer;
+import libKonogonka.aesctr.InFileStreamProducer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.*;
 import java.nio.charset.StandardCharsets;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.Arrays;
 
 import static libKonogonka.Converter.*;

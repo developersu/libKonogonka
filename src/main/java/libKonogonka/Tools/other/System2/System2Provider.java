@@ -21,8 +21,8 @@ package libKonogonka.Tools.other.System2;
 import libKonogonka.KeyChainHolder;
 import libKonogonka.Tools.ExportAble;
 import libKonogonka.Tools.other.System2.ini1.Ini1Provider;
-import libKonogonka.ctraes.InFileStreamProducer;
-import libKonogonka.ctraesclassic.InFileStreamClassicProducer;
+import libKonogonka.aesctr.InFileStreamProducer;
+import libKonogonka.aesctr.InFileStreamClassicProducer;
 
 import java.io.*;
 import java.nio.ByteBuffer;

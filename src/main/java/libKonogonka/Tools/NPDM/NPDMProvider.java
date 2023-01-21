@@ -20,7 +20,7 @@ package libKonogonka.Tools.NPDM;
 
 import libKonogonka.Tools.NPDM.ACI0.ACI0Provider;
 import libKonogonka.Tools.NPDM.ACID.ACIDProvider;
-import libKonogonka.ctraes.InFileStreamProducer;
+import libKonogonka.aesctr.InFileStreamProducer;
 
 import java.io.BufferedInputStream;
 import java.io.File;

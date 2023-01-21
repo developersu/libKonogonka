@@ -89,16 +89,13 @@ public class Converter {
     }
 
     public static byte[] hexStringToByteArray(String string){
-        if (string.length() % 2 != 0)
-            string = "0" + string;
-
-        int resultSize = string.length() / 2;
-        byte[] resultingArray = new byte[resultSize];
-
-        for (int i = 0; i < resultSize; i++){
-            resultingArray[i] = (byte) Integer.parseInt(string.substring(i*2, i*2+2), 16);
+        int len = string.length();
+        byte[] data = new byte[len / 2];
+        for (int i = 0; i < len; i += 2) {
+            data[i / 2] = (byte) ((Character.digit(string.charAt(i), 16) << 4)
+                    + Character.digit(string.charAt(i+1), 16));
         }
-        return resultingArray;
+        return data;
     }
 
     public static byte[] flip(byte[] bytes){

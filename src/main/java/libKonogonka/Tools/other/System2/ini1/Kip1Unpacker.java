@@ -20,7 +20,7 @@ package libKonogonka.Tools.other.System2.ini1;
 
 import libKonogonka.Tools.NSO.SegmentHeader;
 import libKonogonka.blz.BlzDecompress;
-import libKonogonka.ctraesclassic.InFileStreamClassicProducer;
+import libKonogonka.aesctr.InFileStreamClassicProducer;
 
 import java.io.BufferedInputStream;
 import java.io.File;

@@ -22,13 +22,11 @@ import libKonogonka.RainbowDump;
 import libKonogonka.Tools.ExportAble;
 import libKonogonka.Tools.ISuperProvider;
 import libKonogonka.Tools.NCA.NCASectionTableBlock.SuperBlockPFS0;
-import libKonogonka.ctraes.InFileStreamProducer;
+import libKonogonka.aesctr.InFileStreamProducer;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import java.io.*;
-import java.nio.file.Files;
-import java.nio.file.Paths;
 import java.util.LinkedList;
 
 public class PFS0Provider extends ExportAble implements ISuperProvider {

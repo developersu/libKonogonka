@@ -19,7 +19,7 @@
 package libKonogonka.Tools.RomFs;
 
 import libKonogonka.Converter;
-import libKonogonka.ctraes.InFileStreamProducer;
+import libKonogonka.aesctr.InFileStreamProducer;
 
 import java.io.BufferedInputStream;
 

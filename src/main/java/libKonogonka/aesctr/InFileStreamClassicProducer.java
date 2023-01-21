@@ -16,10 +16,9 @@
     You should have received a copy of the GNU General Public License
     along with libKonogonka.  If not, see <https://www.gnu.org/licenses/>.
  */
-package libKonogonka.ctraesclassic;
+package libKonogonka.aesctr;
 
 import libKonogonka.IProducer;
-import libKonogonka.ctraes.InFileStreamProducer;
 
 import java.io.BufferedInputStream;
 import java.io.File;
@@ -145,7 +144,7 @@ public class InFileStreamClassicProducer implements IProducer {
         else
             is = Files.newInputStream(filePath);
 
-        AesCtrClassicBufferedInputStream stream = new AesCtrClassicBufferedInputStream(
+        AesCtrBufferedInputStream stream = new AesCtrBufferedInputStream(
                 decryptor, encryptedStartOffset, encryptedEndOffset, is, fileSize);
 
         if (offset != stream.skip(offset))

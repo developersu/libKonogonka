@@ -20,7 +20,7 @@ package libKonogonka.Tools.other.System2.ini1;
 
 import libKonogonka.Tools.ExportAble;
 import libKonogonka.Tools.other.System2.System2Header;
-import libKonogonka.ctraesclassic.InFileStreamClassicProducer;
+import libKonogonka.aesctr.InFileStreamClassicProducer;
 
 import java.io.IOException;
 import java.nio.file.Files;

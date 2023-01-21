@@ -16,51 +16,35 @@
     You should have received a copy of the GNU General Public License
     along with libKonogonka.  If not, see <https://www.gnu.org/licenses/>.
 */
-package libKonogonka.ctraesclassic;
+package libKonogonka.aesctr;
 
-import org.bouncycastle.jce.provider.BouncyCastleProvider;
+import libKonogonka.Converter;
 
 import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.math.BigInteger;
 import java.nio.ByteBuffer;
-import java.security.Security;
 
-public class AesCtrDecryptClassic {
-
-    private static boolean BCinitialized = false;
-
-    private void initBCProvider(){
-        Security.addProvider(new BouncyCastleProvider());
-        BCinitialized = true;
-    }
-
+public class AesCtrDecryptClassic extends AesCtrDecrypt {
     private final SecretKeySpec key;
     private final byte[] ivArray;
     private Cipher cipher;
 
     public AesCtrDecryptClassic(String keyString, byte[] ivArray) throws Exception{
-        if ( ! BCinitialized)
-            initBCProvider();
-        byte[] keyArray = hexStrToByteArray(keyString);
+        super();
+        this.key = new SecretKeySpec(Converter.hexStringToByteArray(keyString), "AES");
         this.ivArray = ivArray;
-        key = new SecretKeySpec(keyArray, "AES");
-        cipher = Cipher.getInstance("AES/CTR/NoPadding", "BC");
-        IvParameterSpec iv = new IvParameterSpec(ivArray.clone());
-        cipher.init(Cipher.DECRYPT_MODE, key, iv);
+        reset();
     }
-
+    @Override
     public byte[] decryptNext(byte[] encryptedData) {
         return cipher.update(encryptedData);
     }
 
-    /**
-     * Initializes cipher again using updated IV
-     * @param blocks - how many blocks from encrypted section start should be skipped. Block size = 0x200
-     * */
-    public void resetAndSkip(long blocks) throws Exception{
-        reset(calculateCtr(blocks * 0x200));
+    @Override
+    public void resetAndSkip(long blockCount) throws Exception{
+        reset(calculateCtr(blockCount * 0x200));
     }
     private byte[] calculateCtr(long offset){
         BigInteger ctr = new BigInteger(ivArray);
@@ -75,9 +59,7 @@ public class AesCtrDecryptClassic {
         return ctrCalculated;
     }
 
-    /**
-     * Initializes cipher again using initial IV
-     * */
+    @Override
     public void reset() throws Exception{
         reset(ivArray.clone());
     }
@@ -86,15 +68,5 @@ public class AesCtrDecryptClassic {
         cipher = Cipher.getInstance("AES/CTR/NoPadding", "BC");
         IvParameterSpec iv = new IvParameterSpec(updatedIvArray);
         cipher.init(Cipher.DECRYPT_MODE, key, iv);
-    }
-
-    private byte[] hexStrToByteArray(String s) {
-        int len = s.length();
-        byte[] data = new byte[len / 2];
-        for (int i = 0; i < len; i += 2) {
-            data[i / 2] = (byte) ((Character.digit(s.charAt(i), 16) << 4)
-                    + Character.digit(s.charAt(i+1), 16));
-        }
-        return data;
     }
 }

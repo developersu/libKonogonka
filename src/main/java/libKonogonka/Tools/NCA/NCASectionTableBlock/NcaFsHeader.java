@@ -18,6 +18,7 @@
 */
 package libKonogonka.Tools.NCA.NCASectionTableBlock;
 
+import libKonogonka.Converter;
 import libKonogonka.RainbowDump;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -82,7 +83,7 @@ public class NcaFsHeader {
         generation = Arrays.copyOfRange(tableBlockBytes, 0x140, 0x144);
         secureValue = Arrays.copyOfRange(tableBlockBytes, 0x144, 0x148);
 
-        sectionCTR = Arrays.copyOfRange(tableBlockBytes, 0x140, 0x148);
+        sectionCTR = Converter.flip(Arrays.copyOfRange(tableBlockBytes, 0x140, 0x148));
 
         sparseInfo = new SparseInfo(Arrays.copyOfRange(tableBlockBytes, 0x148, 0x178));
         compressionInfo = new CompressionInfo(Arrays.copyOfRange(tableBlockBytes,  0x178, 0x1a0));

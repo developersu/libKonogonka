@@ -18,7 +18,7 @@
 */
 package libKonogonka.Tools;
 
-import libKonogonka.ctraes.InFileStreamProducer;
+import libKonogonka.aesctr.InFileStreamProducer;
 
 import java.io.File;
 

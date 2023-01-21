@@ -16,7 +16,7 @@
     You should have received a copy of the GNU General Public License
     along with libKonogonka.  If not, see <https://www.gnu.org/licenses/>.
  */
-package libKonogonka.ctraesclassic;
+package libKonogonka.aesctr;
 
 import libKonogonka.RainbowDump;
 import org.apache.logging.log4j.LogManager;
@@ -24,10 +24,10 @@ import org.apache.logging.log4j.Logger;
 
 import java.io.*;
 
-public class AesCtrClassicBufferedInputStream extends BufferedInputStream {
-    private final static Logger log = LogManager.getLogger(AesCtrClassicBufferedInputStream.class);
+public class AesCtrBufferedInputStream extends BufferedInputStream {
+    private final static Logger log = LogManager.getLogger(AesCtrBufferedInputStream.class);
 
-    private final AesCtrDecryptClassic decryptor;
+    private final AesCtrDecrypt decryptor;
     private final long encryptedStartOffset;
     private final long encryptedEndOffset;
     private final long fileSize;
@@ -36,7 +36,41 @@ public class AesCtrClassicBufferedInputStream extends BufferedInputStream {
     private long pseudoPos;
     private int pointerInsideDecryptedSection;
 
-    public AesCtrClassicBufferedInputStream(AesCtrDecryptClassic decryptor,
+    /**
+     * AES CTR for 'Media Blocks'. Used in NCA.
+     * @param decryptor AesCtrDecryptForMediaBlocks
+     * @param ncaOffsetPosition NCA offset in file. If NCA is inside XCI, NSP. Otherwise, must be 0.
+     * @param mediaStartOffset 'Media Start Offset' in NCA representation. Small value, not bytes.
+     * @param mediaEndOffset 'Media End Offset' in NCA representation. Small value, not bytes.
+     * @param inputStream InputStream as it used in regular BufferedInputStream.
+     * @param fileSize File size or InputStream size.
+     */
+    public AesCtrBufferedInputStream(AesCtrDecryptForMediaBlocks decryptor,
+                                     long ncaOffsetPosition,
+                                     long mediaStartOffset,
+                                     long mediaEndOffset,
+                                     InputStream inputStream,
+                                     long fileSize){
+        super(inputStream, 0x200);
+        this.decryptor = decryptor;
+        this.encryptedStartOffset = ncaOffsetPosition + (mediaStartOffset * 0x200);
+        this.encryptedEndOffset = ncaOffsetPosition + (mediaEndOffset * 0x200);
+        this.fileSize = fileSize;
+
+        log.trace("\n  Offset Position             "+ncaOffsetPosition+
+                  "\n  MediaOffsetPositionStart    "+RainbowDump.formatDecHexString(encryptedStartOffset)+
+                  "\n  MediaOffsetPositionEnd      "+RainbowDump.formatDecHexString(encryptedEndOffset));
+    }
+
+    /**
+     * AES CTR 'classic' implementation. Used for system2 (PK21) decrypt.
+     * @param decryptor AesCtrDecryptClassic
+     * @param encryptedStartOffset Encrypted start position in bytes.
+     * @param encryptedEndOffset Encrypted start position in bytes.
+     * @param inputStream InputStream as it used in regular BufferedInputStream
+     * @param fileSize File size or InputStream size.
+     */
+    public AesCtrBufferedInputStream(AesCtrDecryptClassic decryptor,
                                             long encryptedStartOffset,
                                             long encryptedEndOffset,
                                             InputStream inputStream,
@@ -52,23 +86,25 @@ public class AesCtrClassicBufferedInputStream extends BufferedInputStream {
     }
 
     @Override
-    public synchronized int read(byte[] b) throws IOException{
-        int bytesToRead = b.length;
+    public int read(byte[] b, int off, int len) throws IOException {
+        if (off != 0 || len != b.length)
+            throw new IOException("Not supported");
+
         if (isPointerInsideEncryptedSection()){
             int bytesFromFirstBlock = 0x200 - pointerInsideDecryptedSection;
-            if (bytesFromFirstBlock > bytesToRead){
+            if (bytesFromFirstBlock > len){
                 log.trace("1.2. Pointer Inside + End Position Inside (Decrypted) Encrypted Section ("+pseudoPos+"-"+(pseudoPos+b.length)+")");
-                System.arraycopy(decryptedBytes, pointerInsideDecryptedSection, b, 0, bytesToRead);
+                System.arraycopy(decryptedBytes, pointerInsideDecryptedSection, b, 0, len);
 
-                pseudoPos += bytesToRead;
-                pointerInsideDecryptedSection += bytesToRead;
+                pseudoPos += len;
+                pointerInsideDecryptedSection += len;
                 return b.length;
             }
 
             if (isEndPositionInsideEncryptedSection(b.length)) {
                 log.trace("1.1. Pointer Inside + End Position Inside Encrypted Section ("+pseudoPos+"-"+(pseudoPos+b.length)+")");
-                int middleBlocksCount = (bytesToRead - bytesFromFirstBlock) / 0x200;
-                int bytesFromLastBlock = (bytesToRead - bytesFromFirstBlock) % 0x200;
+                int middleBlocksCount = (len - bytesFromFirstBlock) / 0x200;
+                int bytesFromLastBlock = (len - bytesFromFirstBlock) % 0x200;
                 //1
                 System.arraycopy(decryptedBytes, pointerInsideDecryptedSection, b, 0, bytesFromFirstBlock);
                 //2
@@ -77,17 +113,17 @@ public class AesCtrClassicBufferedInputStream extends BufferedInputStream {
                     System.arraycopy(decryptedBytes, 0, b, bytesFromFirstBlock+i*0x200, 0x200);
                 }
                 //3
-                if(fileSize > (pseudoPos+bytesToRead)) {
+                if(fileSize > (pseudoPos+len)) {
                     fillDecryptedCache();
                     System.arraycopy(decryptedBytes, 0, b, bytesFromFirstBlock + middleBlocksCount * 0x200, bytesFromLastBlock);
                 }
-                pseudoPos += bytesToRead;
+                pseudoPos += len;
                 pointerInsideDecryptedSection = bytesFromLastBlock;
                 return b.length;
             }
             log.trace("1. Pointer Inside + End Position Outside Encrypted Section ("+pseudoPos+"-"+(pseudoPos+b.length)+")");
             int middleBlocksCount = (int) ((encryptedEndOffset - (pseudoPos+bytesFromFirstBlock)) / 0x200);
-            int bytesFromEnd = bytesToRead - bytesFromFirstBlock - middleBlocksCount * 0x200;
+            int bytesFromEnd = len - bytesFromFirstBlock - middleBlocksCount * 0x200;
             //1
             System.arraycopy(decryptedBytes, pointerInsideDecryptedSection, b, 0, bytesFromFirstBlock);
             //2
@@ -98,15 +134,15 @@ public class AesCtrClassicBufferedInputStream extends BufferedInputStream {
             }
             //3             // TODO: if it's zero?
             System.arraycopy(readChunk(bytesFromEnd), 0, b, bytesFromFirstBlock+middleBlocksCount*0x200, bytesFromEnd);
-            pseudoPos += bytesToRead;
+            pseudoPos += len;
             pointerInsideDecryptedSection = 0;
             return b.length;
         }
-        if (isEndPositionInsideEncryptedSection(bytesToRead)) {
+        if (isEndPositionInsideEncryptedSection(len)) {
             log.trace("2. End Position Inside Encrypted Section ("+pseudoPos+"-"+(pseudoPos+b.length)+")");
             int bytesTillEncrypted = (int) (encryptedStartOffset - pseudoPos);
-            int fullEncryptedBlocks = (bytesToRead - bytesTillEncrypted) / 0x200;
-            int incompleteEncryptedBytes = (bytesToRead - bytesTillEncrypted) % 0x200;
+            int fullEncryptedBlocks = (len - bytesTillEncrypted) / 0x200;
+            int incompleteEncryptedBytes = (len - bytesTillEncrypted) % 0x200;
             System.arraycopy(readChunk(bytesTillEncrypted), 0, b, 0, bytesTillEncrypted);
             //2
             for (int i = 0; i < fullEncryptedBlocks; i++) {
@@ -116,12 +152,12 @@ public class AesCtrClassicBufferedInputStream extends BufferedInputStream {
             //3
             fillDecryptedCache();
             System.arraycopy(decryptedBytes, 0, b, bytesTillEncrypted+fullEncryptedBlocks*0x200, incompleteEncryptedBytes);
-            pseudoPos += bytesToRead;
+            pseudoPos += len;
             pointerInsideDecryptedSection = incompleteEncryptedBytes;
             return b.length;
         }
         log.trace("3. Not encrypted ("+pseudoPos+"-"+(pseudoPos+b.length)+")");
-        pseudoPos += bytesToRead;
+        pseudoPos += len;
         pointerInsideDecryptedSection = 0;
         return super.read(b);
     }
@@ -129,14 +165,19 @@ public class AesCtrClassicBufferedInputStream extends BufferedInputStream {
         try{
             decryptedBytes = decryptor.decryptNext(readChunk(0x200));
         }
-        catch (Exception e){
-            throw new IOException(e);
+        catch (Exception e){ throw new IOException(e); }
+    }
+
+    private void resetAndSkip(long blockSum) throws IOException{
+        try{
+            decryptor.resetAndSkip(blockSum);
         }
+        catch (Exception e){ throw new IOException(e); }
     }
 
     private byte[] readChunk(int bytes) throws IOException{
         byte[] chunkBytes = new byte[bytes];
-        long actuallyRead = super.read(chunkBytes);
+        long actuallyRead = super.read(chunkBytes, 0, bytes);
         if (actuallyRead != bytes)
             throw new IOException("Can't read. "+ bytes +"/" + actuallyRead);
         return chunkBytes;
@@ -218,17 +259,11 @@ public class AesCtrClassicBufferedInputStream extends BufferedInputStream {
             log.trace("Skip loop: skipped: "+skipped+"\tmustSkip "+mustSkip);
         }
     }
-    private void resetAndSkip(long blockSum) throws IOException{
-        try {
-            decryptor.resetAndSkip(blockSum);
-        }
-        catch (Exception e){ throw new IOException(e); }
-    }
 
     @Override
     public synchronized int read() throws IOException {
         byte[] b = new byte[1];
-        if (read(b) != -1)
+        if (read(b, 0, 1) != -1)
             return b[0];
         return -1;
     }
