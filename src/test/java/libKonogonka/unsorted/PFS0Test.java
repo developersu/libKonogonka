@@ -20,8 +20,8 @@ package libKonogonka.unsorted;
 
 import libKonogonka.KeyChainHolder;
 import libKonogonka.TitleKeyChainHolder;
-import libKonogonka.Tools.PFS0.PFS0Provider;
-import libKonogonka.Tools.PFS0.PFS0subFile;
+import libKonogonka.fs.PFS0.PFS0Provider;
+import libKonogonka.fs.PFS0.PFS0subFile;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

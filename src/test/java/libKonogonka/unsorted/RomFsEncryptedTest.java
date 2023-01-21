@@ -21,9 +21,9 @@ package libKonogonka.unsorted;
 import libKonogonka.aesctr.AesCtrBufferedInputStream;
 import libKonogonka.KeyChainHolder;
 import libKonogonka.RainbowDump;
-import libKonogonka.Tools.NCA.NCAProvider;
-import libKonogonka.Tools.NCA.NCASectionTableBlock.NcaFsHeader;
-import libKonogonka.Tools.RomFs.FileSystemEntry;
+import libKonogonka.fs.NCA.NCAProvider;
+import libKonogonka.fs.NCA.NCASectionTableBlock.NcaFsHeader;
+import libKonogonka.fs.RomFs.FileSystemEntry;
 import libKonogonka.aesctr.AesCtrDecryptForMediaBlocks;
 import org.junit.jupiter.api.*;
 

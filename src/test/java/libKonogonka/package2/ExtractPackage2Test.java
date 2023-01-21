@@ -2,9 +2,9 @@ package libKonogonka.package2;
 
 import libKonogonka.Converter;
 import libKonogonka.KeyChainHolder;
-import libKonogonka.Tools.NCA.NCAProvider;
-import libKonogonka.Tools.RomFs.FileSystemEntry;
-import libKonogonka.Tools.RomFs.RomFsProvider;
+import libKonogonka.fs.NCA.NCAProvider;
+import libKonogonka.fs.RomFs.FileSystemEntry;
+import libKonogonka.fs.RomFs.RomFsProvider;
 import org.junit.jupiter.api.*;
 
 import java.io.File;

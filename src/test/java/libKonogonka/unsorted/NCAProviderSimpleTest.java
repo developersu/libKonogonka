@@ -19,7 +19,7 @@
 package libKonogonka.unsorted;
 
 import libKonogonka.KeyChainHolder;
-import libKonogonka.Tools.NCA.NCAProvider;
+import libKonogonka.fs.NCA.NCAProvider;
 import org.junit.jupiter.api.*;
 
 import java.io.BufferedReader;

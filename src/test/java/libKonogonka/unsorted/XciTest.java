@@ -19,10 +19,10 @@
 package libKonogonka.unsorted;
 
 import libKonogonka.KeyChainHolder;
-import libKonogonka.Tools.NCA.NCAProvider;
-import libKonogonka.Tools.XCI.HFS0File;
-import libKonogonka.Tools.XCI.HFS0Provider;
-import libKonogonka.Tools.XCI.XCIProvider;
+import libKonogonka.fs.NCA.NCAProvider;
+import libKonogonka.fs.XCI.HFS0File;
+import libKonogonka.fs.XCI.HFS0Provider;
+import libKonogonka.fs.XCI.XCIProvider;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

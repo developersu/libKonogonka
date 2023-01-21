@@ -20,10 +20,10 @@ package libKonogonka.unsorted;
 
 import libKonogonka.KeyChainHolder;
 import libKonogonka.RainbowDump;
-import libKonogonka.Tools.NCA.NCAProvider;
-import libKonogonka.Tools.NSO.NSO0Provider;
-import libKonogonka.Tools.PFS0.PFS0Provider;
-import libKonogonka.Tools.PFS0.PFS0subFile;
+import libKonogonka.fs.NCA.NCAProvider;
+import libKonogonka.fs.NSO.NSO0Provider;
+import libKonogonka.fs.PFS0.PFS0Provider;
+import libKonogonka.fs.PFS0.PFS0subFile;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

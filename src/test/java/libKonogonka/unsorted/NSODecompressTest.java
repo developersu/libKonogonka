@@ -18,7 +18,7 @@
  */
 package libKonogonka.unsorted;
 
-import libKonogonka.Tools.NSO.NSO0Provider;
+import libKonogonka.fs.NSO.NSO0Provider;
 import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;

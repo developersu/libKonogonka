@@ -54,31 +54,31 @@ public class KeyChainHolderTest {
 
     void printKAKApplication(){
         System.out.println("-=== key_area_key_application test ===-");
-        for (Map.Entry entry : keyChainHolder.getKey_area_key_application().entrySet()){
+        for (Map.Entry<String, String> entry : keyChainHolder.getKey_area_key_application().entrySet()){
             System.out.println(entry.getKey() + " - " + entry.getValue());
         }
     }
     void printKAKOcean(){
         System.out.println("-=== key_area_key_ocean test ===-");
-        for (Map.Entry entry : keyChainHolder.getKey_area_key_ocean().entrySet()){
+        for (Map.Entry<String, String> entry : keyChainHolder.getKey_area_key_ocean().entrySet()){
             System.out.println(entry.getKey() + " - " + entry.getValue());
         }
     }
     void printKAKSystem(){
         System.out.println("-=== key_area_key_system test ===-");
-        for (Map.Entry entry : keyChainHolder.getKey_area_key_system().entrySet()){
+        for (Map.Entry<String, String> entry : keyChainHolder.getKey_area_key_system().entrySet()){
             System.out.println(entry.getKey() + " - " + entry.getValue());
         }
     }
     void printKAKTitleKek(){
         System.out.println("-=== titlekek test ===-");
-        for (Map.Entry entry : keyChainHolder.getTitlekek().entrySet()){
+        for (Map.Entry<String, String> entry : keyChainHolder.getTitlekek().entrySet()){
             System.out.println(entry.getKey() + " - " + entry.getValue());
         }
     }
     void printRawKeySet(){
         System.out.println("-=== Raw Key Set (everything) test ===-");
-        for (Map.Entry entry : keyChainHolder.getRawKeySet().entrySet()){
+        for (Map.Entry<String, String> entry : keyChainHolder.getRawKeySet().entrySet()){
             System.out.println(entry.getKey() + " - " + entry.getValue());
         }
     }

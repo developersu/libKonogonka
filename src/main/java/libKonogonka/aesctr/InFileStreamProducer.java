@@ -18,8 +18,6 @@
  */
 package libKonogonka.aesctr;
 
-import libKonogonka.IProducer;
-
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.nio.file.Files;

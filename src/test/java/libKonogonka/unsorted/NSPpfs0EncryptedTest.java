@@ -21,9 +21,9 @@ package libKonogonka.unsorted;
 import libKonogonka.KeyChainHolder;
 import libKonogonka.RainbowDump;
 import libKonogonka.TitleKeyChainHolder;
-import libKonogonka.Tools.NCA.NCAProvider;
-import libKonogonka.Tools.PFS0.PFS0Provider;
-import libKonogonka.Tools.PFS0.PFS0subFile;
+import libKonogonka.fs.NCA.NCAProvider;
+import libKonogonka.fs.PFS0.PFS0Provider;
+import libKonogonka.fs.PFS0.PFS0subFile;
 import libKonogonka.aesctr.AesCtrBufferedInputStream;
 import libKonogonka.aesctr.AesCtrDecryptForMediaBlocks;
 import org.junit.jupiter.api.Disabled;
@@ -209,7 +209,7 @@ public class NSPpfs0EncryptedTest {
     private void exportContentLegacy(PFS0subFile entry, String saveToLocation) throws Exception {
         File contentFile = new File(saveToLocation + entry.getName());
 
-        BufferedOutputStream extractedFileBOS = new BufferedOutputStream(new FileOutputStream(contentFile));
+        BufferedOutputStream extractedFileBOS = new BufferedOutputStream(Files.newOutputStream(contentFile.toPath()));
         BufferedInputStream pis = ncaProvider.getNCAContentProvider(0)
                 .getPfs0()
                 .getStreamProducer(entry.getName())
