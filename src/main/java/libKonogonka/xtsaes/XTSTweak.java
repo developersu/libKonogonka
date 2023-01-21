@@ -26,7 +26,7 @@ package libKonogonka.xtsaes;
 import net.jcip.annotations.NotThreadSafe;
 import org.bouncycastle.crypto.BlockCipher;
 import org.bouncycastle.crypto.DataLengthException;
-import org.bouncycastle.crypto.engines.AESFastEngine;
+import org.bouncycastle.crypto.engines.AESEngine;
 import org.bouncycastle.crypto.params.KeyParameter;
 import org.bouncycastle.util.Pack;
 
@@ -38,29 +38,11 @@ import java.util.function.LongFunction;
  * XTS tweak with pluggable tweak function.
  *
  * @author Ahseya
- */
-
-/**
- * Updated for special usage by Dmitry Isaenko.
+ *
+ * Class updated for NCAs usage.
  * */
 @NotThreadSafe
 class XTSTweak {
-    static byte[] nintTweakFunction(long tweakValue) {
-        byte[] bs = new byte[BLOCK_SIZE];
-        byte[] twk = Pack.longToBigEndian(tweakValue);
-        int j = BLOCK_SIZE - twk.length;
-        for (byte b: twk){
-            bs[j++] = b;
-        }
-        return bs;
-    }
-
-    static byte[] defaultTweakFunction(long tweakValue) {
-        byte[] bs = Pack.longToLittleEndian(tweakValue);
-        bs = Arrays.copyOfRange(bs, 0, BLOCK_SIZE);
-        return bs;
-    }
-
     private static final long FDBK = 0x87;
     private static final long MSB = 0x8000000000000000L;
     private static final int BLOCK_SIZE = 16;
@@ -84,13 +66,27 @@ class XTSTweak {
     }
 
     XTSTweak(LongFunction<byte[]> tweakFunction) {
-        this(new AESFastEngine(), tweakFunction);
+        this(new AESEngine(), tweakFunction);
     }
 
     XTSTweak(boolean isDefault) {
         this(isDefault
                 ? XTSTweak::defaultTweakFunction
                 : XTSTweak::nintTweakFunction);
+    }
+    static byte[] defaultTweakFunction(long tweakValue) {
+        byte[] bs = Pack.longToLittleEndian(tweakValue);
+        bs = Arrays.copyOfRange(bs, 0, BLOCK_SIZE);
+        return bs;
+    }
+    static byte[] nintTweakFunction(long tweakValue) {
+        byte[] bs = new byte[BLOCK_SIZE];
+        byte[] twk = Pack.longToBigEndian(tweakValue);
+        int j = BLOCK_SIZE - twk.length;
+        for (byte b: twk){
+            bs[j++] = b;
+        }
+        return bs;
     }
 
     XTSTweak init(KeyParameter key) throws IllegalArgumentException {

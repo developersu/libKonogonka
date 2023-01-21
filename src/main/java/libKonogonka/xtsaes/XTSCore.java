@@ -26,7 +26,7 @@ package libKonogonka.xtsaes;
 import net.jcip.annotations.NotThreadSafe;
 import org.bouncycastle.crypto.BlockCipher;
 import org.bouncycastle.crypto.DataLengthException;
-import org.bouncycastle.crypto.engines.AESFastEngine;
+import org.bouncycastle.crypto.engines.AESEngine;
 import org.bouncycastle.crypto.params.KeyParameter;
 
 import java.util.Arrays;
@@ -36,10 +36,8 @@ import java.util.Objects;
  * XTS core functions.
  *
  * @author Ahseya
- */
-
-/**
- * Updated for special usage by Dmitry Isaenko.
+ *
+ * Class updated for NCAs usage.
  * */
 @NotThreadSafe
 class XTSCore {
@@ -56,7 +54,7 @@ class XTSCore {
     }
 
     XTSCore(XTSTweak tweak) {
-        this(new AESFastEngine(), tweak);
+        this(new AESEngine(), tweak);
     }
 
     XTSCore(boolean isDefault) {
@@ -64,7 +62,7 @@ class XTSCore {
     }
 
     XTSCore init(boolean forEncryption, KeyParameter key) throws IllegalArgumentException {
-        byte[] k = ((KeyParameter) key).getKey();
+        byte[] k = key.getKey();
         if (k.length != 32 && k.length != 64) {
             throw new IllegalArgumentException("bad key length: " + k.length);
         }
