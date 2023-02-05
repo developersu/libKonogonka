@@ -34,14 +34,20 @@ public class KIP1Provider extends ExportAble {
     private long size;
 
     public KIP1Provider(String fileLocation) throws Exception{
+        this(fileLocation, 0);
+    }
+
+    public KIP1Provider(String fileLocation, long kip1StartOffset) throws Exception{
         this.producer = new InFileStreamClassicProducer(Paths.get(fileLocation));
         this.stream = producer.produce();
+        if (kip1StartOffset != stream.skip(kip1StartOffset))
+            throw new Exception("Failed to skip declared starting offset "+kip1StartOffset);
         byte[] kip1HeaderBytes = new byte[HEADER_SIZE];
         if (HEADER_SIZE != stream.read(kip1HeaderBytes))
             throw new Exception("Unable to read KIP1 file header");
 
         makeHeader(kip1HeaderBytes);
-        calculateOffsets(0);
+        calculateOffsets(kip1StartOffset);
     }
 
     public KIP1Provider(byte[] kip1HeaderBytes, long kip1StartOffset, InFileStreamClassicProducer producer) throws Exception{

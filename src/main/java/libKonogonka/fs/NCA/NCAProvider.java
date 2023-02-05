@@ -92,23 +92,22 @@ public class NCAProvider {
         //-------------------------------------------------------------------------------------------------------------------------
         byte[] decryptedHeader = new byte[0xC00];
 
-        RandomAccessFile raf = new RandomAccessFile(file, "r");
-        byte[] encryptedSequence = new byte[0x200];
-        byte[] decryptedSequence;
+        try (RandomAccessFile raf = new RandomAccessFile(file, "r")) {
+            byte[] encryptedSequence = new byte[0x200];
+            byte[] decryptedSequence;
 
-        raf.seek(offsetPosition);
+            raf.seek(offsetPosition);
 
-        for (int i = 0; i < 6; i++){
-            if (raf.read(encryptedSequence) != 0x200)
-                throw new Exception("Read error "+i);
-            decryptedSequence = new byte[0x200];
-            xtsaesCipher.processDataUnit(encryptedSequence, 0, 0x200, decryptedSequence, 0, i);
-            System.arraycopy(decryptedSequence, 0, decryptedHeader, i * 0x200, 0x200);
+            for (int i = 0; i < 6; i++){
+                if (raf.read(encryptedSequence) != 0x200)
+                    throw new Exception("Read error "+i);
+                decryptedSequence = new byte[0x200];
+                xtsaesCipher.processDataUnit(encryptedSequence, 0, 0x200, decryptedSequence, 0, i);
+                System.arraycopy(decryptedSequence, 0, decryptedHeader, i * 0x200, 0x200);
+            }
+
+            setupHeader(decryptedHeader);
         }
-
-        setupHeader(decryptedHeader);
-
-        raf.close();
 
         setupNCAContent();
         /*//---------------------------------------------------------------------
