@@ -24,6 +24,7 @@ import javax.crypto.Cipher;
 import javax.crypto.spec.IvParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 import java.math.BigInteger;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 
 public class AesCtrDecryptClassic extends AesCtrDecrypt {
@@ -52,7 +53,7 @@ public class AesCtrDecryptClassic extends AesCtrDecrypt {
         byte[] ctrCalculated = ctr.add(updateTo).toByteArray();
         if (ctrCalculated.length != 0x10) {
             ByteBuffer ctrByteBuffer = ByteBuffer.allocate(0x10);
-            ctrByteBuffer.position(0x10 - ctrCalculated.length);
+            ((Buffer) ctrByteBuffer).position(0x10 - ctrCalculated.length);
             ctrByteBuffer.put(ctrCalculated);
             return ctrByteBuffer.array();
         }

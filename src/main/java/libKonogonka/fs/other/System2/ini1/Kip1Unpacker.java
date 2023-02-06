@@ -25,6 +25,7 @@ import libKonogonka.aesctr.InFileStreamClassicProducer;
 import java.io.BufferedInputStream;
 import java.io.File;
 import java.io.RandomAccessFile;
+import java.nio.Buffer;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.StandardCharsets;
@@ -156,7 +157,7 @@ public class Kip1Unpacker {
         ByteBuffer resultingHeader = ByteBuffer.allocate(HEADER_SIZE).order(ByteOrder.LITTLE_ENDIAN);
         resultingHeader.put("KIP1".getBytes(StandardCharsets.US_ASCII))
                 .put(kip1Header.getName().getBytes(StandardCharsets.US_ASCII));
-        resultingHeader.position(0x10);
+        ((Buffer) resultingHeader).position(0x10);
         resultingHeader.put(kip1Header.getProgramId())
                 .putInt(kip1Header.getVersion())
                 .put(kip1Header.getMainThreadPriority())
