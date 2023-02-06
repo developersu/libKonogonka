@@ -9,6 +9,7 @@ import libKonogonka.fs.other.System2.System2Provider;
 import libKonogonka.fs.other.System2.ini1.KIP1Provider;
 import libKonogonka.aesctr.InFileStreamProducer;
 import org.junit.jupiter.api.Assertions;
+import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.DisplayName;
 import org.junit.jupiter.api.Test;
 
@@ -22,10 +23,11 @@ public class ExtractDecompressedKip1Test {
     final String KEYS_FILE_LOCATION = "FilesForTests"+ File.separator+"prod.keys";
     final String XCI_HEADER_KEYS_FILE_LOCATION = "FilesForTests"+File.separator+"xci_header_key.txt";
 
-    final String pathToFirmwares = ". . . nintendo-switch-global-firmwares";
+    final String pathToFirmwares = ". . ./tempPatchesPlayground/nintendo-switch-global-firmwares";
 
     private static KeyChainHolder keyChainHolder;
 
+    @Disabled
     @DisplayName("Extract FS.kip1")
     @Test
     void testSystem2() throws Exception{

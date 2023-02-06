@@ -6,7 +6,7 @@
 
     <groupId>ru.redrise</groupId>
     <artifactId>libKonogonka</artifactId>
-    <version>0.1-SNAPSHOT</version>
+    <version>0.1</version>
 
         <url>https://git.redrise.ru/desu/${project.name}}/</url>
         <description>
@@ -25,6 +25,13 @@
                 <distribution>manual</distribution>
             </license>
         </licenses>
+
+    <distributionManagement>
+        <repository>
+            <id>redrise</id>
+            <url>https://repo.redrise.ru/releases</url>
+        </repository>
+    </distributionManagement>
 
         <developers>
             <developer>
