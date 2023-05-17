@@ -5,13 +5,9 @@ import org.bouncycastle.jce.provider.BouncyCastleProvider;
 import java.security.Security;
 
 public abstract class AesCtrDecrypt {
-    private static boolean shouldBeInitialized = true;
-
     protected AesCtrDecrypt(){
-        if (shouldBeInitialized){
+        if (Security.getProvider("BC") == null)
             Security.addProvider(new BouncyCastleProvider());
-            shouldBeInitialized = false;
-        }
     }
 
     /**

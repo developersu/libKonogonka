@@ -46,14 +46,14 @@ public class KeyChainHolder {
 
     private void collectEverything() throws Exception{
         rawKeySet = new HashMap<>();
-        BufferedReader br = new BufferedReader(new FileReader(keysFile));
-
-        String fileLine;
-        String[] keyValue;
-        while ((fileLine = br.readLine()) != null){
-            keyValue = fileLine.trim().split("\\s+?=\\s+?", 2);
-            if (keyValue.length == 2)
-                rawKeySet.put(keyValue[0], keyValue[1]);
+        try (BufferedReader br = new BufferedReader(new FileReader(keysFile))) {
+            String fileLine;
+            String[] keyValue;
+            while ((fileLine = br.readLine()) != null) {
+                keyValue = fileLine.trim().split("\\s+?=\\s+?", 2);
+                if (keyValue.length == 2)
+                    rawKeySet.put(keyValue[0], keyValue[1]);
+            }
         }
 
         key_area_key_application = collectKeysByType("key_area_key_application");

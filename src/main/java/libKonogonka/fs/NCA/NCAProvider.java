@@ -255,15 +255,14 @@ public class NCAProvider {
             byte[] rightsIdKey = hexStrToByteArray(keys.get(byteArrToHexStringAsLE(rightsId))); // throws NullPointerException
 
             SecretKeySpec skSpec = new SecretKeySpec(
-                    hexStrToByteArray(keys.get(String.format("titlekek_%02x", cryptoTypeReal))
-                    ), "AES");
+                    hexStrToByteArray(keys.get(String.format("titlekek_%02x", cryptoTypeReal))), "AES");
             Cipher cipher = Cipher.getInstance("AES/ECB/NoPadding");
             cipher.init(Cipher.DECRYPT_MODE, skSpec);
             return cipher.doFinal(rightsIdKey);
         }
         catch (Exception e){
-            throw new Exception("No title.keys loaded for '"+
-                    String.format("titlekek_%02x", cryptoTypeReal)+"' or '"+ byteArrToHexStringAsLE(rightsId)+"'? ("+e+")", e);
+            throw new Exception(String.format("No title.keys loaded for 'titlekek_%02x' or '%s' (%s)",
+                    cryptoTypeReal, byteArrToHexStringAsLE(rightsId), e), e);
         }
     }
     private void setupNcaContentByNumber(int number, byte[] key){
