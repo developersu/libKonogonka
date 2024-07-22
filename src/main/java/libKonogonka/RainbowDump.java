@@ -39,19 +39,20 @@ public class RainbowDump {
     private static final String ANSI_BLUE = "\u001B[34m";
 
     private static StringBuilder stringBuilder;
-    public static void hexDumpUTF8(byte[] byteArray){
+    public static void hexDumpUTF8(byte[] byteArray) {
         stringBuilder = new StringBuilder(" -- RainbowDump --\n");
         if (byteArray == null || byteArray.length == 0)
             return;
 
         int k = 0;
+        boolean lastCharCyrillic = false;
         stringBuilder.append(String.format("%s%08x  %s", ANSI_BLUE, 0, ANSI_RESET));
         for (int i = 0; i < byteArray.length; i++) {
             if (k == 8)
                 stringBuilder.append("  ");
-            if (k == 16){
-                stringBuilder.append(ANSI_GREEN+"| "+ANSI_RESET);
-                printChars(byteArray, i);
+            if (k == 16) {
+                stringBuilder.append(ANSI_GREEN + "| " + ANSI_RESET);
+                lastCharCyrillic = printChars(byteArray, i, lastCharCyrillic);
                 stringBuilder.append("\n")
                         .append(String.format("%s%08x  %s", ANSI_BLUE, i, ANSI_RESET));
                 k = 0;
@@ -68,7 +69,7 @@ public class RainbowDump {
                 stringBuilder.append("  ");
             }
         }
-        stringBuilder.append(ANSI_GREEN+"| "+ANSI_RESET);
+        stringBuilder.append(ANSI_GREEN + "| " + ANSI_RESET);
         printChars(byteArray, byteArray.length);
         stringBuilder.append("\n")
                 .append(ANSI_RESET)
@@ -79,22 +80,44 @@ public class RainbowDump {
     }
 
     private static void printChars(byte[] byteArray, int pointer){
+        printChars(byteArray, pointer, false);
+    }
+    private static boolean printChars(byte[] byteArray, int pointer, boolean skipFirstByte){
         int j;
         if (pointer < 16)
             j = 0;
         else
             j = pointer-16;
 
+        int utf8val = 0;
+        if (skipFirstByte){
+            ++j;
+            stringBuilder.append(" ");
+        }
+
         for (; j < pointer; j++){
+            utf8val = 0;
+
+            if (byteArray.length > (j+1))
+                utf8val = ((byteArray[j] & 0xff) << 8) | (byteArray[j+1] & 0xff);
+
             if ((byteArray[j] > 21) && (byteArray[j] < 126)) // man ascii
                 stringBuilder.append((char) byteArray[j]);
             else if (byteArray[j] == 0x0a)
                 stringBuilder.append("↲"); //"␤"
             else if (byteArray[j] == 0x0d)
                 stringBuilder.append("←"); // "␍"
+            else if (utf8val >= 0xd080 && utf8val <= 0xd3bf){
+                byte[] arr = new byte[0x2];
+                System.arraycopy(byteArray, j, arr, 0, 2);
+                stringBuilder.append(new String(arr, StandardCharsets.UTF_8)+" ");
+                ++j;
+            }
             else
                 stringBuilder.append(".");
         }
+
+        return (utf8val >= 0xd080 && utf8val <= 0xd3bf && j > pointer);
     }
 
     public static void hexDumpUTF8Legacy(byte[] byteArray){
