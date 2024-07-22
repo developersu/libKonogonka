@@ -1,7 +1,6 @@
 package libKonogonka.package2;
 
 import libKonogonka.Converter;
-import libKonogonka.KeyChainHolder;
 import libKonogonka.fs.NCA.NCAProvider;
 import libKonogonka.fs.RomFs.FileSystemEntry;
 import libKonogonka.fs.RomFs.RomFsProvider;
@@ -29,23 +28,10 @@ import java.util.zip.CRC32;
 * 2. Decompressed KIP1 extracted from NCA file via streams
 *  */
 
-public class Kip1ExtractDecompressedTest {
-    final String KEYS_FILE_LOCATION = "FilesForTests"+File.separator+"prod.keys";
-    final String XCI_HEADER_KEYS_FILE_LOCATION = "FilesForTests"+File.separator+"xci_header_key.txt";
-
-    final String pathToFirmware = "FilesForTests"+File.separator+"Firmware 14.1.0";
-
-    private static KeyChainHolder keyChainHolder;
-
-    final String referenceFat = "FilesForTests"+File.separator+"reference_for_system2"+File.separator+"FAT"+File.separator+"decompressed";
-    final String referenceExFat = "FilesForTests"+File.separator+"reference_for_system2"+File.separator+"ExFAT"+File.separator+"decompressed";
-    final String exportFat = System.getProperty("java.io.tmpdir")+File.separator+"Exported_FAT"+File.separator+getClass().getSimpleName();
-    final String exportExFat = System.getProperty("java.io.tmpdir")+File.separator+"Exported_ExFAT"+File.separator+getClass().getSimpleName();
-
+public class Kip1ExtractDecompressedTest extends LKonPackage2Test {
     @DisplayName("KIP1 extract test (case 'FS')")
     @Test
     void testSystem2() throws Exception{
-        makeKeys();
         String[] ncaFileNames = collectNcaFileNames();
         List<NCAProvider> ncaProviders = makeNcaProviders(ncaFileNames);
 
@@ -63,22 +49,18 @@ public class Kip1ExtractDecompressedTest {
         Assertions.assertNotNull(system2FatNcaProvider);
         Assertions.assertNotNull(system2ExFatNcaProvider);
 
-        System.out.println("FAT   " + system2FatNcaProvider.getFile().getName());
-        System.out.println("ExFAT " + system2ExFatNcaProvider.getFile().getName());
+        System.out.println("FAT   " + system2FatNcaProvider.getFile().getName() +
+                "\nExFAT " + system2ExFatNcaProvider.getFile().getName());
 
         Assertions.assertTrue(system2FatNcaProvider.getFile().getName().endsWith("1212c.nca"));
         Assertions.assertTrue(system2ExFatNcaProvider.getFile().getName().endsWith("cc081.nca"));
 
-        testExportedFiles(system2FatNcaProvider, exportFat, referenceFat);
-        testExportedFiles(system2ExFatNcaProvider, exportExFat, referenceExFat);
+        testExportedFiles(system2FatNcaProvider, exportFat, REFERENCE_FAT);
+        testExportedFiles(system2ExFatNcaProvider, exportExFat, REFERENCE_EXFAT);
     }
-    void makeKeys() throws Exception{
-        String keyValue = new String(Files.readAllBytes(Paths.get(XCI_HEADER_KEYS_FILE_LOCATION))).trim();
-        Assertions.assertNotEquals(0, keyValue.length());
-        keyChainHolder = new KeyChainHolder(KEYS_FILE_LOCATION, keyValue);
-    }
+
     String[] collectNcaFileNames(){
-        File firmware = new File(pathToFirmware);
+        File firmware = new File(PATH_TO_FIRMWARE);
         Assertions.assertTrue(firmware.exists());
         String[] ncaFileNames = firmware.list((File directory, String file) -> ( ! file.endsWith(".cnmt.nca") && file.endsWith(".nca")));
         Assertions.assertNotNull(ncaFileNames);
@@ -87,7 +69,7 @@ public class Kip1ExtractDecompressedTest {
     List<NCAProvider> makeNcaProviders(String[] ncaFileNames) throws Exception{
         List<NCAProvider> ncaProviders = new ArrayList<>();
         for (String ncaFileName : ncaFileNames){
-            File nca = new File(pathToFirmware+File.separator+ncaFileName);
+            File nca = new File(PATH_TO_FIRMWARE +File.separator+ncaFileName);
             NCAProvider provider = new NCAProvider(nca, keyChainHolder.getRawKeySet());
             ncaProviders.add(provider);
         }

@@ -1,7 +1,6 @@
 package libKonogonka.package2;
 
 import libKonogonka.Converter;
-import libKonogonka.KeyChainHolder;
 import libKonogonka.fs.NCA.NCAProvider;
 import libKonogonka.fs.RomFs.FileSystemEntry;
 import libKonogonka.fs.RomFs.RomFsProvider;
@@ -15,29 +14,18 @@ import java.util.*;
 import java.util.stream.Collectors;
 import java.util.zip.CRC32;
 
+import static libKonogonka.Converter.byteArrToHexStringAsLE;
+
 /* ..::::::::::::::::::::: # 1 :::::::::::::::::::::..
 * This test validates (encrypted) package2 CRC32 equality and sizes match between reference values and
 * 1. package2 from RomFS exported root
 * 2. package2 from RomFS exported as stand-alone file
 *  */
 
-public class ExtractPackage2Test {
-    final String KEYS_FILE_LOCATION = "FilesForTests"+File.separator+"prod.keys";
-    final String XCI_HEADER_KEYS_FILE_LOCATION = "FilesForTests"+File.separator+"xci_header_key.txt";
-
-    final String pathToFirmware = "FilesForTests"+File.separator+"Firmware 14.1.0";
-
-    private static KeyChainHolder keyChainHolder;
-
-    final String referenceFat = "FilesForTests"+File.separator+"reference_for_system2"+File.separator+"FAT";
-    final String referenceExFat = "FilesForTests"+File.separator+"reference_for_system2"+File.separator+"ExFAT";
-    final String exportFat = System.getProperty("java.io.tmpdir")+File.separator+"Exported_FAT"+File.separator+getClass().getSimpleName();
-    final String exportExFat = System.getProperty("java.io.tmpdir")+File.separator+"Exported_ExFAT"+File.separator+getClass().getSimpleName();
-
+public class ExtractPackage2Test extends LKonPackage2Test {
     @DisplayName("Extract package2 test")
     @Test
     void testSystem2() throws Exception{
-        makeKeys();
         String[] ncaFileNames = collectNcaFileNames();
         List<NCAProvider> ncaProviders = makeNcaProviders(ncaFileNames);
 
@@ -55,22 +43,27 @@ public class ExtractPackage2Test {
         Assertions.assertNotNull(system2FatNcaProvider);
         Assertions.assertNotNull(system2ExFatNcaProvider);
 
-        System.out.println("FAT   " + system2FatNcaProvider.getFile().getName());
-        System.out.println("ExFAT " + system2ExFatNcaProvider.getFile().getName());
+        System.out.println("\n" +
+            "FAT   " + system2FatNcaProvider.getFile().getName() + "\n" +
+            byteArrToHexStringAsLE(system2FatNcaProvider.getDecryptedKey0()) + "\n" +
+            byteArrToHexStringAsLE(system2FatNcaProvider.getDecryptedKey1()) + "\n" +
+            byteArrToHexStringAsLE(system2FatNcaProvider.getDecryptedKey2()) + "\n" +
+            byteArrToHexStringAsLE(system2FatNcaProvider.getDecryptedKey3()) + "\n~ ~ ~ ~ ~ ~ ~ ~ ~ ~\n" +
+            "ExFAT " + system2ExFatNcaProvider.getFile().getName() + "\n" +
+            byteArrToHexStringAsLE(system2ExFatNcaProvider.getDecryptedKey0()) + "\n" +
+            byteArrToHexStringAsLE(system2ExFatNcaProvider.getDecryptedKey1()) + "\n" +
+            byteArrToHexStringAsLE(system2ExFatNcaProvider.getDecryptedKey2()) + "\n" +
+            byteArrToHexStringAsLE(system2ExFatNcaProvider.getDecryptedKey3()));
 
         Assertions.assertTrue(system2FatNcaProvider.getFile().getName().endsWith("1212c.nca"));
         Assertions.assertTrue(system2ExFatNcaProvider.getFile().getName().endsWith("cc081.nca"));
 
-        testExportedFiles(system2FatNcaProvider, exportFat, referenceFat);
-        testExportedFiles(system2ExFatNcaProvider, exportExFat, referenceExFat);
+        testExportedFiles(system2FatNcaProvider, exportFat, REFERENCE_FAT);
+        testExportedFiles(system2ExFatNcaProvider, exportExFat, REFERENCE_EXFAT);
     }
-    void makeKeys() throws Exception{
-        String keyValue = new String(Files.readAllBytes(Paths.get(XCI_HEADER_KEYS_FILE_LOCATION))).trim();
-        Assertions.assertNotEquals(0, keyValue.length());
-        keyChainHolder = new KeyChainHolder(KEYS_FILE_LOCATION, keyValue);
-    }
+
     String[] collectNcaFileNames(){
-        File firmware = new File(pathToFirmware);
+        File firmware = new File(PATH_TO_FIRMWARE);
         Assertions.assertTrue(firmware.exists());
         String[] ncaFileNames = firmware.list((File directory, String file) -> ( ! file.endsWith(".cnmt.nca") && file.endsWith(".nca")));
         Assertions.assertNotNull(ncaFileNames);
@@ -79,7 +72,7 @@ public class ExtractPackage2Test {
     List<NCAProvider> makeNcaProviders(String[] ncaFileNames) throws Exception{
         List<NCAProvider> ncaProviders = new ArrayList<>();
         for (String ncaFileName : ncaFileNames){
-            File nca = new File(pathToFirmware+File.separator+ncaFileName);
+            File nca = new File(PATH_TO_FIRMWARE +File.separator+ncaFileName);
             NCAProvider provider = new NCAProvider(nca, keyChainHolder.getRawKeySet());
             ncaProviders.add(provider);
         }
@@ -96,10 +89,10 @@ public class ExtractPackage2Test {
         Path myFilePath1 = Paths.get(exportIntoFolder+File.separator+"ROOT"+File.separator+"nx"+File.separator+"package2");
         Path myFilePath2 = Paths.get(exportIntoFolder+File.separator+"package2");
 
-        System.out.println();
-        System.out.println("Reference : " + referenceFilePath);
-        System.out.println("Own #1    : " + myFilePath1);
-        System.out.println("Own #2    : " + myFilePath2);
+        System.out.println("\n" +
+                "\nReference : " + referenceFilePath  +
+                "\nOwn #1    : " + myFilePath1  +
+                "\nOwn #2    : " + myFilePath2);
 
         romFsProvider.exportContent(exportIntoFolder, romFsProvider.getRootEntry());
         long referenceCrc32 = calculateReferenceCRC32(referenceFilePath);

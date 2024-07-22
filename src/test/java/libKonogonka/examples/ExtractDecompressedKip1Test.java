@@ -23,7 +23,7 @@ public class ExtractDecompressedKip1Test {
     final String KEYS_FILE_LOCATION = "FilesForTests"+ File.separator+"prod.keys";
     final String XCI_HEADER_KEYS_FILE_LOCATION = "FilesForTests"+File.separator+"xci_header_key.txt";
 
-    final String pathToFirmwares = ". . ./tempPatchesPlayground/nintendo-switch-global-firmwares";
+    final String pathToFirmwares = "/tmp";
 
     private static KeyChainHolder keyChainHolder;
 
@@ -34,8 +34,8 @@ public class ExtractDecompressedKip1Test {
         makeKeys();
         File firmwaresDir = new File(pathToFirmwares);
         Assertions.assertNotNull(firmwaresDir);
-        //File[] fwDirs = new File(pathToFirmwares).listFiles((file, s) -> (s.matches("^Firmware (9\\.|[0-9][0-9]\\.).*") && ! s.endsWith(".zip")));
-        File[] fwDirs = new File(pathToFirmwares).listFiles((file, s) -> s.equals("Firmware 14.1.2"));
+        File[] fwDirs = new File(pathToFirmwares).listFiles((file, s) -> (s.matches("^Firmware (9\\.|[0-9][0-9]\\.).*") && ! s.endsWith(".zip")));
+        //File[] fwDirs = new File(pathToFirmwares).listFiles((file, s) -> s.equals("Firmware 14.1.2"));
 
         for (File fw : fwDirs) {
             if (fw.isFile())
@@ -120,7 +120,7 @@ public class ExtractDecompressedKip1Test {
         for (KIP1Provider kip1Provider : providerStream.getIni1Provider().getKip1List()){
             String kip1Name = kip1Provider.getHeader().getName();
             if (kip1Name.equals("FS")) {
-                System.out.println("Exported: "+kip1Provider.exportAsDecompressed(exportIntoFolder));
+                System.out.println("Exported: "+kip1Provider.exportAsDecompressed(exportIntoFolder)+"\n"+exportIntoFolder);
                 break;
             }
         }
