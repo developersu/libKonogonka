@@ -1,6 +1,6 @@
 <img src="misc/logo.svg" title="" alt="libKonogonka" data-align="center">
 
-![License](https://img.shields.io/badge/License-GPLv3-blue.svg) [![Build Status](https://ci.redrise.ru/api/badges/desu/libKonogonka/status.svg)](https://ci.redrise.ru/desu/libKonogonka)
+![License](https://img.shields.io/badge/License-GPLv3-blue.svg) [![status-badge](https://ci.redrise.ru/api/badges/11/status.svg)](https://ci.redrise.ru/repos/11)
 
 Library made to work with NS-specific files / filesystem images. Separated backend of [konogonka](https://github.com/developersu/konogonka) ([independent source location](https://git.redrise.ru/desu/konogonka))
 

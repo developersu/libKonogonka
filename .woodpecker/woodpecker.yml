@@ -1,0 +1,28 @@
+steps:
+  - name: build-install-locally
+    when:
+      event: [tag, push]
+    image: maven:3-openjdk-17
+    commands:
+      - mvn -B -DskipTests clean install
+    volumes:
+      - /home/docker/woodpecker/files/m2:/root/.m2
+
+  - name: test
+    when:
+      event: [tag]
+    image: maven:3-openjdk-17
+    commands:
+      - mvn test -B
+    volumes:
+      - /home/docker/woodpecker/files/m2:/root/.m2
+
+  - name: archive-artifact
+    when:
+      event: [tag, push]
+    image: alpine:latest
+    commands:
+      - mkdir -p /builds/libKonogonka
+      - cp target/libKonogonka-*[0-9].jar /builds/libKonogonka/
+    volumes:
+      - /home/www/builds:/builds
