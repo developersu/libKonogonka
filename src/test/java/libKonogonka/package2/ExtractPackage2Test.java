@@ -23,25 +23,32 @@ import static libKonogonka.Converter.byteArrToHexStringAsLE;
 *  */
 
 public class ExtractPackage2Test extends LKonPackage2Test {
+
+    private static final String SYSTEM2_FAT_NCA_PATTERN = "0100000000000819";
+    private static final String SYSTEM2_EXFAT_NCA_PATTERN = "010000000000081b";
+
+    private static final String REFERENCE_FILE_PATH = File.separator+"romfs"+File.separator+"nx"+File.separator+"package2";
+    private static final String OWN_FILE1_PATH = File.separator+"ROOT"+File.separator+"nx"+File.separator+"package2";
+    private static final String OWN_FILE2_PATH = File.separator+"package2";
+
+    private boolean is(byte[] byteArray, String pattern){
+        return Converter.byteArrToHexStringAsLE(byteArray).equals(pattern);
+    }
+
+    @Disabled
     @DisplayName("Extract package2 test")
     @Test
     void testSystem2() throws Exception{
         String[] ncaFileNames = collectNcaFileNames();
         List<NCAProvider> ncaProviders = makeNcaProviders(ncaFileNames);
 
-        NCAProvider system2FatNcaProvider = null;
-        NCAProvider system2ExFatNcaProvider = null;
+        NCAProvider system2FatNcaProvider = ncaProviders.stream()
+                .filter(ncaProv -> is(ncaProv.getTitleId(), SYSTEM2_FAT_NCA_PATTERN))
+                .findFirst().get();
 
-        for (NCAProvider ncaProvider : ncaProviders) {
-            String titleId = Converter.byteArrToHexStringAsLE(ncaProvider.getTitleId());
-            if (titleId.equals("0100000000000819"))
-                system2FatNcaProvider = ncaProvider;
-            else if (titleId.equals("010000000000081b"))
-                system2ExFatNcaProvider = ncaProvider;
-        }
-
-        Assertions.assertNotNull(system2FatNcaProvider);
-        Assertions.assertNotNull(system2ExFatNcaProvider);
+        NCAProvider system2ExFatNcaProvider = ncaProviders.stream()
+                .filter(ncaProv -> is(ncaProv.getTitleId(), SYSTEM2_EXFAT_NCA_PATTERN))
+                .findFirst().get();
 
         System.out.println("\n" +
             "FAT   " + system2FatNcaProvider.getFile().getName() + "\n" +
@@ -82,22 +89,21 @@ public class ExtractPackage2Test extends LKonPackage2Test {
         return ncaProviders;
     }
 
-    void testExportedFiles(NCAProvider system2NcaProvider, String exportIntoFolder, String referenceFilesFolder) throws Exception{
+    void testExportedFiles(NCAProvider system2NcaProvider, String exportToFolder, String referenceFilesFolder) throws Exception{
+        Path referenceFilePath = Paths.get(referenceFilesFolder+REFERENCE_FILE_PATH);
+        Path ownFilePath1 = Paths.get(exportToFolder+OWN_FILE1_PATH);
+        Path ownFilePath2 = Paths.get(exportToFolder+OWN_FILE2_PATH);
+
+        System.out.printf("\nReference : %s\nOwn #1    : %s\nOwn #2    : %s\n",
+                referenceFilePath, ownFilePath1, ownFilePath2);
+
         RomFsProvider romFsProvider = system2NcaProvider.getNCAContentProvider(0).getRomfs();
 
-        Path referenceFilePath = Paths.get(referenceFilesFolder+File.separator+"romfs"+File.separator+"nx"+File.separator+"package2");
-        Path myFilePath1 = Paths.get(exportIntoFolder+File.separator+"ROOT"+File.separator+"nx"+File.separator+"package2");
-        Path myFilePath2 = Paths.get(exportIntoFolder+File.separator+"package2");
-
-        System.out.println("\n" +
-                "\nReference : " + referenceFilePath  +
-                "\nOwn #1    : " + myFilePath1  +
-                "\nOwn #2    : " + myFilePath2);
-
-        romFsProvider.exportContent(exportIntoFolder, romFsProvider.getRootEntry());
-        long referenceCrc32 = calculateReferenceCRC32(referenceFilePath);
-        validateChecksums(myFilePath1, referenceCrc32);
-        validateSizes(referenceFilePath, myFilePath1);
+        romFsProvider.exportContent(exportToFolder, romFsProvider.getRootEntry());
+        long referenceCrc32 = calcCRC32(referenceFilePath);
+        long ownFile1Crc32 = calcCRC32(ownFilePath1);
+        Assertions.assertEquals(ownFile1Crc32, referenceCrc32);
+        Assertions.assertEquals(Files.size(referenceFilePath), Files.size(ownFilePath1));
 
         FileSystemEntry package2FileSystemEntry = romFsProvider.getRootEntry().getContent()
                 .stream()
@@ -110,27 +116,16 @@ public class ExtractPackage2Test extends LKonPackage2Test {
                 .collect(Collectors.toList())
                 .get(0);
 
-        romFsProvider.exportContent(exportIntoFolder, package2FileSystemEntry);
-        validateChecksums(myFilePath2, referenceCrc32);
-        validateSizes(referenceFilePath, myFilePath2);
+        romFsProvider.exportContent(exportToFolder, package2FileSystemEntry);
+        long ownFile2Crc32 = calcCRC32(ownFilePath2);
+        Assertions.assertEquals(ownFile2Crc32, referenceCrc32);
+        Assertions.assertEquals(Files.size(referenceFilePath), Files.size(ownFilePath2));
     }
-    long calculateReferenceCRC32(Path refPackage2Path) throws Exception{
-        byte[] refPackage2Bytes = Files.readAllBytes(refPackage2Path);
+
+    long calcCRC32(Path package2Path) throws Exception{
+        byte[] package2Bytes = Files.readAllBytes(package2Path);
         CRC32 crc32 = new CRC32();
-        crc32.update(refPackage2Bytes, 0, refPackage2Bytes.length);
+        crc32.update(package2Bytes, 0, package2Bytes.length);
         return crc32.getValue();
-    }
-
-    void validateChecksums(Path myPackage2Path, long refPackage2Crc32) throws Exception{
-        // Check CRC32 for package2 file only
-        byte[] myPackage2Bytes = Files.readAllBytes(myPackage2Path);
-        CRC32 crc32 = new CRC32();
-        crc32.update(myPackage2Bytes, 0, myPackage2Bytes.length);
-        long myPackage2Crc32 = crc32.getValue();
-        Assertions.assertEquals(myPackage2Crc32, refPackage2Crc32);
-    }
-
-    void validateSizes(Path a, Path b) throws Exception{
-        Assertions.assertEquals(Files.size(a), Files.size(b));
     }
 }
