@@ -31,10 +31,6 @@ public class ExtractPackage2Test extends LKonPackage2Test {
     private static final String OWN_FILE1_PATH = File.separator+"ROOT"+File.separator+"nx"+File.separator+"package2";
     private static final String OWN_FILE2_PATH = File.separator+"package2";
 
-    private boolean is(byte[] byteArray, String pattern){
-        return Converter.byteArrToHexStringAsLE(byteArray).equals(pattern);
-    }
-
     @Disabled
     @DisplayName("Extract package2 test")
     @Test
@@ -70,9 +66,8 @@ public class ExtractPackage2Test extends LKonPackage2Test {
     }
 
     String[] collectNcaFileNames(){
-        File firmware = new File(PATH_TO_FIRMWARE);
-        Assertions.assertTrue(firmware.exists());
-        String[] ncaFileNames = firmware.list((File directory, String file) -> ( ! file.endsWith(".cnmt.nca") && file.endsWith(".nca")));
+        String[] ncaFileNames = new File(PATH_TO_FIRMWARE)
+                .list((File directory, String file) -> ( ! file.endsWith(".cnmt.nca") && file.endsWith(".nca")));
         Assertions.assertNotNull(ncaFileNames);
         return ncaFileNames;
     }

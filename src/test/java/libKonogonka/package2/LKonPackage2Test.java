@@ -1,5 +1,6 @@
 package libKonogonka.package2;
 
+import libKonogonka.Converter;
 import libKonogonka.LKonTest;
 
 import java.io.File;
@@ -10,4 +11,10 @@ public class LKonPackage2Test extends LKonTest {
 
     protected String exportFat = TEMP_DIR+File.separator+"Exported_FAT"+File.separator+getClass().getSimpleName();
     protected String exportExFat = TEMP_DIR+File.separator+"Exported_ExFAT"+File.separator+getClass().getSimpleName();
+
+
+    protected boolean is(byte[] byteArray, String pattern){
+        return Converter.byteArrToHexStringAsLE(byteArray).equals(pattern);
+    }
+
 }

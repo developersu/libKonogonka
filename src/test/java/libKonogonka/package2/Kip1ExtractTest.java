@@ -28,28 +28,25 @@ import java.util.zip.CRC32;
 *  */
 
 public class Kip1ExtractTest extends LKonPackage2Test {
+    private static final String SYSTEM2_FAT_NCA_PATTERN = "0100000000000819";
+    private static final String SYSTEM2_EXFAT_NCA_PATTERN = "010000000000081b";
+
     @DisplayName("KIP1 extract test (case 'FS')")
     @Test
     void testSystem2() throws Exception{
         String[] ncaFileNames = collectNcaFileNames();
         List<NCAProvider> ncaProviders = makeNcaProviders(ncaFileNames);
 
-        NCAProvider system2FatNcaProvider = null;
-        NCAProvider system2ExFatNcaProvider = null;
+        NCAProvider system2FatNcaProvider = ncaProviders.stream()
+                .filter(ncaProv -> is(ncaProv.getTitleId(), SYSTEM2_FAT_NCA_PATTERN))
+                .findFirst().get();
 
-        for (NCAProvider ncaProvider : ncaProviders) {
-            String titleId = Converter.byteArrToHexStringAsLE(ncaProvider.getTitleId());
-            if (titleId.equals("0100000000000819"))
-                system2FatNcaProvider = ncaProvider;
-            else if (titleId.equals("010000000000081b"))
-                system2ExFatNcaProvider = ncaProvider;
-        }
+        NCAProvider system2ExFatNcaProvider = ncaProviders.stream()
+                .filter(ncaProv -> is(ncaProv.getTitleId(), SYSTEM2_EXFAT_NCA_PATTERN))
+                .findFirst().get();
 
-        Assertions.assertNotNull(system2FatNcaProvider);
-        Assertions.assertNotNull(system2ExFatNcaProvider);
-
-        System.out.println("FAT   " + system2FatNcaProvider.getFile().getName() +
-                "\nExFAT " + system2ExFatNcaProvider.getFile().getName());
+        System.out.printf("FAT   %s\nExFAT %s\n",
+                system2FatNcaProvider.getFile().getName(), system2ExFatNcaProvider.getFile().getName());
 
         Assertions.assertTrue(system2FatNcaProvider.getFile().getName().endsWith("1212c.nca"));
         Assertions.assertTrue(system2ExFatNcaProvider.getFile().getName().endsWith("cc081.nca"));
