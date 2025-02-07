@@ -108,12 +108,10 @@ public class Kip1ExtractDecompressedTest extends LKonPackage2Test {
             Path referenceFilePath = Paths.get(referenceFilesFolder+File.separator+kip1Name+".dec");
             Path myFilePath = Paths.get(exportIntoFolder+File.separator+kip1Name+"_decompressed.kip1");
 
-            System.out.println(
-                "\nReference : " + referenceFilePath+
-                "\nOwn       : " + myFilePath);
+            System.out.printf("\nReference : %s\nOwn       : %s\n", referenceFilePath, myFilePath);
 
             validateChecksums(myFilePath, referencePathCrc32.get(kip1Name));
-            validateSizes(referenceFilePath, myFilePath);
+            Assertions.assertEquals(Files.size(referenceFilePath), Files.size(myFilePath));
         }
         System.out.println("Stream");
 
@@ -125,12 +123,10 @@ public class Kip1ExtractDecompressedTest extends LKonPackage2Test {
             Path referenceFilePath = Paths.get(referenceFilesFolder+File.separator+kip1Name+".dec");
             Path myFilePath = Paths.get(exportIntoFolder+File.separator+kip1Name+"_decompressed.kip1");
 
-            System.out.println(
-                    "\nReference : " + referenceFilePath+
-                    "\nOwn       : " + myFilePath);
+            System.out.printf("\nReference : %s\nOwn       : %s\n", referenceFilePath, myFilePath);
 
             validateChecksums(myFilePath, referencePathCrc32.get(kip1Name));
-            validateSizes(referenceFilePath, myFilePath);
+            Assertions.assertEquals(Files.size(referenceFilePath), Files.size(myFilePath));
         }
         System.out.println("---");
     }
@@ -153,9 +149,5 @@ public class Kip1ExtractDecompressedTest extends LKonPackage2Test {
         crc32.update(myPackage2Bytes, 0, myPackage2Bytes.length);
         long myPackage2Crc32 = crc32.getValue();
         Assertions.assertEquals(myPackage2Crc32, refPackage2Crc32);
-    }
-
-    void validateSizes(Path a, Path b) throws Exception{
-        Assertions.assertEquals(Files.size(a), Files.size(b));
     }
 }

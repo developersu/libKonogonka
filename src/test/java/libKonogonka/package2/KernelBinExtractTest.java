@@ -27,6 +27,9 @@ public class KernelBinExtractTest extends LKonPackage2Test {
     private static final String SYSTEM2_FAT_NCA_PATTERN = "0100000000000819";
     private static final String SYSTEM2_EXFAT_NCA_PATTERN = "010000000000081b";
 
+    private static final String REFERENCE_FILE_PATH = File.separator+"package2"+File.separator+"Kernel.bin";
+    private static final String OWN_FILE_PATH = File.separator+"Kernel.bin";
+
     @DisplayName("Kernel.bin extract test")
     @Test
     void testSystem2() throws Exception{
@@ -84,43 +87,31 @@ public class KernelBinExtractTest extends LKonPackage2Test {
                 .collect(Collectors.toList())
                 .get(0);
 
-        Path referenceFilePath = Paths.get(referenceFilesFolder+File.separator+"package2"+File.separator+"Kernel.bin");
-        Path myFilePath = Paths.get(exportIntoFolder+File.separator+"Kernel.bin");
+        Path referenceFilePath = Paths.get(referenceFilesFolder+REFERENCE_FILE_PATH);
+        Path ownFilePath = Paths.get(exportIntoFolder+OWN_FILE_PATH);
 
-        System.out.println("\n" +
-            "\nReference : " + referenceFilePath +
-            "\nOwn       : " + myFilePath);
-        long referenceCrc32 = calculateReferenceCRC32(referenceFilePath);
+        System.out.printf("\nReference : %s\nOwn       : %s\n", referenceFilePath, ownFilePath);
+        long referenceCrc32 = calcCRC32(referenceFilePath);
 
         romFsProvider.exportContent(exportIntoFolder, package2FileSystemEntry);
         System2Provider providerFile = new System2Provider(exportIntoFolder+File.separator+"package2", keyChainHolder);
         providerFile.exportKernel(exportIntoFolder);
-        validateChecksums(myFilePath, referenceCrc32);
-        validateSizes(referenceFilePath, myFilePath);
+        long ownCrc32 = calcCRC32(ownFilePath);
+        Assertions.assertEquals(ownCrc32, referenceCrc32);
+        Assertions.assertEquals(Files.size(referenceFilePath), Files.size(ownFilePath));
 
+        // Alternative approach
         InFileStreamProducer producer = romFsProvider.getStreamProducer(package2FileSystemEntry);
         System2Provider providerStream = new System2Provider(producer, keyChainHolder);
         providerStream.exportKernel(exportIntoFolder);
-        validateChecksums(myFilePath, referenceCrc32);
-        validateSizes(referenceFilePath, myFilePath);
+        ownCrc32 = calcCRC32(ownFilePath);
+        Assertions.assertEquals(ownCrc32, referenceCrc32);
+        Assertions.assertEquals(Files.size(referenceFilePath), Files.size(ownFilePath));
     }
-    long calculateReferenceCRC32(Path refPackage2Path) throws Exception{
-        byte[] refPackage2Bytes = Files.readAllBytes(refPackage2Path);
+    long calcCRC32(Path package2Path) throws Exception{
+        byte[] package2Bytes = Files.readAllBytes(package2Path);
         CRC32 crc32 = new CRC32();
-        crc32.update(refPackage2Bytes, 0, refPackage2Bytes.length);
+        crc32.update(package2Bytes, 0, package2Bytes.length);
         return crc32.getValue();
-    }
-
-    void validateChecksums(Path myPackage2Path, long refPackage2Crc32) throws Exception{
-        // Check CRC32 for package2 file only
-        byte[] myPackage2Bytes = Files.readAllBytes(myPackage2Path);
-        CRC32 crc32 = new CRC32();
-        crc32.update(myPackage2Bytes, 0, myPackage2Bytes.length);
-        long myPackage2Crc32 = crc32.getValue();
-        Assertions.assertEquals(myPackage2Crc32, refPackage2Crc32);
-    }
-
-    void validateSizes(Path a, Path b) throws Exception{
-        Assertions.assertEquals(Files.size(a), Files.size(b));
     }
 }
