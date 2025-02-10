@@ -1,6 +1,5 @@
 package libKonogonka.package2;
 
-import libKonogonka.Converter;
 import libKonogonka.fs.NCA.NCAProvider;
 import libKonogonka.fs.RomFs.FileSystemEntry;
 import libKonogonka.fs.RomFs.RomFsProvider;
@@ -92,11 +91,12 @@ public class Kip1ExtractDecompressedTest extends LKonPackage2Test {
 
         HashMap<String, Long> referencePathCrc32 = new HashMap<>();
 
-        Files.list(Paths.get(referenceFilesFolder))
+        Files.list(Paths.get(referenceFilesFolder+File.separator+"decompressed"))
                 .filter(file -> file.toString().endsWith(".dec"))
                 .forEach(path -> referencePathCrc32.put(
                         path.getFileName().toString().replaceAll("\\..*$", ""),
-                        calculateReferenceCRC32(path)));
+                        calcCRC32(path)));
+
         System.out.println("Files");
         romFsProvider.exportContent(exportIntoFolder, package2FileSystemEntry);
         System2Provider kernelProviderFile = new System2Provider(exportIntoFolder+File.separator+"package2", keyChainHolder);
@@ -105,13 +105,13 @@ public class Kip1ExtractDecompressedTest extends LKonPackage2Test {
         for (KIP1Provider kip1Provider : ini1Provider.getKip1List()) {
             String kip1Name = kip1Provider.getHeader().getName();
             kip1Provider.exportAsDecompressed(exportIntoFolder);
-            Path referenceFilePath = Paths.get(referenceFilesFolder+File.separator+kip1Name+".dec");
-            Path myFilePath = Paths.get(exportIntoFolder+File.separator+kip1Name+"_decompressed.kip1");
+            Path referenceFilePath = Paths.get(referenceFilesFolder+File.separator+"decompressed"+File.separator+kip1Name+".dec");
+            Path ownFilePath = Paths.get(exportIntoFolder+File.separator+kip1Name+"_decompressed.kip1");
 
-            System.out.printf("\nReference : %s\nOwn       : %s\n", referenceFilePath, myFilePath);
+            System.out.printf("\nReference : %s\nOwn       : %s\n", referenceFilePath, ownFilePath);
 
-            validateChecksums(myFilePath, referencePathCrc32.get(kip1Name));
-            Assertions.assertEquals(Files.size(referenceFilePath), Files.size(myFilePath));
+            Assertions.assertEquals(calcCRC32(ownFilePath), referencePathCrc32.get(kip1Name));
+            Assertions.assertEquals(Files.size(ownFilePath), Files.size(referenceFilePath));
         }
         System.out.println("Stream");
 
@@ -120,17 +120,17 @@ public class Kip1ExtractDecompressedTest extends LKonPackage2Test {
         for (KIP1Provider kip1Provider : providerStream.getIni1Provider().getKip1List()){
             String kip1Name = kip1Provider.getHeader().getName();
             kip1Provider.exportAsDecompressed(exportIntoFolder);
-            Path referenceFilePath = Paths.get(referenceFilesFolder+File.separator+kip1Name+".dec");
-            Path myFilePath = Paths.get(exportIntoFolder+File.separator+kip1Name+"_decompressed.kip1");
+            Path referenceFilePath = Paths.get(referenceFilesFolder+File.separator+"decompressed"+File.separator+kip1Name+".dec");
+            Path ownFilePath = Paths.get(exportIntoFolder+File.separator+kip1Name+"_decompressed.kip1");
 
-            System.out.printf("\nReference : %s\nOwn       : %s\n", referenceFilePath, myFilePath);
+            System.out.printf("\nReference : %s\nOwn       : %s\n", referenceFilePath, ownFilePath);
 
-            validateChecksums(myFilePath, referencePathCrc32.get(kip1Name));
-            Assertions.assertEquals(Files.size(referenceFilePath), Files.size(myFilePath));
+            Assertions.assertEquals(calcCRC32(ownFilePath), referencePathCrc32.get(kip1Name));
+            Assertions.assertEquals(Files.size(ownFilePath), Files.size(referenceFilePath));
         }
         System.out.println("---");
     }
-    long calculateReferenceCRC32(Path refPackage2Path){
+    long calcCRC32(Path refPackage2Path){
         try {
             byte[] refPackage2Bytes = Files.readAllBytes(refPackage2Path);
             CRC32 crc32 = new CRC32();
@@ -140,14 +140,5 @@ public class Kip1ExtractDecompressedTest extends LKonPackage2Test {
         catch (Exception e) {
             return -1;
         }
-    }
-
-    void validateChecksums(Path myPackage2Path, long refPackage2Crc32) throws Exception{
-        // Check CRC32 for package2 file only
-        byte[] myPackage2Bytes = Files.readAllBytes(myPackage2Path);
-        CRC32 crc32 = new CRC32();
-        crc32.update(myPackage2Bytes, 0, myPackage2Bytes.length);
-        long myPackage2Crc32 = crc32.getValue();
-        Assertions.assertEquals(myPackage2Crc32, refPackage2Crc32);
     }
 }
