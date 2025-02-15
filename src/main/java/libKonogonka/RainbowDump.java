@@ -147,9 +147,9 @@ public class RainbowDump {
     }
 
     public static String formatDecHexString(long value){
-        return String.format("%-20d 0x%x", value, value);
+        return String.format("%1$-20d %1$#x", value);
     }
     public static String formatDecHexString(int value){
-        return String.format("%-20d 0x%x", value, value);
+        return String.format("%1$-20d %1$#x", value);
     }
 }
