@@ -18,7 +18,9 @@
  */
 package libKonogonka.fs.other.System2;
 
+import libKonogonka.Converter;
 import libKonogonka.KeyChainHolder;
+import libKonogonka.RainbowDump;
 import libKonogonka.fs.ExportAble;
 import libKonogonka.fs.other.System2.ini1.Ini1Provider;
 import libKonogonka.aesctr.InFileStreamProducer;
@@ -112,12 +114,26 @@ public class System2Provider extends ExportAble {
                 throw new Exception("Read failure " + actuallyRead);
             byteBuffer.put(block);
         }
-
         byte[] searchField = byteBuffer.array();
-        for (int i = 0; i < 1024; i += 4) {
-            kernelMap = new KernelMap(searchField, i);
-            if (kernelMap.isValid(header.getSection0size()))
-                return;
+
+        if (Converter.getLEint(searchField, 3) == 0x14){ // If FW 17.0.0+
+            // Calculate new location of the 'kernel beginning'
+            int branchTarget = (Converter.getLEint(searchField, 0) & 0x00FFFFFF) << 2;
+
+            int toSkip = branchTarget - 0x1000;
+            System.out.println("To skip = " + toSkip + " ");
+            if (toSkip != stream.skip(toSkip))
+                throw new Exception("Unable to skip offset of " + toSkip);
+
+            // TODO: really cursed shit
+            throw new Exception("FW 17+ not supported. WIP");
+        }
+        else {
+            for (int i = 0; i < 0x1000; i += 4) {
+                kernelMap = KernelMap.constructKernelMap(searchField, i, header.getSection0size());
+                if (kernelMap != null)
+                    return;
+            }
         }
         throw new Exception("Kernel map not found");
     }
