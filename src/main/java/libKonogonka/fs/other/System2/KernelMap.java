@@ -1,5 +1,5 @@
 /*
-    Copyright 2019-2023 Dmitry Isaenko
+    Copyright 2019-2025 Dmitry Isaenko
 
     This file is part of libKonogonka.
 
@@ -50,8 +50,6 @@ public class KernelMap {
     public static KernelMap constructKernelMap(byte[] mapBytes, int offset, int maxSize) {
         KernelMap kernelMap = new KernelMap();
         kernelMap.textStartOffset = Converter.getLEint(mapBytes, offset);
-        if (kernelMap.textStartOffset != 0)
-            return null;
         kernelMap.textEndOffset = Converter.getLEint(mapBytes, offset + 0x4);
         kernelMap.rodataStartOffset = Converter.getLEint(mapBytes, offset + 0x8);
         kernelMap.rodataEndOffset = Converter.getLEint(mapBytes, offset + 0xC);
@@ -65,38 +63,67 @@ public class KernelMap {
         kernelMap.initArrayEndOffset = Converter.getLEint(mapBytes, offset + 0x2C);
         kernelMap.systemRegistersOffset = Converter.getLEint(mapBytes, offset + 0x30);
 
+        if (isValid(kernelMap, maxSize))
+            return kernelMap;
+
+        return null;
+    }
+
+    public static KernelMap constructKernelMap17(byte[] mapBytes, int offset, int branchTarget, int maxSize) {
+        KernelMap kernelMap = new KernelMap();
+        final int realOffset = offset + branchTarget;
+        kernelMap.textStartOffset = Converter.getLEint(mapBytes, offset)+realOffset;
+        kernelMap.textEndOffset = Converter.getLEint(mapBytes, offset + 0x4)+realOffset;
+        kernelMap.rodataStartOffset = Converter.getLEint(mapBytes, offset + 0x8)+realOffset;
+        kernelMap.rodataEndOffset = Converter.getLEint(mapBytes, offset + 0xC)+realOffset;
+        kernelMap.dataStartOffset = Converter.getLEint(mapBytes, offset + 0x10)+realOffset;
+        kernelMap.dataEndOffset = Converter.getLEint(mapBytes, offset + 0x14)+realOffset;
+        kernelMap.bssStartOffset = Converter.getLEint(mapBytes, offset + 0x18)+realOffset;
+        kernelMap.bssEndOffset = Converter.getLEint(mapBytes, offset + 0x1C)+realOffset;
+        kernelMap.ini1Offset = Converter.getLEint(mapBytes, offset + 0x20)+realOffset; // 0x08d000
+        kernelMap.dynamicOffset = Converter.getLEint(mapBytes, offset + 0x24)+realOffset;
+        kernelMap.initArrayStartOffset = Converter.getLEint(mapBytes, offset + 0x28)+realOffset;
+        kernelMap.initArrayEndOffset = Converter.getLEint(mapBytes, offset + 0x2C)+realOffset;
+        kernelMap.systemRegistersOffset = Converter.getLEint(mapBytes, offset + 0x30)+realOffset;
+
+        if (isValid(kernelMap, maxSize))
+            return kernelMap;
+        
+        return null;
+    }
+
+    private static boolean isValid(KernelMap kernelMap, int maxSize){
         // taken from hactool
+        if (kernelMap.textStartOffset != 0)
+            return false;
         if (kernelMap.textStartOffset >= kernelMap.textEndOffset)
-            return null;
+            return false;
         if ((kernelMap.textEndOffset & 0xFFF) > 0)
-            return null;
+            return false;
         if (kernelMap.textEndOffset > kernelMap.rodataStartOffset)
-            return null;
+            return false;
         if ((kernelMap.rodataStartOffset & 0xFFF) > 0)
-            return null;
+            return false;
         if (kernelMap.rodataStartOffset >= kernelMap.rodataEndOffset)
-            return null;
+            return false;
         if ((kernelMap.rodataEndOffset & 0xFFF) > 0)
-            return null;
+            return false;
         if (kernelMap.rodataEndOffset > kernelMap.dataStartOffset)
-            return null;
+            return false;
         if ((kernelMap.dataStartOffset & 0xFFF) > 0)
-            return null;
+            return false;
         if (kernelMap.dataStartOffset >= kernelMap.dataEndOffset)
-            return null;
+            return false;
         if (kernelMap.dataEndOffset > kernelMap.bssStartOffset)
-            return null;
+            return false;
         if (kernelMap.bssStartOffset > kernelMap.bssEndOffset)
-            return null;
+            return false;
         if (kernelMap.bssEndOffset > kernelMap.ini1Offset)
-            return null;
-        /*
+            return false;
         if (kernelMap.ini1Offset > maxSize - 0x80)
-            return null;
-        */
-        System.out.println("FOUND AT:" + RainbowDump.formatDecHexString(offset));
-        kernelMap.printDebug();
-        return kernelMap;
+            return false;
+
+        return true;
     }
 
     public int getTextStartOffset() { return textStartOffset; }

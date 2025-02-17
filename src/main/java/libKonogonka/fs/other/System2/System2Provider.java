@@ -1,5 +1,5 @@
 /*
-    Copyright 2019-2022 Dmitry Isaenko
+    Copyright 2019-2025 Dmitry Isaenko
      
     This file is part of libKonogonka.
 
@@ -20,7 +20,6 @@ package libKonogonka.fs.other.System2;
 
 import libKonogonka.Converter;
 import libKonogonka.KeyChainHolder;
-import libKonogonka.RainbowDump;
 import libKonogonka.fs.ExportAble;
 import libKonogonka.fs.other.System2.ini1.Ini1Provider;
 import libKonogonka.aesctr.InFileStreamProducer;
@@ -121,12 +120,27 @@ public class System2Provider extends ExportAble {
             int branchTarget = (Converter.getLEint(searchField, 0) & 0x00FFFFFF) << 2;
 
             int toSkip = branchTarget - 0x1000;
-            System.out.println("To skip = " + toSkip + " ");
             if (toSkip != stream.skip(toSkip))
                 throw new Exception("Unable to skip offset of " + toSkip);
 
-            // TODO: really cursed shit
-            throw new Exception("FW 17+ not supported. WIP");
+            byteBuffer.clear();
+
+            for (int j = 0; j < 8; j++) {
+                byte[] block = new byte[0x200];
+                int actuallyRead;
+                if ((actuallyRead = stream.read(block)) != 0x200)
+                    throw new Exception("Read failure " + actuallyRead);
+                byteBuffer.put(block);
+            }
+
+            searchField = byteBuffer.array();
+
+            for (int i = 0; i < 0x1000; i += 4) {
+                kernelMap = KernelMap.constructKernelMap17(searchField, i, branchTarget, header.getSection0size());
+                if (kernelMap != null)
+                    return;
+            }
+            System.out.println();
         }
         else {
             for (int i = 0; i < 0x1000; i += 4) {
